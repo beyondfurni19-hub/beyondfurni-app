@@ -13763,9 +13763,9 @@ function invPurRemoveRow(id){
 }
 
 function invPurRenderRows(){
-  const mats = invGetMats();
+  const mats = STK; // STK = Raw Materials module
   const matOptions = '<option value="">-- Material --</option>' +
-    mats.map(m=>`<option value="${m.id}">${m.name} (${m.punit})</option>`).join('');
+    mats.map(m=>`<option value="${m.id}">${m.ico||'📦'} ${m.name} (${m.unit})</option>`).join('');
   const conv = invGetConv();
 
   document.getElementById('inv-pur-rows').innerHTML = _purRows.map((row,i)=>`
@@ -13786,24 +13786,34 @@ function invPurRenderRows(){
       <div class="g2" style="margin-bottom:6px">
         <div class="fg" style="margin:0">
           <label style="font-size:10px">Qty <span id="purunit-${row.id}" style="color:var(--orange);font-size:10px"></span></label>
-          <input class="finp" type="number" id="purqty-${row.id}" value="${row.qty||''}" min="0" step="any" placeholder="0"
+          <input class="finp" type="number" id="purqty-${row.id}" value="${row.qty>0?row.qty:''}" min="0" step="any" placeholder="0"
             oninput="invPurRowCalc('${row.id}')" style="font-size:13px">
         </div>
         <div class="fg" style="margin:0">
           <label style="font-size:10px">Rate (₹/unit)</label>
-          <input class="finp" type="number" id="purrate-${row.id}" value="${row.rate||''}" min="0" step="any" placeholder="0"
+          <input class="finp" type="number" id="purrate-${row.id}" value="${row.rate>0?row.rate:''}" min="0" step="any" placeholder="0"
             oninput="invPurRowCalc('${row.id}')" style="font-size:13px">
         </div>
       </div>
 
-      <!-- Conversion (shown only if punit != uunit) -->
-      <div id="purconv-${row.id}" style="display:none;background:var(--yellow-bg);border:1px solid #fde68a;border-radius:var(--r3);padding:8px 10px;margin-bottom:6px">
-        <div style="font-size:10px;font-weight:800;color:var(--yellow-dark);margin-bottom:5px">🔄 Conversion: 1 <span id="purconvfrom-${row.id}" style="color:var(--orange)"></span> =</div>
+      <!-- Conversion — always toggleable -->
+      <div style="margin-bottom:6px">
+        <button type="button" onclick="invPurToggleConv('${row.id}')"
+          style="padding:4px 10px;background:var(--yellow-bg);border:1px solid #fde68a;border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;cursor:pointer;color:var(--yellow-dark)">
+          🔄 Unit Conversion <span id="purconvtoggle-${row.id}">${row.convRatio>0?'✓ ON':'+ Set'}</span>
+        </button>
+      </div>
+      <div id="purconv-${row.id}" style="display:${row.convRatio>0?'block':'none'};background:var(--yellow-bg);border:1px solid #fde68a;border-radius:var(--r3);padding:8px 10px;margin-bottom:6px">
+        <div style="font-size:10px;color:var(--yellow-dark);margin-bottom:5px;font-weight:800">
+          1 <span id="purconvfrom-${row.id}" style="color:var(--orange)">${row.matId?STK.find(m=>m.id===row.matId)?.unit||'unit':'unit'}</span> =
+        </div>
         <div style="display:flex;align-items:center;gap:8px">
           <input type="number" id="purconvratio-${row.id}" value="${row.convRatio||''}" min="0" step="any" placeholder="e.g. 41"
             style="width:80px;padding:5px 8px;border:1.5px solid #fde68a;border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;outline:none;background:#fff"
             oninput="invPurRowCalc('${row.id}')">
-          <span id="purconvto-${row.id}" style="font-size:12px;font-weight:800;color:var(--navy2)"></span>
+          <input type="text" id="purconvto-${row.id}" value="${row.convToUnit||'pcs'}"
+            style="width:60px;padding:5px 8px;border:1.5px solid #fde68a;border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;outline:none;background:#fff"
+            placeholder="unit" oninput="invPurRowCalc('${row.id}')">
         </div>
         <div id="purconvpreview-${row.id}" style="font-size:10px;color:var(--green-dark);font-weight:800;margin-top:4px"></div>
       </div>
@@ -13821,18 +13831,15 @@ function invPurRenderRows(){
 }
 
 function invPurRestoreRow(row){
-  const mat = invGetMats().find(m=>m.id===row.matId);
+  const mat = STK.find(m=>m.id===row.matId);
   if(!mat) return;
   const unitEl = document.getElementById('purunit-'+row.id);
-  if(unitEl) unitEl.textContent='('+mat.punit+')';
+  if(unitEl) unitEl.textContent='('+mat.unit+')';
+  const stockEl = document.getElementById('purstockinfo-'+row.id);
+  if(stockEl) stockEl.textContent='Stock: '+mat.current+' '+mat.unit;
+  // STK unit same for purchase and use — no conversion needed by default
   const convWrap = document.getElementById('purconv-'+row.id);
-  if(convWrap && mat.punit!==mat.uunit){
-    convWrap.style.display='';
-    const fromEl=document.getElementById('purconvfrom-'+row.id);
-    const toEl=document.getElementById('purconvto-'+row.id);
-    if(fromEl) fromEl.textContent=mat.punit;
-    if(toEl) toEl.textContent=mat.uunit;
-  }
+  if(convWrap) convWrap.style.display='none';
   invPurRowCalc(row.id);
 }
 
@@ -13842,40 +13849,42 @@ function invPurOnMatChange(rowId){
   if(!row) return;
   row.matId = matId;
   if(!matId){ return; }
-  const mat = invGetMats().find(m=>m.id===matId);
+  const mat = STK.find(m=>m.id===matId);
   if(!mat) return;
 
-  // Set unit label
+  // Unit label
   const unitEl = document.getElementById('purunit-'+rowId);
-  if(unitEl) unitEl.textContent='('+mat.punit+')';
-
-  // Auto-fill rate
-  const rateEl = document.getElementById('purrate-'+rowId);
-  if(rateEl && mat.rate) rateEl.value=mat.rate;
+  if(unitEl) unitEl.textContent='('+mat.unit+')';
 
   // Stock info
   const stockEl = document.getElementById('purstockinfo-'+rowId);
-  if(stockEl) stockEl.textContent='Stock: '+invFmt(mat.stock)+' '+mat.punit;
+  if(stockEl) stockEl.textContent='Current: '+mat.current+' '+mat.unit;
 
-  // Conversion
+  // Check if this material has a saved conversion ratio
+  const conv = invGetConv();
+  const savedRatio = conv[matId]||0;
   const convWrap = document.getElementById('purconv-'+rowId);
-  if(convWrap){
-    if(mat.punit !== mat.uunit){
-      convWrap.style.display='';
-      document.getElementById('purconvfrom-'+rowId).textContent=mat.punit;
-      document.getElementById('purconvto-'+rowId).textContent=mat.uunit;
-      // Pre-fill saved conversion
-      const conv=invGetConv();
-      const savedRatio=conv[matId]||mat.convRatio||0;
-      const ratioEl=document.getElementById('purconvratio-'+rowId);
-      if(ratioEl) ratioEl.value=savedRatio||'';
-      row.convRatio=savedRatio;
-    } else {
-      convWrap.style.display='none';
-      row.convRatio=0;
-    }
+  const toggleLbl = document.getElementById('purconvtoggle-'+rowId);
+  const fromEl = document.getElementById('purconvfrom-'+rowId);
+  if(fromEl) fromEl.textContent = mat.unit;
+  if(savedRatio>0 && convWrap){
+    convWrap.style.display='block';
+    if(toggleLbl) toggleLbl.textContent='✓ ON';
+    const ratioEl=document.getElementById('purconvratio-'+rowId);
+    if(ratioEl) ratioEl.value=savedRatio;
+    row.convRatio=savedRatio;
   }
   invPurRowCalc(rowId);
+}
+
+function invPurToggleConv(rowId){
+  const wrap = document.getElementById('purconv-'+rowId);
+  const toggleLbl = document.getElementById('purconvtoggle-'+rowId);
+  if(!wrap) return;
+  const isOpen = wrap.style.display !== 'none';
+  wrap.style.display = isOpen ? 'none' : 'block';
+  if(toggleLbl) toggleLbl.textContent = isOpen ? '+ Set' : '✓ ON';
+  if(!isOpen) document.getElementById('purconvratio-'+rowId)?.focus();
 }
 
 function invPurRowCalc(rowId){
@@ -13884,16 +13893,25 @@ function invPurRowCalc(rowId){
   row.qty = parseFloat(document.getElementById('purqty-'+rowId)?.value)||0;
   row.rate = parseFloat(document.getElementById('purrate-'+rowId)?.value)||0;
   row.convRatio = parseFloat(document.getElementById('purconvratio-'+rowId)?.value)||0;
+  row.convToUnit = document.getElementById('purconvto-'+rowId)?.value?.trim()||'pcs';
 
   const rowTotal = row.qty * row.rate;
   const totalEl = document.getElementById('purrowtotal-'+rowId);
   if(totalEl) totalEl.textContent = '₹'+rowTotal.toLocaleString('en-IN',{maximumFractionDigits:2});
 
+  // Update toggle label
+  const toggleLbl = document.getElementById('purconvtoggle-'+rowId);
+  const convWrap = document.getElementById('purconv-'+rowId);
+  const isOpen = convWrap && convWrap.style.display !== 'none';
+  if(toggleLbl) toggleLbl.textContent = (isOpen || row.convRatio>0) ? '✓ ON' : '+ Set';
+
   // Conversion preview
   const preview = document.getElementById('purconvpreview-'+rowId);
   if(preview && row.qty>0 && row.convRatio>0){
-    const toUnit = document.getElementById('purconvto-'+rowId)?.textContent||'pcs';
-    preview.textContent=`✅ ${row.qty} × ${row.convRatio} = ${row.qty*row.convRatio} ${toUnit}`;
+    const mat = STK.find(m=>m.id===row.matId);
+    const fromUnit = mat?.unit||'unit';
+    const stockAdded = row.qty * row.convRatio;
+    preview.textContent = `✅ ${row.qty} ${fromUnit} × ${row.convRatio} = ${stockAdded} ${row.convToUnit} stock mein`;
   } else if(preview) preview.textContent='';
 
   invPurUpdateGrandTotal();
@@ -13919,42 +13937,50 @@ function invSavePurchase(){
   const validRows = _purRows.filter(r=>r.matId && r.qty>0 && r.rate>0);
   if(!validRows.length){ invToast('Kam se kam 1 item complete karo!','err'); return; }
 
-  const mats = invGetMats();
   const conv = invGetConv();
   let grandTotal = 0;
   const logItems = [];
 
-  // ── Process each item ──
+  // ── Process each item — update STK ──
   validRows.forEach(row=>{
-    const idx = mats.findIndex(m=>m.id===row.matId);
+    const idx = STK.findIndex(m=>m.id===row.matId);
     if(idx<0) return;
-    const mat = mats[idx];
+    const mat = STK[idx];
     const rowTotal = row.qty * row.rate;
     grandTotal += rowTotal;
 
     // Conversion
     let stockToAdd = row.qty;
-    let stockUnit = mat.punit;
-    if(row.convRatio>0 && mat.punit!==mat.uunit){
+    let stockUnit = mat.unit;
+    if(row.convRatio>0){
       stockToAdd = row.qty * row.convRatio;
-      stockUnit = mat.uunit;
-      conv[mat.id] = row.convRatio; // save ratio
+      stockUnit = row.convToUnit||'pcs';
+      conv[mat.id] = row.convRatio;
     }
 
-    mats[idx].stock = +(mat.stock||0) + stockToAdd;
-    mats[idx].rate = row.rate;
+    STK[idx].current = +(mat.current||0) + stockToAdd;
+
+    // Add transaction log
+    STXN.push({
+      id:Date.now()+'_'+Math.random().toString(36).slice(2,5),
+      itemId:mat.id, type:'in', qty:stockToAdd,
+      note:'Purchase'+(row.convRatio>0?` (${row.qty}${mat.unit}×${row.convRatio})`:'')+(billno?' · Bill:'+billno:''),
+      date:new Date().toISOString()
+    });
 
     logItems.push({
       matId:mat.id, matName:mat.name,
-      qty:row.qty, punit:mat.punit,
+      qty:row.qty, punit:mat.unit,
       stockAdded:stockToAdd, stockUnit,
       convRatio:row.convRatio||null,
       rate:row.rate, total:rowTotal
     });
   });
 
-  invSetMats(mats);
+  save('bf9_stk', STK);
+  save('bf9_stxn', STXN);
   invSetConv(conv);
+  if(typeof renderStock==='function') renderStock();
 
   // ── Supplier info ──
   let supplierName='', supplierId=supplierSelId||null;
