@@ -1303,7 +1303,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 <!-- Google Drive Loading Overlay -->
 <div id="gd-overlay" style="display:none;position:fixed;inset:0;background:rgba(13,27,53,.92);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:16px">
   <div style="width:52px;height:52px;border-radius:50%;border:4px solid rgba(255,255,255,.15);border-top-color:#f07020;animation:gdSpin .8s linear infinite"></div>
-  <div style="color:#fff;font-size:15px;font-weight:800;font-family:'Nunito',sans-serif">☁️ Drive se data load ho raha hai...</div>
+  <div id="gd-overlay-msg" style="color:#fff;font-size:15px;font-weight:800;font-family:'Nunito',sans-serif">☁️ Supabase se data load ho raha hai...</div>
   <div style="color:#7a9bcc;font-size:11px;font-weight:700;font-family:'Nunito',sans-serif">Ek second ruko</div>
 </div>
 <style>@keyframes gdSpin{to{transform:rotate(360deg)}}</style>
@@ -1408,6 +1408,12 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <button class="sbnav" data-tab="settings" onclick="sw('settings',this)">
       <span class="sb-ico">⚙️</span><span class="sb-lbl">Settings</span>
     </button>
+    <button class="sbnav" onclick="gdForcePull()" style="border-top:1px solid #1e3060">
+      <span class="sb-ico">☁️</span><span class="sb-lbl" style="color:#7ab8ff">Cloud se Lo</span>
+    </button>
+    <button class="sbnav" onclick="gdPush()" >
+      <span class="sb-ico">⬆️</span><span class="sb-lbl" style="color:#90e8b0">Cloud pe Save</span>
+    </button>
   </div>
 </div>
 
@@ -1425,10 +1431,10 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   </div>
   <div class="top-right">
     <div class="top-date" id="top-date"></div>
-    <!-- Drive Sync Status -->
-    <div style="display:flex;align-items:center;gap:5px;padding:3px 9px;background:rgba(255,255,255,.08);border-radius:20px;border:1px solid rgba(255,255,255,.12)">
-      <div id="gd-dot" style="width:7px;height:7px;border-radius:50%;background:#6b7a99;flex-shrink:0;transition:background .3s" title="Drive sync"></div>
-      <div id="gd-lbl" style="font-size:9px;font-weight:800;color:#7a9bcc;white-space:nowrap">Drive</div>
+    <!-- Cloud Sync Status — tap to force-pull -->
+    <div onclick="gdForcePull()" title="Tap = doosre device ka latest data lo" style="display:flex;align-items:center;gap:5px;padding:4px 10px;background:rgba(255,255,255,.08);border-radius:20px;border:1px solid rgba(255,255,255,.12);cursor:pointer">
+      <div id="gd-dot" style="width:8px;height:8px;border-radius:50%;background:#6b7a99;flex-shrink:0;transition:background .3s"></div>
+      <div id="gd-lbl" style="font-size:9px;font-weight:800;color:#7a9bcc;white-space:nowrap">Sync</div>
     </div>
     <div class="top-badge">v10.0</div>
   </div>
@@ -3491,11 +3497,31 @@ const BT_STAGES=[
 ];
 
 /* ═══════════════════════════════════════════════
-   GOOGLE DRIVE AUTO-SYNC
-   Apps Script Web App URL hardcoded below
+   SUPABASE AUTO-SYNC
+   Real-time cloud sync — dono devices pe same data
 ═══════════════════════════════════════════════ */
-const GD_URL = 'https://script.google.com/macros/s/AKfycbxkHGoCgMfLWBhLjQ8uEN7XKxE6kU8onDsmKRiL3j-TOm34Sir8i8V8VUASbyw9DRmp/exec';
-const GD_KEYS = ['bf9_w','bf9_p','bf9_m','bf9_h','bf9_eod','bf9_stk','bf9_stxn','bf9_trips','bf9_batches','bf9_invoices','bf9_invsettings','bf9_customers','bf9_ledger','bf9_orders'];
+const SB_URL  = 'https://nckyirexejnttxmhbmd.supabase.co';
+const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ja3lpcmV4ZWpudHRzeG1oYm1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3ODMwNjgsImV4cCI6MjA5NTM1OTA2OH0.d8NKL-2q5f5NLDfOs0dWOYu1oxLb2TfwcQPxAv_hGn0';
+const GD_KEYS = [
+  // Core floor plan & production
+  'bf9_w','bf9_p','bf9_m','bf9_h','bf9_eod','bf9_eod_stages',
+  // Stock & trips
+  'bf9_stk','bf9_stxn','bf9_trips',
+  // Orders & batches
+  'bf9_batches','bf9_orders',
+  // Invoicing & customers
+  'bf9_invoices','bf9_invsettings','bf9_customers','bf9_ledger',
+  // Inventory module
+  'bf9_inv_mats','bf9_inv_bom','bf9_inv_conv','bf9_inv_purlog','bf9_inv_prodlog',
+  // Daybook
+  'bf9_daybook','bf9_cat_labels',
+  // Attendance & Salary
+  'bf9_att','bf9_sal_rates','bf9_sal_rules','bf9_advances',
+  // CFO module
+  'bf9_cfo',
+  // Google Sheet sync config
+  'bf9_webappurl','bf9_syncstate'
+];
 
 let _gdSyncing   = false;
 let _gdPushTimer = null;
@@ -3517,72 +3543,131 @@ function gdCollect(){
   const obj = {};
   GD_KEYS.forEach(k=>{
     const v = localStorage.getItem(k);
-    if(v) obj[k] = v; // already stringified
+    if(v) obj[k] = v;
   });
   return obj;
 }
 
-/* ── Push to Drive ── */
-function gdPush(){
+/* ── Push to Supabase ── */
+async function gdPush(){
   if(_gdSyncing) return;
   _gdSyncing = true;
   gdSetDot('syncing');
-  const payload = JSON.stringify(gdCollect());
-  fetch(GD_URL, {
-    method:'POST',
-    mode:'no-cors',
-    body: payload,
-    headers:{'Content-Type':'text/plain'}
-  })
-  .then(()=>{
+  try {
+    const payload = gdCollect();
+    const res = await fetch(SB_URL+'/rest/v1/bf_sync?id=eq.main', {
+      method: 'PATCH',
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer '+SB_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ data: payload, updated_at: new Date().toISOString() })
+    });
+    if(!res.ok) throw new Error('HTTP '+res.status);
     _gdSyncing = false;
     gdSetDot('ok');
     localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
-  })
-  .catch(e=>{
+  } catch(e) {
     _gdSyncing = false;
     gdSetDot('err');
-    console.warn('Drive push failed:', e);
-  });
+    console.warn('Supabase push failed:', e);
+  }
 }
 
-/* ── Load from Drive on startup ── */
+/* ── Load from Supabase on startup ── */
 function gdLoad(){
-  // Agar already reload ho chuka hai — dobara Drive se load mat karo
   if(localStorage.getItem('bf9_gd_reloaded')==='1'){
     localStorage.removeItem('bf9_gd_reloaded');
     gdSetDot('ok');
-    // Abhi data Drive pe push karo (latest localStorage data)
     setTimeout(gdPush, 1000);
     return;
   }
+  _gdFetch(false);
+}
 
+/* ── Force pull from Supabase (doosre device ka data lana) ── */
+function gdForcePull(){
+  if(!confirm('⚠️ Supabase se saara data overwrite hoga!\nLocal data replace ho jayega.\n\nAage badhna hai?')) return;
+  _gdFetch(true);
+}
+
+/* ── Silent pull — background mein check karo, koi notification nahi ── */
+async function _gdSilentPull(){
+  try {
+    const res = await fetch(SB_URL+'/rest/v1/bf_sync?id=eq.main&select=data,updated_at', {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer '+SB_KEY }
+    });
+    if(!res.ok) return;
+    const rows = await res.json();
+    const cloud = (rows && rows[0] && rows[0].data) ? rows[0].data : {};
+    if(!cloud || Object.keys(cloud).length === 0) return;
+
+    // Compare cloud updated_at with last local sync time
+    const cloudTime = rows[0].updated_at ? new Date(rows[0].updated_at) : null;
+    const localTime = localStorage.getItem('bf9_gd_lastsync') ? new Date(localStorage.getItem('bf9_gd_lastsync')) : null;
+
+    if(cloudTime && localTime && cloudTime <= localTime) return; // no change
+
+    // Cloud is newer — apply non-conflicting keys and reload
+    let restored = 0;
+    GD_KEYS.forEach(k=>{
+      if(cloud[k] !== undefined && cloud[k] !== '' && cloud[k] !== 'null'){
+        localStorage.setItem(k, cloud[k]);
+        restored++;
+      }
+    });
+    if(restored > 0){
+      localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
+      localStorage.setItem('bf9_gd_reloaded','1');
+      toast('🔄 Naya data mila — refresh ho raha hai...');
+      setTimeout(()=>location.reload(), 1200);
+    }
+  } catch(e){ /* silent fail */ }
+}
+
+/* ── Internal fetch — force=true matlab local data override karo ── */
+async function _gdFetch(force){
   gdSetDot('syncing');
   const ov = document.getElementById('gd-overlay');
-  if(ov) ov.style.display='flex';
-
-  fetch(GD_URL, { method:'GET', mode:'cors' })
-  .then(r => r.text())
-  .then(text => {
+  if(ov){
+    const msg = document.getElementById('gd-overlay-msg');
+    if(msg) msg.textContent = force ? '☁️ Supabase se data la raha hoon...' : '☁️ Supabase se sync ho raha hai...';
+    ov.style.display='flex';
+  }
+  try {
+    const res = await fetch(SB_URL+'/rest/v1/bf_sync?id=eq.main&select=data,updated_at', {
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer '+SB_KEY
+      }
+    });
     if(ov) ov.style.display='none';
     _gdLoaded = true;
-    let data;
-    try { data = JSON.parse(text); } catch(e) { data = {}; }
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const rows = await res.json();
+    const cloud = (rows && rows[0] && rows[0].data) ? rows[0].data : {};
 
-    if(!data || Object.keys(data).length === 0){
+    if(!cloud || Object.keys(cloud).length === 0){
       gdSetDot('ok');
-      gdPush();
+      if(!force) gdPush();
+      else toast('Supabase pe koi data nahi mila');
       return;
     }
 
-    // Drive ka data localStorage mein dalo — sirf woh keys jo locally empty hain
     let restored = 0;
     GD_KEYS.forEach(k=>{
-      if(data[k] !== undefined && data[k] !== '' && data[k] !== 'null'){
-        const local = localStorage.getItem(k);
-        if(!local || local==='null' || local==='[]' || local==='{}'){
-          localStorage.setItem(k, data[k]);
+      if(cloud[k] !== undefined && cloud[k] !== '' && cloud[k] !== 'null'){
+        if(force){
+          localStorage.setItem(k, cloud[k]);
           restored++;
+        } else {
+          const local = localStorage.getItem(k);
+          if(!local || local==='null' || local==='[]' || local==='{}'){
+            localStorage.setItem(k, cloud[k]);
+            restored++;
+          }
         }
       }
     });
@@ -3591,17 +3676,19 @@ function gdLoad(){
     localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
 
     if(restored > 0){
-      // Sirf ek baar reload — flag set karke
       localStorage.setItem('bf9_gd_reloaded','1');
+      if(force) toast('✅ Supabase se '+restored+' keys restore ho gayi — reload ho raha hai...');
       location.reload();
+    } else if(force){
+      toast('✅ Cloud data same hai — koi change nahi');
     }
-  })
-  .catch(e => {
-    console.warn('Drive load failed:', e.message);
+  } catch(e){
+    console.warn('Supabase load failed:', e.message);
     if(ov) ov.style.display='none';
     gdSetDot('err');
     _gdLoaded = true;
-  });
+    if(force) toast('❌ Supabase se connect nahi hua — internet check karo');
+  }
 }
 
 /* ── Status dot in topbar ── */
@@ -3610,9 +3697,9 @@ function gdSetDot(state){
   const lbl = document.getElementById('gd-lbl');
   if(!dot) return;
   const map = {
-    ok:      {bg:'#17b86a', title:'Drive synced ✓'},
+    ok:      {bg:'#17b86a', title:'Supabase synced ✓'},
     syncing: {bg:'#f5c842', title:'Syncing...'},
-    err:     {bg:'#e83a3a', title:'Sync failed — offline?'},
+    err:     {bg:'#e83a3a', title:'Sync failed — internet check karo'},
   };
   const s = map[state] || map.ok;
   dot.style.background = s.bg;
@@ -3625,7 +3712,7 @@ function gdSetDot(state){
       if(last){
         const d = new Date(last);
         lbl.textContent = 'Saved '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
-      } else lbl.textContent='Synced';
+      } else lbl.textContent='Synced ✓';
     }
   }
 }
@@ -6056,8 +6143,20 @@ function init(){
   // Pehli baar load hone pe Drive se data fetch karo
   // Agar Drive pe naya data hai toh page reload hoga automatically
   gdLoad();
+
+  // ── Auto-sync jab app dobara focus mein aaye (tab switch / phone unlock) ──
+  // 5 minute se zyada baad aaye to silently check karo cloud pe naya data hai kya
+  let _lastVisibleSync = Date.now();
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.visibilityState === 'visible'){
+      const gap = Date.now() - _lastVisibleSync;
+      if(gap > 5 * 60 * 1000){ // 5 minutes
+        _lastVisibleSync = Date.now();
+        _gdSilentPull(); // quiet pull — sirf naya data ho to reload
+      }
+    }
+  });
 }
-// init() called at end of script after all functions defined
 
 /* ═══════════════════════════════════════════════════
    BATCH TRACKER — Full integration
@@ -13489,7 +13588,7 @@ function _cfoCalc(){
 const INV_SK = 'bf9_inv_';
 const INV_LS = {
   get:(k,d)=>{ try{ const v=localStorage.getItem(INV_SK+k); return v!=null?JSON.parse(v):d; }catch{return d;} },
-  set:(k,v)=>{ try{ localStorage.setItem(INV_SK+k,JSON.stringify(v)); }catch{} }
+  set:(k,v)=>{ try{ localStorage.setItem(INV_SK+k,JSON.stringify(v)); clearTimeout(_gdPushTimer); _gdPushTimer=setTimeout(gdPush,3000); }catch{} }
 };
 
 const INV_DEFAULT_MATS = [
