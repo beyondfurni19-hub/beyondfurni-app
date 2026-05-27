@@ -4778,7 +4778,7 @@ function downloadWorkerMonthlyPDF(wid){
 <script>window.onload=function(){window.print();};<\/script>
 
 <!-- ════ INVENTORY: ADJUST STOCK MODAL ════ -->
-<div class="modal-bg" id="inv-adj-modal-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:flex-end;justify-content:center;">
+<div class="modal-bg" id="inv-adj-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:flex-end;justify-content:center;">
   <div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:500px;animation:slideUp .25s ease;max-height:90vh;overflow-y:auto;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div style="font-size:15px;font-weight:800;color:var(--navy2)">📦 Stock Adjust Karo</div>
@@ -4809,7 +4809,7 @@ function downloadWorkerMonthlyPDF(wid){
 </div>
 
 <!-- ════ INVENTORY: ADD MATERIAL MODAL ════ -->
-<div class="modal-bg" id="inv-addmat-modal-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:flex-end;justify-content:center;">
+<div class="modal-bg" id="inv-addmat-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:flex-end;justify-content:center;">
   <div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:500px;animation:slideUp .25s ease;max-height:90vh;overflow-y:auto;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div style="font-size:15px;font-weight:800;color:var(--navy2)">➕ Naya Material Add Karo</div>
@@ -4842,7 +4842,7 @@ function downloadWorkerMonthlyPDF(wid){
 </div>
 
 <!-- ════ INVENTORY: EDIT MATERIAL MODAL ════ -->
-<div class="modal-bg" id="inv-editmat-modal-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:flex-end;justify-content:center;">
+<div class="modal-bg" id="inv-editmat-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:flex-end;justify-content:center;">
   <div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:500px;animation:slideUp .25s ease;max-height:90vh;overflow-y:auto;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div style="font-size:15px;font-weight:800;color:var(--navy2)" id="inv-em-title">✏️ Edit Material</div>
@@ -14209,9 +14209,9 @@ function invOpenAdjModal(){
   document.getElementById('inv-adj-cur').textContent='';
   document.getElementById('inv-adj-unit').textContent='';
   const mb=document.getElementById('inv-adj-modal-bg');
-  mb.style.display='flex';
+  mb.classList.add('show');
 }
-function invCloseAdjModal(){ document.getElementById('inv-adj-modal-bg').style.display='none'; }
+function invCloseAdjModal(){ document.getElementById('inv-adj-modal-bg').classList.remove('show'); }
 function invOnAdjMatChange(){
   const id=document.getElementById('inv-adj-mat').value;
   if(!id){document.getElementById('inv-adj-cur').textContent='';return;}
@@ -14241,9 +14241,9 @@ function invSaveAdj(){
 /* ── ADD MATERIAL MODAL ── */
 function invOpenAddMatModal(){
   ['inv-nm-name','inv-nm-stock','inv-nm-reorder','inv-nm-rate'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  document.getElementById('inv-addmat-modal-bg').style.display='flex';
+  document.getElementById('inv-addmat-modal-bg').classList.add('show');
 }
-function invCloseAddMatModal(){ document.getElementById('inv-addmat-modal-bg').style.display='none'; }
+function invCloseAddMatModal(){ document.getElementById('inv-addmat-modal-bg').classList.remove('show'); }
 function invSaveNewMat(){
   const name=document.getElementById('inv-nm-name').value.trim();
   if(!name){invToast('Name bharo!','err');return;}
@@ -14275,9 +14275,9 @@ function invOpenEditMatModal(id){
   document.getElementById('inv-em-stock').value=mat.stock||0;
   document.getElementById('inv-em-reorder').value=mat.reorder||0;
   document.getElementById('inv-em-rate').value=mat.rate||0;
-  document.getElementById('inv-editmat-modal-bg').style.display='flex';
+  document.getElementById('inv-editmat-modal-bg').classList.add('show');
 }
-function invCloseEditMatModal(){ document.getElementById('inv-editmat-modal-bg').style.display='none'; }
+function invCloseEditMatModal(){ document.getElementById('inv-editmat-modal-bg').classList.remove('show'); }
 function invSaveEditMat(){
   const id=document.getElementById('inv-em-id').value;
   const mats=invGetMats();
