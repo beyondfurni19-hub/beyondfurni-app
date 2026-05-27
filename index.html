@@ -4783,11 +4783,6 @@ function downloadWorkerMonthlyPDF(wid){
   toast(`📄 ${w.name} ka PDF ready!`);
 }
 
-
-
-  _openPrintWindow(html);
-  toast(`📄 ${w.name} ka PDF ready!`);
-}
 function downloadEodMonthlyPDF(){
   const yr=_eodMoYear, mo=_eodMoMonth;
   const mName=new Date(yr,mo,1).toLocaleDateString('en-IN',{month:'long',year:'numeric'});
@@ -14320,4 +14315,3 @@ init();
 
 </body>
 </html>
-      
