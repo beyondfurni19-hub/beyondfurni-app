@@ -5089,6 +5089,32 @@ function renderStock(){
         <div class="fg" style="margin:0"><label>Supplier</label>
           <input class="finp" type="text" value="${esc(it.suppliers||'')}" placeholder="Name/number" onchange="updStk('${it.id}','suppliers',this.value)" style="padding:7px 10px;font-size:13px"></div>
       </div>
+
+      <!-- Unit Conversion Section -->
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+        <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:7px">🔄 Unit Conversion (Purchase → Stock)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;align-items:end">
+          <div class="fg" style="margin:0">
+            <label>Purchase Unit</label>
+            <select class="finp" onchange="updStk('${it.id}','purUnit',this.value)" style="padding:7px 10px;font-size:13px">
+              ${['nos','kg','meter','liter','box','roll','set','pcs'].map(u=>`<option ${(it.purUnit||it.unit)===u?'selected':''}>${u}</option>`).join('')}
+            </select>
+          </div>
+          <div class="fg" style="margin:0">
+            <label>Stock Unit</label>
+            <select class="finp" onchange="updStk('${it.id}','unit',this.value);updStk('${it.id}','stockUnit',this.value)" style="padding:7px 10px;font-size:13px">
+              ${['pcs','kg','meter','liter','box','roll','set','nos'].map(u=>`<option ${it.unit===u?'selected':''}>${u}</option>`).join('')}
+            </select>
+          </div>
+          <div class="fg" style="margin:0">
+            <label>1 ${it.purUnit||it.unit} =</label>
+            <input class="finp" type="number" value="${it.convRatio||1}" min="0" step="any"
+              onchange="updStk('${it.id}','convRatio',+this.value)"
+              style="padding:7px 10px;font-size:13px">
+          </div>
+        </div>
+        ${(it.convRatio&&it.convRatio>1)?`<div style="font-size:10px;color:var(--green-dark);font-weight:800;margin-top:5px;background:var(--green-bg);padding:5px 8px;border-radius:var(--r3)">✅ 1 ${it.purUnit||it.unit} = ${it.convRatio} ${it.unit} — Purchase pe auto-convert hoga</div>`:''}
+      </div>
     </div>`;
   }).join('');
 }
@@ -5132,7 +5158,7 @@ function pickIco(id){
   if(chosen){ updStk(id,'ico',chosen.trim()); renderStock(); }
 }
 function addStockItem(){
-  STK.push({id:'S'+Date.now(),name:'Naya Material',cat:'Raw Material',unit:'pcs',current:0,reorder:10,orderQty:50,ico:'📦',suppliers:''});
+  STK.push({id:'S'+Date.now(),name:'Naya Material',cat:'Raw Material',unit:'pcs',purUnit:'pcs',convRatio:1,current:0,reorder:10,orderQty:50,ico:'📦',suppliers:''});
   saveStock(); renderStock();
 }
 function saveStock(){ save('bf9_stk',STK); toast('Stock save ho gaya! ✓'); }
@@ -13833,13 +13859,11 @@ function invPurRenderRows(){
 function invPurRestoreRow(row){
   const mat = STK.find(m=>m.id===row.matId);
   if(!mat) return;
+  const purUnit = mat.purUnit||mat.unit;
   const unitEl = document.getElementById('purunit-'+row.id);
-  if(unitEl) unitEl.textContent='('+mat.unit+')';
+  if(unitEl) unitEl.textContent='('+purUnit+')';
   const stockEl = document.getElementById('purstockinfo-'+row.id);
-  if(stockEl) stockEl.textContent='Stock: '+mat.current+' '+mat.unit;
-  // STK unit same for purchase and use — no conversion needed by default
-  const convWrap = document.getElementById('purconv-'+row.id);
-  if(convWrap) convWrap.style.display='none';
+  if(stockEl) stockEl.textContent='Current: '+mat.current+' '+mat.unit;
   invPurRowCalc(row.id);
 }
 
@@ -13848,31 +13872,44 @@ function invPurOnMatChange(rowId){
   const row = _purRows.find(r=>r.id===rowId);
   if(!row) return;
   row.matId = matId;
-  if(!matId){ return; }
+  if(!matId) return;
   const mat = STK.find(m=>m.id===matId);
   if(!mat) return;
 
-  // Unit label
+  // Purchase unit (purUnit) — what comes in
+  const purUnit = mat.purUnit || mat.unit;
+  const stockUnit = mat.unit;
+  const convRatio = mat.convRatio || 1;
+
+  // Unit label shows purchase unit
   const unitEl = document.getElementById('purunit-'+rowId);
-  if(unitEl) unitEl.textContent='('+mat.unit+')';
+  if(unitEl) unitEl.textContent = '('+purUnit+')';
 
   // Stock info
   const stockEl = document.getElementById('purstockinfo-'+rowId);
-  if(stockEl) stockEl.textContent='Current: '+mat.current+' '+mat.unit;
+  if(stockEl) stockEl.textContent = 'Current: '+mat.current+' '+stockUnit;
 
-  // Check if this material has a saved conversion ratio
-  const conv = invGetConv();
-  const savedRatio = conv[matId]||0;
+  // Conversion box — show if purUnit != stockUnit or convRatio > 1
   const convWrap = document.getElementById('purconv-'+rowId);
   const toggleLbl = document.getElementById('purconvtoggle-'+rowId);
   const fromEl = document.getElementById('purconvfrom-'+rowId);
-  if(fromEl) fromEl.textContent = mat.unit;
-  if(savedRatio>0 && convWrap){
-    convWrap.style.display='block';
-    if(toggleLbl) toggleLbl.textContent='✓ ON';
-    const ratioEl=document.getElementById('purconvratio-'+rowId);
-    if(ratioEl) ratioEl.value=savedRatio;
-    row.convRatio=savedRatio;
+  const toEl = document.getElementById('purconvto-'+rowId);
+  const ratioEl = document.getElementById('purconvratio-'+rowId);
+
+  if(fromEl) fromEl.textContent = purUnit;
+
+  if(convRatio > 1 || purUnit !== stockUnit){
+    // Auto-fill from STK settings
+    if(convWrap) convWrap.style.display = 'block';
+    if(toggleLbl) toggleLbl.textContent = '✓ AUTO';
+    if(toEl) toEl.value = stockUnit;
+    if(ratioEl) ratioEl.value = convRatio;
+    row.convRatio = convRatio;
+    row.convToUnit = stockUnit;
+  } else {
+    if(convWrap) convWrap.style.display = 'none';
+    if(toggleLbl) toggleLbl.textContent = '+ Set';
+    row.convRatio = 0;
   }
   invPurRowCalc(rowId);
 }
@@ -13949,14 +13986,12 @@ function invSavePurchase(){
     const rowTotal = row.qty * row.rate;
     grandTotal += rowTotal;
 
-    // Conversion
-    let stockToAdd = row.qty;
+    // Conversion — use STK settings or row override
+    const purUnit = mat.purUnit||mat.unit;
+    const stkConvRatio = mat.convRatio||1;
+    const useRatio = row.convRatio>0 ? row.convRatio : stkConvRatio;
+    let stockToAdd = row.qty * useRatio;
     let stockUnit = mat.unit;
-    if(row.convRatio>0){
-      stockToAdd = row.qty * row.convRatio;
-      stockUnit = row.convToUnit||'pcs';
-      conv[mat.id] = row.convRatio;
-    }
 
     STK[idx].current = +(mat.current||0) + stockToAdd;
 
@@ -13964,15 +13999,15 @@ function invSavePurchase(){
     STXN.push({
       id:Date.now()+'_'+Math.random().toString(36).slice(2,5),
       itemId:mat.id, type:'in', qty:stockToAdd,
-      note:'Purchase'+(row.convRatio>0?` (${row.qty}${mat.unit}×${row.convRatio})`:'')+(billno?' · Bill:'+billno:''),
+      note:'Purchase'+(useRatio>1?` (${row.qty} ${purUnit}×${useRatio}=${stockToAdd} ${stockUnit})`:'')+(billno?' · Bill:'+billno:''),
       date:new Date().toISOString()
     });
 
     logItems.push({
       matId:mat.id, matName:mat.name,
-      qty:row.qty, punit:mat.unit,
+      qty:row.qty, punit:purUnit,
       stockAdded:stockToAdd, stockUnit,
-      convRatio:row.convRatio||null,
+      convRatio:useRatio>1?useRatio:null,
       rate:row.rate, total:rowTotal
     });
   });
