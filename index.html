@@ -1780,79 +1780,96 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 
 <!-- ════ STOCK ════ -->
 <div class="sc" id="s-stock">
+  <!-- Alerts -->
   <div id="stock-alerts-wrap" style="margin-bottom:8px"></div>
-  <div class="card">
-    <div class="card-hdr"><div class="card-title">⚡ Quick Snapshot</div><div class="card-sub" id="stock-sub"></div></div>
-    <div class="qsc-grid" id="quick-stock"></div>
-  </div>
 
-  <!-- Google Sheets Real-Time Sync Card -->
-  <div class="card" id="sync-card" style="background:linear-gradient(135deg,#0d1b35,#1a3260);border-color:#243d72">
-    <div class="card-hdr" style="margin-bottom:6px">
-      <div class="card-title" style="color:#fff">🔗 Live Inward Sync</div>
-      <div id="sync-status-dot" style="display:flex;align-items:center;gap:5px">
-        <div id="sync-dot" style="width:8px;height:8px;border-radius:50%;background:#6b7a99"></div>
-        <div id="sync-status" style="font-size:10px;font-weight:800;color:#7a9bcc">Not connected</div>
-      </div>
+  <!-- Top bar: stats + actions -->
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:14px;font-weight:900;color:var(--navy2)">📦 Stock Inventory</div>
+      <div id="stock-sub" style="font-size:11px;color:var(--muted);font-weight:700"></div>
     </div>
-    <div style="font-size:10px;color:#7a9bcc;margin-bottom:10px">
-      Google Form se material aane pe yahan automatically update hoga (har 30 sec)
-    </div>
-
-    <!-- URL Input -->
-    <div id="sync-setup-wrap">
-      <div class="fg" style="margin-bottom:8px">
-        <label style="color:#5577aa">Apps Script Web App URL</label>
-        <input class="finp" id="sync-url"
-          placeholder="https://script.google.com/macros/s/..."
-          style="font-size:11px;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:#fff;padding:9px 12px">
-      </div>
-      <button onclick="saveAndConnect()"
-        style="width:100%;padding:10px;background:var(--orange);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;margin-bottom:8px">
-        ⚡ Connect Karo
-      </button>
-    </div>
-
-    <!-- Live Status (URL connected hone ke baad dikhega) -->
-    <div id="sync-live-wrap" style="display:none">
-      <div style="display:flex;gap:7px;margin-bottom:8px">
-        <button onclick="manualSync()"
-          style="flex:1;padding:9px;background:rgba(23,184,106,.2);color:#4ade80;border:1px solid rgba(23,184,106,.3);border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">
-          🔄 Abhi Sync Karo
-        </button>
-        <button onclick="disconnectSync()"
-          style="padding:9px 12px;background:rgba(232,58,58,.15);color:#f87171;border:1px solid rgba(232,58,58,.2);border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">
-          ✕ Disconnect
-        </button>
-      </div>
-      <div style="background:rgba(255,255,255,.05);border-radius:var(--r3);padding:10px;font-size:10px;color:#7a9bcc">
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-          <span>Last sync:</span>
-          <span id="sync-last-time" style="font-weight:800;color:#a0c0ff">—</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-          <span>Total entries processed:</span>
-          <span id="sync-total-count" style="font-weight:800;color:#a0c0ff">0</span>
-        </div>
-        <div style="display:flex;justify-content:space-between">
-          <span>Next auto-sync:</span>
-          <span id="sync-countdown" style="font-weight:800;color:#a0c0ff">30s</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Activity log — last 3 synced entries -->
-    <div id="sync-activity" style="margin-top:8px;display:none">
-      <div style="font-size:10px;font-weight:800;color:#5577aa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Recent Inward Entries</div>
-      <div id="sync-log-list"></div>
+    <div style="display:flex;gap:6px;flex-shrink:0">
+      <button onclick="addStockItem()" style="padding:7px 12px;background:var(--orange);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">＋ Add</button>
+      <button onclick="saveStock()" style="padding:7px 12px;background:var(--navy);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">💾 Save</button>
     </div>
   </div>
 
+  <!-- Summary chips -->
+  <div style="display:flex;gap:8px;margin-bottom:10px;overflow-x:auto;padding-bottom:2px">
+    <div id="stk-chip-total" onclick="stkFilter('all')" style="padding:6px 13px;background:var(--navy);color:#fff;border-radius:20px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0">All <span id="stk-cnt-all">0</span></div>
+    <div id="stk-chip-crit" onclick="stkFilter('crit')" style="padding:6px 13px;background:var(--red-bg);color:var(--red-dark);border:1.5px solid #fca5a5;border-radius:20px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0">🚨 Khatam <span id="stk-cnt-crit">0</span></div>
+    <div id="stk-chip-low" onclick="stkFilter('low')" style="padding:6px 13px;background:var(--yellow-bg);color:var(--yellow-dark);border:1.5px solid #fde68a;border-radius:20px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0">⚠️ Low <span id="stk-cnt-low">0</span></div>
+    <div id="stk-chip-ok" onclick="stkFilter('ok')" style="padding:6px 13px;background:var(--green-bg);color:var(--green-dark);border:1.5px solid #6ee7b7;border-radius:20px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0">✅ OK <span id="stk-cnt-ok">0</span></div>
+  </div>
+
+  <!-- Search + filter -->
   <div style="display:flex;gap:7px;margin-bottom:10px">
-    <button class="btn-add" style="flex:1;margin:0" onclick="addStockItem()">＋ Material Add Karo</button>
-    <button style="flex:1;padding:11px;border-radius:var(--r2);background:var(--navy);color:#fff;border:none;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer" onclick="saveStock()">💾 Save</button>
+    <input id="stk-search" class="finp" placeholder="🔍 Search material..." oninput="renderStock()" style="flex:1;padding:8px 12px;font-size:12px">
+    <select id="stk-cat-filter" class="finp" onchange="renderStock()" style="width:120px;padding:8px 10px;font-size:11px">
+      <option value="">All Categories</option>
+      <option>Raw Material</option><option>Hardware</option>
+      <option>Packaging</option><option>Chemical</option><option>Other</option>
+    </select>
   </div>
-  <div id="stock-list"></div>
+
+  <!-- Valuation bar -->
+  <div style="background:linear-gradient(135deg,var(--navy),var(--navy2));border-radius:var(--r2);padding:10px 14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+    <div style="font-size:11px;font-weight:800;color:rgba(255,255,255,.6)">Total Valuation</div>
+    <div style="font-family:'Bebas Neue';font-size:22px;color:#fff" id="stk-valuation">₹0</div>
+  </div>
+
+  <!-- Table header -->
+  <div style="display:grid;grid-template-columns:32px 1fr 60px 60px 70px 54px;gap:6px;padding:6px 10px;background:var(--navy);border-radius:var(--r2) var(--r2) 0 0;margin-bottom:1px">
+    <div></div>
+    <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,.7);text-transform:uppercase">Item</div>
+    <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,.7);text-align:right">Qty</div>
+    <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,.7);text-align:right">Rate</div>
+    <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,.7);text-align:right">Value</div>
+    <div></div>
+  </div>
+
+  <!-- Table rows -->
+  <div id="stock-list" style="border-radius:0 0 var(--r2) var(--r2);overflow:hidden;border:1px solid var(--border);border-top:none"></div>
+
+  <!-- Google Sheets Sync (collapsed) -->
+  <details style="margin-top:12px">
+    <summary style="font-size:11px;font-weight:800;color:var(--muted);cursor:pointer;padding:8px 0">🔗 Live Inward Sync (Google Sheets)</summary>
+    <div class="card" id="sync-card" style="background:linear-gradient(135deg,#0d1b35,#1a3260);border-color:#243d72;margin-top:8px">
+      <div class="card-hdr" style="margin-bottom:6px">
+        <div class="card-title" style="color:#fff;font-size:13px">🔗 Live Inward Sync</div>
+        <div style="display:flex;align-items:center;gap:5px">
+          <div id="sync-dot" style="width:8px;height:8px;border-radius:50%;background:#6b7a99"></div>
+          <div id="sync-status" style="font-size:10px;font-weight:800;color:#7a9bcc">Not connected</div>
+        </div>
+      </div>
+      <div id="sync-setup-wrap">
+        <div class="fg" style="margin-bottom:8px">
+          <label style="color:#5577aa">Apps Script Web App URL</label>
+          <input class="finp" id="sync-url" placeholder="https://script.google.com/macros/s/..." style="font-size:11px;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:#fff;padding:9px 12px">
+        </div>
+        <button onclick="saveAndConnect()" style="width:100%;padding:10px;background:var(--orange);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">⚡ Connect Karo</button>
+      </div>
+      <div id="sync-live-wrap" style="display:none">
+        <div style="display:flex;gap:7px;margin-bottom:8px">
+          <button onclick="manualSync()" style="flex:1;padding:9px;background:rgba(23,184,106,.2);color:#4ade80;border:1px solid rgba(23,184,106,.3);border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🔄 Sync Karo</button>
+          <button onclick="disconnectSync()" style="padding:9px 12px;background:rgba(232,58,58,.15);color:#f87171;border:1px solid rgba(232,58,58,.2);border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">✕</button>
+        </div>
+        <div style="background:rgba(255,255,255,.05);border-radius:var(--r3);padding:10px;font-size:10px;color:#7a9bcc">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Last sync:</span><span id="sync-last-time" style="font-weight:800;color:#a0c0ff">—</span></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Total entries:</span><span id="sync-total-count" style="font-weight:800;color:#a0c0ff">0</span></div>
+          <div style="display:flex;justify-content:space-between"><span>Next sync:</span><span id="sync-countdown" style="font-weight:800;color:#a0c0ff">30s</span></div>
+        </div>
+      </div>
+      <div id="sync-activity" style="margin-top:8px;display:none">
+        <div style="font-size:10px;font-weight:800;color:#5577aa;margin-bottom:5px">Recent Inward</div>
+        <div id="sync-log-list"></div>
+      </div>
+    </div>
+  </details>
+  <!-- quick-stock hidden but kept for compatibility -->
+  <div id="quick-stock" style="display:none"></div>
+  <div id="sync-status-dot" style="display:none"></div>
 </div>
 
 <!-- ════ HISTORY (redirects to Floor Plan) ════ -->
@@ -5120,60 +5137,81 @@ let stkItem=null;
 function getStockStatus(it){ if(it.current<=0) return 'crit'; if(it.current<=it.reorder) return 'low'; return 'ok'; }
 function getStockAlerts(){ return{ crit:STK.filter(i=>getStockStatus(i)==='crit'), low:STK.filter(i=>getStockStatus(i)==='low') }; }
 
+let _stkFilter = 'all';
+function stkFilter(f){
+  _stkFilter=f;
+  renderStock();
+}
+
 function renderStock(){
   const alerts=getStockAlerts();
   const navBtn=document.querySelector('.bnav[data-tab="stock"]');
   if(navBtn) navBtn.classList.toggle('has-alert',alerts.crit.length>0||alerts.low.length>0);
+
+  // Counts
+  const crit=STK.filter(i=>getStockStatus(i)==='crit');
+  const low=STK.filter(i=>getStockStatus(i)==='low');
+  const ok=STK.filter(i=>getStockStatus(i)==='ok');
+  const setTxt=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  setTxt('stk-cnt-all',STK.length);
+  setTxt('stk-cnt-crit',crit.length);
+  setTxt('stk-cnt-low',low.length);
+  setTxt('stk-cnt-ok',ok.length);
+
+  // Alerts
   const aw=document.getElementById('stock-alerts-wrap');
   if(aw){
     aw.innerHTML='';
-    if(alerts.crit.length) aw.innerHTML+=`<div class="abox warn">🚨 Khatam: ${alerts.crit.map(i=>i.name).join(', ')}</div>`;
-    if(alerts.low.length)  aw.innerHTML+=`<div class="abox warn">⚠️ Low: ${alerts.low.map(i=>i.name).join(', ')}</div>`;
+    if(crit.length) aw.innerHTML+=`<div class="abox warn" style="margin-bottom:5px">🚨 Khatam: ${crit.map(i=>i.name).join(', ')}</div>`;
+    if(low.length)  aw.innerHTML+=`<div class="abox warn" style="margin-bottom:5px">⚠️ Low: ${low.map(i=>i.name).join(', ')}</div>`;
   }
   const sub=document.getElementById('stock-sub');
   if(sub) sub.textContent=STK.length+' materials';
-  const qs=document.getElementById('quick-stock');
-  if(qs) qs.innerHTML=STK.map(it=>{
-    const st=getStockStatus(it);
-    const col=st==='crit'?'var(--red)':st==='low'?'var(--yellow)':'var(--green)';
-    return `<div class="qsc ${st}" style="cursor:pointer" onclick="openStkEditModal('${it.id}')">
-      <span class="qsc-ico">${it.ico}</span>
-      <div><div class="qsc-name">${esc(it.name)}</div><div class="qsc-unit">${it.unit}</div></div>
-      <div style="text-align:right"><div class="qsc-amt" style="color:${col}">${it.current}</div></div>
-    </div>`;
-  }).join('');
+
+  // Filter + search
+  const search=(document.getElementById('stk-search')?.value||'').toLowerCase();
+  const catF=document.getElementById('stk-cat-filter')?.value||'';
+  let filtered=STK.filter(it=>{
+    if(_stkFilter==='crit' && getStockStatus(it)!=='crit') return false;
+    if(_stkFilter==='low'  && getStockStatus(it)!=='low')  return false;
+    if(_stkFilter==='ok'   && getStockStatus(it)!=='ok')   return false;
+    if(catF && it.cat!==catF) return false;
+    if(search && !it.name.toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  // Valuation
+  const totalVal=STK.reduce((s,it)=>s+(it.current*(it.rate||0)),0);
+  const valEl=document.getElementById('stk-valuation');
+  if(valEl) valEl.textContent='₹'+totalVal.toLocaleString('en-IN',{maximumFractionDigits:2});
+
+  // Table rows
   const el=document.getElementById('stock-list');
   if(!el) return;
-  if(!STK.length){ el.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px;font-weight:700">Koi material nahi</div>'; return; }
-  el.innerHTML=STK.map(it=>{
+  if(!filtered.length){
+    el.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px;font-weight:700">Koi material nahi mila</div>';
+    return;
+  }
+  el.innerHTML=filtered.map((it,i)=>{
     const st=getStockStatus(it);
-    const col=st==='crit'?'var(--red)':st==='low'?'var(--yellow)':'var(--green)';
-    const pct=it.orderQty>0?Math.min(100,Math.round(it.current/it.orderQty*100)):Math.min(100,it.current>0?100:0);
+    const col=st==='crit'?'var(--red)':st==='low'?'#d97706':'var(--green-dark)';
+    const bg=i%2===0?'#fff':'#fafbff';
     const purUnit=it.purUnit||it.unit;
     const hasConv=it.convRatio>1||purUnit!==it.unit;
-    const recent=STXN.filter(t=>t.itemId===it.id).slice(0,2);
-    return `<div class="stock-card ${st==='crit'?'crit-card':st==='low'?'low-card':''}" style="padding:10px 12px;margin-bottom:8px">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div style="font-size:22px;width:34px;text-align:center;flex-shrink:0">${it.ico}</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:800;color:var(--navy2)">${esc(it.name)}</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:1px">
-            ${it.cat} · <b style="color:${col}">${it.current} ${it.unit}</b>
-            ${hasConv?`· <span style="color:var(--orange)">Buy: ${purUnit} ×${it.convRatio||1}</span>`:''}
-          </div>
-          <div class="stock-meter" style="margin-top:5px;height:4px"><div class="stock-fill" style="width:${pct}%;background:${col}"></div></div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;align-items:flex-end">
-          <span class="sp sp-${st}" style="font-size:9px;padding:2px 7px">${st==='crit'?'🚨':'⚠️ Low'==='⚠️ Low'&&st==='low'?'⚠️ Low':'✅ OK'}</span>
-          <button onclick="openStkEditModal('${it.id}')" style="padding:3px 9px;background:#f0f4ff;border:1px solid var(--border);border-radius:8px;font-family:Nunito,sans-serif;font-size:10px;font-weight:800;cursor:pointer;color:var(--navy2)">✏️ Edit</button>
-        </div>
+    const val=(it.current*(it.rate||0));
+    const statusDot=st==='crit'?'🔴':st==='low'?'🟡':'🟢';
+    return `<div style="display:grid;grid-template-columns:32px 1fr 60px 60px 70px 54px;gap:6px;padding:9px 10px;background:${bg};border-bottom:1px solid var(--border);align-items:center;cursor:pointer" onclick="openStkEditModal('${it.id}')">
+      <div style="font-size:16px;text-align:center">${it.ico||'📦'}</div>
+      <div>
+        <div style="font-size:12px;font-weight:800;color:var(--navy2)">${esc(it.name)}</div>
+        <div style="font-size:9px;color:var(--muted);font-weight:700">${it.cat}${hasConv?` · ${purUnit}→${it.unit}(×${it.convRatio})`:''}</div>
       </div>
-      ${recent.length?`<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);display:flex;gap:8px">
-        ${recent.map(t=>`<div style="font-size:10px;color:${t.type==='in'?'var(--green-dark)':'var(--red-dark)'};font-weight:700">${t.type==='in'?'↑':'-'}${t.qty}${it.unit} <span style="color:var(--muted);font-weight:400">${new Date(t.date).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</span></div>`).join('')}
-      </div>`:''}
-      <div style="display:flex;gap:6px;margin-top:8px">
-        <button class="btn-sin" style="flex:1;padding:7px;font-size:11px" onclick="openStk('${it.id}','in')">📥 Aaya</button>
-        <button class="btn-sout" style="flex:1;padding:7px;font-size:11px" onclick="openStk('${it.id}','out')">📤 Gaya</button>
+      <div style="font-size:12px;font-weight:800;color:${col};text-align:right">${it.current} <span style="font-size:9px;font-weight:700">${it.unit}</span></div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-align:right">₹${(it.rate||0).toLocaleString('en-IN')}</div>
+      <div style="font-size:11px;font-weight:800;color:var(--navy2);text-align:right">₹${val.toLocaleString('en-IN',{maximumFractionDigits:0})}</div>
+      <div style="display:flex;gap:3px;justify-content:flex-end" onclick="event.stopPropagation()">
+        <button onclick="openStk('${it.id}','in')" title="Aaya" style="width:24px;height:24px;background:var(--green-bg);border:1px solid #6ee7b7;border-radius:6px;cursor:pointer;font-size:11px">+</button>
+        <button onclick="openStk('${it.id}','out')" title="Gaya" style="width:24px;height:24px;background:var(--red-bg);border:1px solid #fca5a5;border-radius:6px;cursor:pointer;font-size:11px">−</button>
       </div>
     </div>`;
   }).join('');
