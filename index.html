@@ -3475,6 +3475,48 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   </div>
 </div>
 
+<!-- Stock Edit Modal -->
+<div class="modal-bg" id="stk-edit-modal">
+  <div class="modal" style="max-height:85vh;overflow-y:auto">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <h3 id="stk-em-title" style="font-family:'Bebas Neue';font-size:20px;color:var(--navy2);letter-spacing:1px"></h3>
+      <button onclick="closeStkEditModal()" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:#f0f4ff;font-size:14px;cursor:pointer">✕</button>
+    </div>
+    <input type="hidden" id="stk-em-id">
+    <div class="g2">
+      <div class="fg" style="margin:0"><label>Name</label><input class="finp" id="stk-em-name"></div>
+      <div class="fg" style="margin:0"><label>Icon (emoji)</label><input class="finp" id="stk-em-icon" maxlength="4" style="width:70px"></div>
+    </div>
+    <div class="fg"><label>Category</label><select class="finp" id="stk-em-cat"></select></div>
+    <div class="g2">
+      <div class="fg" style="margin:0"><label>Current Stock</label><input class="finp" type="number" id="stk-em-current" min="0" step="any"></div>
+      <div class="fg" style="margin:0"><label>Reorder Level</label><input class="finp" type="number" id="stk-em-reorder" min="0"></div>
+    </div>
+    <div class="g2">
+      <div class="fg" style="margin:0"><label>Order Qty</label><input class="finp" type="number" id="stk-em-orderqty" min="0"></div>
+      <div class="fg" style="margin:0"><label>Supplier</label><input class="finp" type="text" id="stk-em-supplier" placeholder="Name/number"></div>
+    </div>
+    <!-- Conversion -->
+    <div style="background:var(--yellow-bg);border:1px solid #fde68a;border-radius:var(--r2);padding:10px 12px;margin-bottom:10px">
+      <div style="font-size:11px;font-weight:800;color:var(--yellow-dark);margin-bottom:8px">🔄 Unit Conversion (Purchase → Stock)</div>
+      <div class="g2">
+        <div class="fg" style="margin:0"><label>Purchase Unit</label><select class="finp" id="stk-em-purunit" onchange="stkUpdateConvLabel()"></select></div>
+        <div class="fg" style="margin:0"><label>Stock Unit</label><select class="finp" id="stk-em-stockunit"></select></div>
+      </div>
+      <div class="fg" style="margin-bottom:0">
+        <label id="stk-em-conv-lbl">1 unit =</label>
+        <input class="finp" type="number" id="stk-em-convratio" min="0" step="any" placeholder="1">
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="mbtn-primary" onclick="saveStkEditModal()">💾 Save</button>
+      <button class="mbtn-cancel" style="background:var(--red-bg);color:var(--red-dark);border-color:#fca5a5" onclick="deleteStkItem()">🗑️ Delete</button>
+      <button class="mbtn-cancel" onclick="closeStkEditModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <div class="unk-notif-wrap" id="unk-notif-wrap"></div>
 <div class="toast" id="toast"></div>
 
@@ -5017,106 +5059,108 @@ function getStockAlerts(){ return{ crit:STK.filter(i=>getStockStatus(i)==='crit'
 
 function renderStock(){
   const alerts=getStockAlerts();
-  /* nav dot */
   const navBtn=document.querySelector('.bnav[data-tab="stock"]');
-  if(navBtn) navBtn.classList.toggle('has-alert', alerts.crit.length>0||alerts.low.length>0);
-
-  /* alerts */
-  const aw=document.getElementById('stock-alerts-wrap'); aw.innerHTML='';
-  if(alerts.crit.length) aw.innerHTML+=`<div class="abox warn">🚨 Stock Khatam: ${alerts.crit.map(i=>i.name).join(', ')} — Aaj hi order karo!</div>`;
-  if(alerts.low.length)  aw.innerHTML+=`<div class="abox warn">⚠️ Low Stock: ${alerts.low.map(i=>i.name).join(', ')}</div>`;
-  document.getElementById('stock-sub').textContent=`${STK.length} materials`;
-
-  /* quick snapshot */
-  document.getElementById('quick-stock').innerHTML=STK.map(it=>{
+  if(navBtn) navBtn.classList.toggle('has-alert',alerts.crit.length>0||alerts.low.length>0);
+  const aw=document.getElementById('stock-alerts-wrap');
+  if(aw){
+    aw.innerHTML='';
+    if(alerts.crit.length) aw.innerHTML+=`<div class="abox warn">🚨 Khatam: ${alerts.crit.map(i=>i.name).join(', ')}</div>`;
+    if(alerts.low.length)  aw.innerHTML+=`<div class="abox warn">⚠️ Low: ${alerts.low.map(i=>i.name).join(', ')}</div>`;
+  }
+  const sub=document.getElementById('stock-sub');
+  if(sub) sub.textContent=STK.length+' materials';
+  const qs=document.getElementById('quick-stock');
+  if(qs) qs.innerHTML=STK.map(it=>{
     const st=getStockStatus(it);
-    return `<div class="qsc ${st}">
+    const col=st==='crit'?'var(--red)':st==='low'?'var(--yellow)':'var(--green)';
+    return `<div class="qsc ${st}" style="cursor:pointer" onclick="openStkEditModal('${it.id}')">
       <span class="qsc-ico">${it.ico}</span>
       <div><div class="qsc-name">${esc(it.name)}</div><div class="qsc-unit">${it.unit}</div></div>
-      <div style="text-align:right"><div class="qsc-amt" style="color:${st==='crit'?'var(--red)':st==='low'?'var(--yellow)':'var(--green)'}">${it.current}</div></div>
+      <div style="text-align:right"><div class="qsc-amt" style="color:${col}">${it.current}</div></div>
     </div>`;
   }).join('');
-
-  /* full list */
-  document.getElementById('stock-list').innerHTML=STK.map((it,idx)=>{
+  const el=document.getElementById('stock-list');
+  if(!el) return;
+  if(!STK.length){ el.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px;font-weight:700">Koi material nahi</div>'; return; }
+  el.innerHTML=STK.map(it=>{
     const st=getStockStatus(it);
-    const pct=it.orderQty>0?Math.min(100,Math.round(it.current/it.orderQty*100)):0;
     const col=st==='crit'?'var(--red)':st==='low'?'var(--yellow)':'var(--green)';
-    const recent=STXN.filter(t=>t.itemId===it.id).slice(-3).reverse();
-    return `<div class="stock-card ${st==='crit'?'crit-card':st==='low'?'low-card':''}">
-      <div class="stock-hdr">
-        <div class="stock-ico ${st==='crit'?'crit-bg':st==='low'?'low-bg':'ok-bg'}" style="cursor:pointer;font-size:22px" onclick="pickIco('${it.id}')" title="Icon change karo">${it.ico}</div>
-        <div style="flex:1">
-          <input class="finp" value="${esc(it.name)}" placeholder="Material naam..." onchange="updStk('${it.id}','name',this.value)" style="padding:6px 10px;font-size:13px;font-weight:800;margin-bottom:4px">
-          <div style="display:flex;gap:6px">
-            <select class="finp" onchange="updStk('${it.id}','cat',this.value)" style="padding:5px 8px;font-size:11px;flex:1">
-              ${['Raw Material','Hardware','Packaging','Chemical','Other'].map(c=>`<option ${it.cat===c?'selected':''}>${c}</option>`).join('')}
-            </select>
-            <select class="finp" onchange="updStk('${it.id}','unit',this.value)" style="padding:5px 8px;font-size:11px;width:70px;flex:none">
-              ${['pcs','kg','meter','liter','box','roll','set'].map(u=>`<option ${it.unit===u?'selected':''}>${u}</option>`).join('')}
-            </select>
+    const pct=it.orderQty>0?Math.min(100,Math.round(it.current/it.orderQty*100)):Math.min(100,it.current>0?100:0);
+    const purUnit=it.purUnit||it.unit;
+    const hasConv=it.convRatio>1||purUnit!==it.unit;
+    const recent=STXN.filter(t=>t.itemId===it.id).slice(0,2);
+    return `<div class="stock-card ${st==='crit'?'crit-card':st==='low'?'low-card':''}" style="padding:10px 12px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-size:22px;width:34px;text-align:center;flex-shrink:0">${it.ico}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:800;color:var(--navy2)">${esc(it.name)}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px">
+            ${it.cat} · <b style="color:${col}">${it.current} ${it.unit}</b>
+            ${hasConv?`· <span style="color:var(--orange)">Buy: ${purUnit} ×${it.convRatio||1}</span>`:''}
           </div>
+          <div class="stock-meter" style="margin-top:5px;height:4px"><div class="stock-fill" style="width:${pct}%;background:${col}"></div></div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
-          <span class="sp sp-${st}">${st==='crit'?'🚨 Khatam':st==='low'?'⚠️ Low':'✅ OK'}</span>
-          <button onclick="delStockItem('${it.id}')" style="font-size:10px;padding:3px 8px;border-radius:8px;border:none;background:var(--red-bg);color:var(--red-dark);cursor:pointer;font-weight:800">✕ Hata</button>
+        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;align-items:flex-end">
+          <span class="sp sp-${st}" style="font-size:9px;padding:2px 7px">${st==='crit'?'🚨':'⚠️ Low'==='⚠️ Low'&&st==='low'?'⚠️ Low':'✅ OK'}</span>
+          <button onclick="openStkEditModal('${it.id}')" style="padding:3px 9px;background:#f0f4ff;border:1px solid var(--border);border-radius:8px;font-family:Nunito,sans-serif;font-size:10px;font-weight:800;cursor:pointer;color:var(--navy2)">✏️ Edit</button>
         </div>
       </div>
-      <div class="stock-meter"><div class="stock-fill" style="width:${pct}%;background:${col}"></div></div>
-      <div class="stock-nums">
-        <div class="snb"><div class="snv" style="color:${col}">${it.current}</div><div class="snl">Current</div></div>
-        <div class="snb"><div class="snv">${it.reorder}</div><div class="snl">Reorder At</div></div>
-        <div class="snb"><div class="snv">${it.orderQty}</div><div class="snl">Order Qty</div></div>
-      </div>
-      <div style="font-size:11px;color:${col==='var(--red)'?'var(--red-dark)':col==='var(--yellow)'?'var(--yellow-dark)':'var(--green-dark)'};margin-bottom:9px;font-weight:700">
-        ${st==='crit'?'🚨 Stock khatam — aaj hi order karo!':st==='low'?`⚠️ Sirf ${it.current} ${it.unit} bacha`:`✅ ${it.current-it.reorder} ${it.unit} buffer`}
-      </div>
-      <div class="stock-acts">
-        <button class="btn-sin" onclick="openStk('${it.id}','in')">📥 Aaya (IN)</button>
-        <button class="btn-sout" onclick="openStk('${it.id}','out')">📤 Use Hua (OUT)</button>
-      </div>
-      ${recent.length?`<div style="margin-top:9px;padding-top:8px;border-top:1px solid var(--border)">
-        <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:5px">Recent Transactions</div>
-        ${recent.map(t=>`<div class="txn-item"><div class="txn-ico ${t.type==='in'?'txn-in':'txn-out'}">${t.type==='in'?'📥':'📤'}</div>
-        <div class="txn-body"><div><span class="txn-qty" style="color:${t.type==='in'?'var(--green)':'var(--red)'}">${t.type==='in'?'+':'-'}${t.qty} ${it.unit}</span>${t.note?' · '+esc(t.note):''}</div>
-        <div class="txn-date">${new Date(t.date).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</div></div></div>`).join('')}
+      ${recent.length?`<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);display:flex;gap:8px">
+        ${recent.map(t=>`<div style="font-size:10px;color:${t.type==='in'?'var(--green-dark)':'var(--red-dark)'};font-weight:700">${t.type==='in'?'↑':'-'}${t.qty}${it.unit} <span style="color:var(--muted);font-weight:400">${new Date(t.date).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</span></div>`).join('')}
       </div>`:''}
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:9px">
-        <div class="fg" style="margin:0"><label>Reorder Level</label>
-          <input class="finp" type="number" value="${it.reorder}" min="0" onchange="updStk('${it.id}','reorder',+this.value)" style="padding:7px 10px;font-size:13px"></div>
-        <div class="fg" style="margin:0"><label>Order Qty</label>
-          <input class="finp" type="number" value="${it.orderQty}" min="0" onchange="updStk('${it.id}','orderQty',+this.value)" style="padding:7px 10px;font-size:13px"></div>
-        <div class="fg" style="margin:0"><label>Supplier</label>
-          <input class="finp" type="text" value="${esc(it.suppliers||'')}" placeholder="Name/number" onchange="updStk('${it.id}','suppliers',this.value)" style="padding:7px 10px;font-size:13px"></div>
-      </div>
-
-      <!-- Unit Conversion Section -->
-      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
-        <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:7px">🔄 Unit Conversion (Purchase → Stock)</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;align-items:end">
-          <div class="fg" style="margin:0">
-            <label>Purchase Unit</label>
-            <select class="finp" onchange="updStk('${it.id}','purUnit',this.value)" style="padding:7px 10px;font-size:13px">
-              ${['nos','kg','meter','liter','box','roll','set','pcs'].map(u=>`<option ${(it.purUnit||it.unit)===u?'selected':''}>${u}</option>`).join('')}
-            </select>
-          </div>
-          <div class="fg" style="margin:0">
-            <label>Stock Unit</label>
-            <select class="finp" onchange="updStk('${it.id}','unit',this.value);updStk('${it.id}','stockUnit',this.value)" style="padding:7px 10px;font-size:13px">
-              ${['pcs','kg','meter','liter','box','roll','set','nos'].map(u=>`<option ${it.unit===u?'selected':''}>${u}</option>`).join('')}
-            </select>
-          </div>
-          <div class="fg" style="margin:0">
-            <label>1 ${it.purUnit||it.unit} =</label>
-            <input class="finp" type="number" value="${it.convRatio||1}" min="0" step="any"
-              onchange="updStk('${it.id}','convRatio',+this.value)"
-              style="padding:7px 10px;font-size:13px">
-          </div>
-        </div>
-        ${(it.convRatio&&it.convRatio>1)?`<div style="font-size:10px;color:var(--green-dark);font-weight:800;margin-top:5px;background:var(--green-bg);padding:5px 8px;border-radius:var(--r3)">✅ 1 ${it.purUnit||it.unit} = ${it.convRatio} ${it.unit} — Purchase pe auto-convert hoga</div>`:''}
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn-sin" style="flex:1;padding:7px;font-size:11px" onclick="openStk('${it.id}','in')">📥 Aaya</button>
+        <button class="btn-sout" style="flex:1;padding:7px;font-size:11px" onclick="openStk('${it.id}','out')">📤 Gaya</button>
       </div>
     </div>`;
   }).join('');
+}
+function openStkEditModal(id){
+  const it=STK.find(i=>i.id===id); if(!it) return;
+  const purUnit=it.purUnit||it.unit;
+  const units=['pcs','nos','kg','meter','liter','box','roll','set'];
+  const cats=['Raw Material','Hardware','Packaging','Chemical','Other'];
+  document.getElementById('stk-em-id').value=id;
+  document.getElementById('stk-em-title').textContent=it.ico+' '+it.name;
+  document.getElementById('stk-em-name').value=it.name;
+  document.getElementById('stk-em-cat').innerHTML=cats.map(c=>`<option ${it.cat===c?'selected':''}>${c}</option>`).join('');
+  document.getElementById('stk-em-icon').value=it.ico||'📦';
+  document.getElementById('stk-em-current').value=it.current||0;
+  document.getElementById('stk-em-reorder').value=it.reorder||0;
+  document.getElementById('stk-em-orderqty').value=it.orderQty||0;
+  document.getElementById('stk-em-supplier').value=it.suppliers||'';
+  document.getElementById('stk-em-purunit').innerHTML=units.map(u=>`<option ${purUnit===u?'selected':''}>${u}</option>`).join('');
+  document.getElementById('stk-em-stockunit').innerHTML=units.map(u=>`<option ${it.unit===u?'selected':''}>${u}</option>`).join('');
+  document.getElementById('stk-em-convratio').value=it.convRatio||1;
+  stkUpdateConvLabel();
+  document.getElementById('stk-edit-modal').classList.add('show');
+}
+function stkUpdateConvLabel(){
+  const pu=document.getElementById('stk-em-purunit')?.value||'unit';
+  const lbl=document.getElementById('stk-em-conv-lbl');
+  if(lbl) lbl.textContent='1 '+pu+' =';
+}
+function closeStkEditModal(){ document.getElementById('stk-edit-modal')?.classList.remove('show'); }
+function saveStkEditModal(){
+  const id=document.getElementById('stk-em-id').value;
+  const idx=STK.findIndex(i=>i.id===id); if(idx<0) return;
+  STK[idx].name=document.getElementById('stk-em-name').value.trim()||STK[idx].name;
+  STK[idx].cat=document.getElementById('stk-em-cat').value;
+  STK[idx].ico=document.getElementById('stk-em-icon').value.trim()||'📦';
+  STK[idx].current=parseFloat(document.getElementById('stk-em-current').value)||0;
+  STK[idx].reorder=parseFloat(document.getElementById('stk-em-reorder').value)||0;
+  STK[idx].orderQty=parseFloat(document.getElementById('stk-em-orderqty').value)||0;
+  STK[idx].suppliers=document.getElementById('stk-em-supplier').value.trim();
+  STK[idx].purUnit=document.getElementById('stk-em-purunit').value;
+  STK[idx].unit=document.getElementById('stk-em-stockunit').value;
+  STK[idx].convRatio=parseFloat(document.getElementById('stk-em-convratio').value)||1;
+  save('bf9_stk',STK); closeStkEditModal(); renderStock(); toast('✅ Saved!');
+}
+function deleteStkItem(){
+  const id=document.getElementById('stk-em-id').value;
+  if(!confirm('Delete karna hai?')) return;
+  STK=STK.filter(i=>i.id!==id);
+  save('bf9_stk',STK); closeStkEditModal(); renderStock(); toast('Deleted');
 }
 function openStk(id,type){
   stkItem=STK.find(i=>i.id===id); if(!stkItem) return;
