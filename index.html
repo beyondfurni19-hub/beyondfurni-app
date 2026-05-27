@@ -3068,7 +3068,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 </div>
 
 <!-- ADD/EDIT PRODUCT MODAL -->
-<div class="modal-bg" id="inv-product-modal-bg" style="display:none">
+<div class="modal-bg" id="inv-product-modal-bg">
   <div class="modal">
     <div class="modal-handle"></div>
     <h3 id="inv-prod-modal-title" style="font-family:'Bebas Neue';font-size:20px;color:var(--navy2);letter-spacing:1px;margin-bottom:12px">Naya Product</h3>
@@ -3089,14 +3089,14 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   </div>
 </div>
 
-<!-- STOCK WARNING MODAL (Batch create ke waqt) -->
-<div class="modal-bg" id="bom-warn-modal-bg" style="display:none">
+<!-- STOCK WARNING MODAL -->
+<div class="modal-bg" id="bom-warn-modal-bg">
   <div class="modal">
     <div class="modal-handle"></div>
     <div style="font-size:22px;text-align:center;margin-bottom:6px">⚠️</div>
     <h3 style="font-family:'Bebas Neue';font-size:20px;color:var(--red-dark);letter-spacing:1px;margin-bottom:4px;text-align:center">Stock Kam Hai!</h3>
     <p id="bom-warn-product" style="font-size:11px;color:var(--muted);margin-bottom:10px;text-align:center"></p>
-    <div id="bom-warn-list" style="margin-bottom:12px"></div>
+    <div id="bom-warn-list" style="margin-bottom:12px;max-height:50vh;overflow-y:auto"></div>
     <div style="font-size:11px;color:var(--muted);background:var(--yellow-bg);border:1px solid #fde68a;border-radius:var(--r3);padding:10px;margin-bottom:12px">
       💡 Pehle stock add karo — phir batch create karo
     </div>
