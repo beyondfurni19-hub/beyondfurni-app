@@ -2950,36 +2950,55 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 
 <!-- ════ INVENTORY: PURCHASE ENTRY ════ -->
 <div class="sc" id="s-inv-purchase">
-  <div class="card-title" style="font-size:14px;margin-bottom:12px">🛒 Purchase Entry — Stock Add Karo</div>
-  <div class="card">
-    <div class="fg">
-      <label>Material Select Karo</label>
-      <select class="finp" id="inv-pur-mat" onchange="invOnPurMatChange()">
-        <option value="">-- Material chunno --</option>
-      </select>
-    </div>
+  <div class="card-title" style="font-size:14px;margin-bottom:12px">🛒 Purchase Entry</div>
+
+  <!-- Header details -->
+  <div class="card" style="margin-bottom:10px">
+    <div style="font-size:12px;font-weight:800;color:var(--navy2);margin-bottom:10px">📋 Bill Details</div>
     <div class="g2">
-      <div class="fg">
-        <label>Quantity <span id="inv-pur-unit" style="color:var(--orange);font-size:11px"></span></label>
-        <input class="finp" type="number" id="inv-pur-qty" min="0" step="any" placeholder="0">
+      <div class="fg" style="margin:0">
+        <label>Date *</label>
+        <input class="finp" type="date" id="inv-pur-date">
       </div>
-      <div class="fg">
-        <label>Rate (₹ per unit)</label>
-        <input class="finp" type="number" id="inv-pur-rate" min="0" step="any" placeholder="0">
+      <div class="fg" style="margin:0">
+        <label>Bill / Invoice No.</label>
+        <input class="finp" type="text" id="inv-pur-billno" placeholder="e.g. INV-1234">
       </div>
     </div>
-    <div class="fg">
-      <label>Supplier (optional)</label>
-      <input class="finp" type="text" id="inv-pur-supplier" placeholder="e.g. Nashik Traders">
+    <div class="fg" style="margin-bottom:0">
+      <label>Supplier</label>
+      <select class="finp" id="inv-pur-supplier-sel" onchange="invOnPurSupplierChange()" style="margin-bottom:6px">
+        <option value="">-- Supplier chunno --</option>
+      </select>
+      <input class="finp" type="text" id="inv-pur-supplier" placeholder="Ya naam type karo (naya supplier)" style="font-size:12px">
     </div>
-    <div class="fg">
-      <label>Note (optional)</label>
-      <input class="finp" type="text" id="inv-pur-note" placeholder="koi baat likhni ho">
-    </div>
-    <div id="inv-pur-cur-stock" style="font-size:12px;color:var(--muted);font-weight:700;margin-bottom:12px"></div>
-    <button class="btn-save" style="width:100%;text-align:center;justify-content:center" onclick="invSavePurchase()">✅ Stock Add Karo</button>
   </div>
-  <div class="card-title" style="font-size:13px;margin-bottom:8px;margin-top:4px">📋 Recent Purchases</div>
+
+  <!-- Items list -->
+  <div class="card" style="margin-bottom:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:800;color:var(--navy2)">📦 Items</div>
+      <button onclick="invPurAddRow()" style="padding:6px 13px;background:var(--navy);color:#fff;border:none;border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">＋ Add Item</button>
+    </div>
+    <div id="inv-pur-rows"></div>
+
+    <!-- Grand Total -->
+    <div style="background:linear-gradient(135deg,var(--navy),var(--navy2));border-radius:var(--r2);padding:12px 14px;margin-top:10px;display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:12px;font-weight:800;color:rgba(255,255,255,.7)">Grand Total</div>
+      <div style="font-family:'Bebas Neue';font-size:26px;color:#fff" id="inv-pur-grand-total">₹0</div>
+    </div>
+  </div>
+
+  <div class="fg">
+    <label>Note (optional)</label>
+    <input class="finp" type="text" id="inv-pur-note" placeholder="koi baat likhni ho">
+  </div>
+
+  <button class="btn-save" style="width:100%;text-align:center;justify-content:center;font-size:15px" onclick="invSavePurchase()">
+    ✅ Save — Stock + Ledger Update Karo
+  </button>
+
+  <div class="card-title" style="font-size:13px;margin-bottom:8px;margin-top:14px">📋 Recent Purchases</div>
   <div id="inv-pur-log-mini"></div>
 </div>
 
@@ -13677,48 +13696,334 @@ function invRenderMaterials(){
 function invInitPurForm(){
   const mats=invGetMats();
   const sel=document.getElementById('inv-pur-mat');
-  sel.innerHTML='<option value="">-- Material chunno --</option>'+mats.map(m=>'<option value="'+m.id+'">'+m.name+' ('+m.punit+')</option>').join('');
-  ['inv-pur-qty','inv-pur-rate','inv-pur-supplier','inv-pur-note'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  document.getElementById('inv-pur-cur-stock').textContent='';
-  document.getElementById('inv-pur-unit').textContent='';
+  if(sel) sel.innerHTML='<option value="">-- Material chunno --</option>'+mats.map(m=>'<option value="'+m.id+'">'+m.name+' ('+m.punit+')</option>').join('');
+  // Supplier dropdown from CUSTOMERS
+  const supSel=document.getElementById('inv-pur-supplier-sel');
+  if(supSel){
+    const suppliers=CUSTOMERS.filter(c=>c.type==='supplier').sort((a,b)=>a.name.localeCompare(b.name));
+    supSel.innerHTML='<option value="">-- Supplier chunno --</option>'+suppliers.map(s=>'<option value="'+s.id+'">'+esc(s.name)+'</option>').join('');
+  }
+  ['inv-pur-qty','inv-pur-rate','inv-pur-supplier','inv-pur-note','inv-pur-billno'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const dateEl=document.getElementById('inv-pur-date');
+  if(dateEl&&!dateEl.value) dateEl.value=new Date().toISOString().split('T')[0];
+  const tot=document.getElementById('inv-pur-total');if(tot)tot.textContent='₹0';
+  const cs=document.getElementById('inv-pur-cur-stock');if(cs)cs.textContent='';
+  const uu=document.getElementById('inv-pur-unit');if(uu)uu.textContent='';
 }
-function invOnPurMatChange(){
-  const id=document.getElementById('inv-pur-mat').value;
-  if(!id){document.getElementById('inv-pur-cur-stock').textContent='';return;}
-  const mat=invGetMats().find(m=>m.id===id);
-  if(!mat)return;
-  document.getElementById('inv-pur-unit').textContent='('+mat.punit+')';
-  document.getElementById('inv-pur-rate').value=mat.rate||'';
-  document.getElementById('inv-pur-cur-stock').textContent='Current Stock: '+invFmt(mat.stock)+' '+mat.punit;
+function invOnPurSupplierChange(){
+  const sel=document.getElementById('inv-pur-supplier-sel');
+  const manualInp=document.getElementById('inv-pur-supplier');
+  if(sel.value) manualInp.value=''; // clear manual if dropdown selected
 }
+/* ══════════════════════════════════════════
+   PURCHASE ENTRY — Multi-item
+══════════════════════════════════════════ */
+let _purRows = []; // [{id, matId, qty, rate, convRatio}]
+let _purRowCounter = 0;
+
+function invInitPurForm(){
+  // Supplier dropdown
+  const supSel = document.getElementById('inv-pur-supplier-sel');
+  if(supSel){
+    const suppliers = CUSTOMERS.filter(c=>c.type==='supplier').sort((a,b)=>a.name.localeCompare(b.name));
+    supSel.innerHTML = '<option value="">-- Supplier chunno --</option>' +
+      suppliers.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
+  }
+  // Reset fields
+  ['inv-pur-supplier','inv-pur-note','inv-pur-billno'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  const dateEl = document.getElementById('inv-pur-date');
+  if(dateEl) dateEl.value = new Date().toISOString().split('T')[0];
+  if(supSel) supSel.value='';
+  // Reset rows — start with 1 empty row
+  _purRows = [];
+  _purRowCounter = 0;
+  invPurAddRow();
+  invPurUpdateGrandTotal();
+}
+
+function invOnPurSupplierChange(){
+  const sel = document.getElementById('inv-pur-supplier-sel');
+  const manual = document.getElementById('inv-pur-supplier');
+  if(sel.value && manual) manual.value='';
+}
+
+function invPurAddRow(){
+  const id = 'pr_'+(++_purRowCounter);
+  _purRows.push({id, matId:'', qty:0, rate:0, convRatio:0});
+  invPurRenderRows();
+}
+
+function invPurRemoveRow(id){
+  if(_purRows.length<=1){ invToast('Kam se kam 1 item chahiye!','err'); return; }
+  _purRows = _purRows.filter(r=>r.id!==id);
+  invPurRenderRows();
+  invPurUpdateGrandTotal();
+}
+
+function invPurRenderRows(){
+  const mats = invGetMats();
+  const matOptions = '<option value="">-- Material --</option>' +
+    mats.map(m=>`<option value="${m.id}">${m.name} (${m.punit})</option>`).join('');
+  const conv = invGetConv();
+
+  document.getElementById('inv-pur-rows').innerHTML = _purRows.map((row,i)=>`
+    <div id="purrow-${row.id}" style="border:1.5px solid var(--border);border-radius:var(--r2);padding:10px;margin-bottom:8px;background:${i%2===0?'#fafbff':'#fff'}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:11px;font-weight:800;color:var(--muted)">Item ${i+1}</div>
+        <button onclick="invPurRemoveRow('${row.id}')" style="width:24px;height:24px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800">✕</button>
+      </div>
+
+      <!-- Material select -->
+      <div class="fg" style="margin-bottom:8px">
+        <select class="finp" id="purmat-${row.id}" onchange="invPurOnMatChange('${row.id}')" style="font-size:12px">
+          ${matOptions.replace(`value="${row.matId}"`,`value="${row.matId}" selected`)}
+        </select>
+      </div>
+
+      <!-- Qty + Rate -->
+      <div class="g2" style="margin-bottom:6px">
+        <div class="fg" style="margin:0">
+          <label style="font-size:10px">Qty <span id="purunit-${row.id}" style="color:var(--orange);font-size:10px"></span></label>
+          <input class="finp" type="number" id="purqty-${row.id}" value="${row.qty||''}" min="0" step="any" placeholder="0"
+            oninput="invPurRowCalc('${row.id}')" style="font-size:13px">
+        </div>
+        <div class="fg" style="margin:0">
+          <label style="font-size:10px">Rate (₹/unit)</label>
+          <input class="finp" type="number" id="purrate-${row.id}" value="${row.rate||''}" min="0" step="any" placeholder="0"
+            oninput="invPurRowCalc('${row.id}')" style="font-size:13px">
+        </div>
+      </div>
+
+      <!-- Conversion (shown only if punit != uunit) -->
+      <div id="purconv-${row.id}" style="display:none;background:var(--yellow-bg);border:1px solid #fde68a;border-radius:var(--r3);padding:8px 10px;margin-bottom:6px">
+        <div style="font-size:10px;font-weight:800;color:var(--yellow-dark);margin-bottom:5px">🔄 Conversion: 1 <span id="purconvfrom-${row.id}" style="color:var(--orange)"></span> =</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="number" id="purconvratio-${row.id}" value="${row.convRatio||''}" min="0" step="any" placeholder="e.g. 41"
+            style="width:80px;padding:5px 8px;border:1.5px solid #fde68a;border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;outline:none;background:#fff"
+            oninput="invPurRowCalc('${row.id}')">
+          <span id="purconvto-${row.id}" style="font-size:12px;font-weight:800;color:var(--navy2)"></span>
+        </div>
+        <div id="purconvpreview-${row.id}" style="font-size:10px;color:var(--green-dark);font-weight:800;margin-top:4px"></div>
+      </div>
+
+      <!-- Row total -->
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div id="purstockinfo-${row.id}" style="font-size:10px;color:var(--muted);font-weight:700"></div>
+        <div style="font-size:14px;font-weight:900;color:var(--navy2)" id="purrowtotal-${row.id}">₹0</div>
+      </div>
+    </div>
+  `).join('');
+
+  // Re-init existing rows with saved matId
+  _purRows.forEach(row=>{ if(row.matId) invPurRestoreRow(row); });
+}
+
+function invPurRestoreRow(row){
+  const mat = invGetMats().find(m=>m.id===row.matId);
+  if(!mat) return;
+  const unitEl = document.getElementById('purunit-'+row.id);
+  if(unitEl) unitEl.textContent='('+mat.punit+')';
+  const convWrap = document.getElementById('purconv-'+row.id);
+  if(convWrap && mat.punit!==mat.uunit){
+    convWrap.style.display='';
+    const fromEl=document.getElementById('purconvfrom-'+row.id);
+    const toEl=document.getElementById('purconvto-'+row.id);
+    if(fromEl) fromEl.textContent=mat.punit;
+    if(toEl) toEl.textContent=mat.uunit;
+  }
+  invPurRowCalc(row.id);
+}
+
+function invPurOnMatChange(rowId){
+  const matId = document.getElementById('purmat-'+rowId)?.value;
+  const row = _purRows.find(r=>r.id===rowId);
+  if(!row) return;
+  row.matId = matId;
+  if(!matId){ return; }
+  const mat = invGetMats().find(m=>m.id===matId);
+  if(!mat) return;
+
+  // Set unit label
+  const unitEl = document.getElementById('purunit-'+rowId);
+  if(unitEl) unitEl.textContent='('+mat.punit+')';
+
+  // Auto-fill rate
+  const rateEl = document.getElementById('purrate-'+rowId);
+  if(rateEl && mat.rate) rateEl.value=mat.rate;
+
+  // Stock info
+  const stockEl = document.getElementById('purstockinfo-'+rowId);
+  if(stockEl) stockEl.textContent='Stock: '+invFmt(mat.stock)+' '+mat.punit;
+
+  // Conversion
+  const convWrap = document.getElementById('purconv-'+rowId);
+  if(convWrap){
+    if(mat.punit !== mat.uunit){
+      convWrap.style.display='';
+      document.getElementById('purconvfrom-'+rowId).textContent=mat.punit;
+      document.getElementById('purconvto-'+rowId).textContent=mat.uunit;
+      // Pre-fill saved conversion
+      const conv=invGetConv();
+      const savedRatio=conv[matId]||mat.convRatio||0;
+      const ratioEl=document.getElementById('purconvratio-'+rowId);
+      if(ratioEl) ratioEl.value=savedRatio||'';
+      row.convRatio=savedRatio;
+    } else {
+      convWrap.style.display='none';
+      row.convRatio=0;
+    }
+  }
+  invPurRowCalc(rowId);
+}
+
+function invPurRowCalc(rowId){
+  const row = _purRows.find(r=>r.id===rowId);
+  if(!row) return;
+  row.qty = parseFloat(document.getElementById('purqty-'+rowId)?.value)||0;
+  row.rate = parseFloat(document.getElementById('purrate-'+rowId)?.value)||0;
+  row.convRatio = parseFloat(document.getElementById('purconvratio-'+rowId)?.value)||0;
+
+  const rowTotal = row.qty * row.rate;
+  const totalEl = document.getElementById('purrowtotal-'+rowId);
+  if(totalEl) totalEl.textContent = '₹'+rowTotal.toLocaleString('en-IN',{maximumFractionDigits:2});
+
+  // Conversion preview
+  const preview = document.getElementById('purconvpreview-'+rowId);
+  if(preview && row.qty>0 && row.convRatio>0){
+    const toUnit = document.getElementById('purconvto-'+rowId)?.textContent||'pcs';
+    preview.textContent=`✅ ${row.qty} × ${row.convRatio} = ${row.qty*row.convRatio} ${toUnit}`;
+  } else if(preview) preview.textContent='';
+
+  invPurUpdateGrandTotal();
+}
+
+function invPurUpdateGrandTotal(){
+  const grand = _purRows.reduce((s,r)=>s+(r.qty*r.rate),0);
+  const el = document.getElementById('inv-pur-grand-total');
+  if(el) el.textContent='₹'+grand.toLocaleString('en-IN',{maximumFractionDigits:2});
+}
+
+function invCalcPurTotal(){ invPurUpdateGrandTotal(); }
+function invOnPurMatChange(){ /* legacy — not used in multi-row */ }
+
 function invSavePurchase(){
-  const id=document.getElementById('inv-pur-mat').value;
-  const qty=parseFloat(document.getElementById('inv-pur-qty').value)||0;
-  const rate=parseFloat(document.getElementById('inv-pur-rate').value)||0;
-  const supplier=document.getElementById('inv-pur-supplier').value.trim();
-  const note=document.getElementById('inv-pur-note').value.trim();
-  if(!id){invToast('Material select karo!','err');return;}
-  if(qty<=0){invToast('Quantity bharo!','err');return;}
-  const mats=invGetMats();
-  const idx=mats.findIndex(m=>m.id===id);
-  if(idx<0)return;
-  mats[idx].stock=+(mats[idx].stock||0)+qty;
-  if(rate>0)mats[idx].rate=rate;
+  const date = document.getElementById('inv-pur-date').value||new Date().toISOString().split('T')[0];
+  const billno = document.getElementById('inv-pur-billno').value.trim();
+  const supplierSelId = document.getElementById('inv-pur-supplier-sel').value;
+  const supplierManual = document.getElementById('inv-pur-supplier').value.trim();
+  const note = document.getElementById('inv-pur-note').value.trim();
+
+  // Validate rows
+  const validRows = _purRows.filter(r=>r.matId && r.qty>0 && r.rate>0);
+  if(!validRows.length){ invToast('Kam se kam 1 item complete karo!','err'); return; }
+
+  const mats = invGetMats();
+  const conv = invGetConv();
+  let grandTotal = 0;
+  const logItems = [];
+
+  // ── Process each item ──
+  validRows.forEach(row=>{
+    const idx = mats.findIndex(m=>m.id===row.matId);
+    if(idx<0) return;
+    const mat = mats[idx];
+    const rowTotal = row.qty * row.rate;
+    grandTotal += rowTotal;
+
+    // Conversion
+    let stockToAdd = row.qty;
+    let stockUnit = mat.punit;
+    if(row.convRatio>0 && mat.punit!==mat.uunit){
+      stockToAdd = row.qty * row.convRatio;
+      stockUnit = mat.uunit;
+      conv[mat.id] = row.convRatio; // save ratio
+    }
+
+    mats[idx].stock = +(mat.stock||0) + stockToAdd;
+    mats[idx].rate = row.rate;
+
+    logItems.push({
+      matId:mat.id, matName:mat.name,
+      qty:row.qty, punit:mat.punit,
+      stockAdded:stockToAdd, stockUnit,
+      convRatio:row.convRatio||null,
+      rate:row.rate, total:rowTotal
+    });
+  });
+
   invSetMats(mats);
-  const log=invGetPurLog();
-  log.unshift({id:invUID(),ts:Date.now(),matId:id,matName:mats[idx].name,qty,punit:mats[idx].punit,rate,supplier,note});
+  invSetConv(conv);
+
+  // ── Supplier info ──
+  let supplierName='', supplierId=supplierSelId||null;
+  if(supplierSelId){
+    const sc=CUSTOMERS.find(c=>c.id===supplierSelId);
+    supplierName=sc?.name||'';
+  } else if(supplierManual){
+    supplierName=supplierManual;
+  }
+
+  // ── Single DR entry in supplier ledger ──
+  if(supplierId && grandTotal>0){
+    if(!LEDGER[supplierId]) LEDGER[supplierId]=[];
+    const itemsSummary = logItems.map(i=>i.matName+' ×'+i.qty).join(', ');
+    LEDGER[supplierId].push({
+      id:'pur_'+Date.now().toString(36),
+      date, type:'dr', amt:grandTotal,
+      note:'Purchase: '+itemsSummary+(billno?' · Bill: '+billno:'')+(note?' · '+note:''),
+      ref:'purchase'
+    });
+    save('bf9_ledger',LEDGER);
+  }
+
+  // ── Purchase log ──
+  const log = invGetPurLog();
+  log.unshift({
+    id:invUID(), ts:Date.now(),
+    date, billno, supplierId, supplierName,
+    items:logItems, grandTotal, note
+  });
   invSetPurLog(log);
-  invToast('✅ '+mats[idx].name+' +'+invFmt(qty)+' '+mats[idx].punit+' added!');
+
+  invToast(`✅ ${logItems.length} items saved · ₹${grandTotal.toLocaleString('en-IN')}${supplierId?' · Ledger ✓':''}`);
   invInitPurForm();
   invRenderPurLogMini();
   invCheckLowBadge();
 }
 function invRenderPurLogMini(){
-  const log=invGetPurLog().slice(0,5);
-  const el=document.getElementById('inv-pur-log-mini');
-  if(!el)return;
-  if(!log.length){el.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">Koi purchase nahi abhi</div>';return;}
-  el.innerHTML=log.map(l=>'<div class="inv-log-row"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;font-weight:800">'+l.matName+'</span><span style="font-family:Bebas Neue;font-size:18px;color:var(--green-dark)">+'+invFmt(l.qty)+' '+l.punit+'</span></div><div style="font-size:10px;color:var(--muted)">'+(l.supplier||'—')+' · '+new Date(l.ts).toLocaleDateString('en-IN',{day:'2-digit',month:'short'})+'</div></div>').join('');
+  const log = invGetPurLog().slice(0,6);
+  const el = document.getElementById('inv-pur-log-mini');
+  if(!el) return;
+  if(!log.length){
+    el.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">Koi purchase nahi abhi</div>';
+    return;
+  }
+  el.innerHTML = log.map(l=>{
+    // Support both old single-item and new multi-item format
+    const items = l.items || [{matName:l.matName, qty:l.qty, punit:l.punit, stockAdded:l.stockAdded||l.qty, stockUnit:l.stockUnit||l.punit, convRatio:l.convRatio, rate:l.rate, total:l.total}];
+    const grand = l.grandTotal || l.total || 0;
+    const dateStr = l.date || new Date(l.ts).toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
+    return `
+      <div class="inv-log-row">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <div style="font-size:11px;font-weight:800;color:var(--navy2)">${l.supplierName||l.supplier||'—'}</div>
+          <div style="font-family:'Bebas Neue';font-size:16px;color:var(--green-dark)">₹${grand.toLocaleString('en-IN')}</div>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:5px">${dateStr}${l.billno?' · '+l.billno:''}${l.supplierId?' <span style="background:#e6fff3;color:var(--green-dark);padding:1px 5px;border-radius:6px;font-weight:800">✓ Ledger</span>':''}</div>
+        ${items.map(i=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-top:1px solid var(--border)">
+            <div style="font-size:11px;font-weight:700">${i.matName}</div>
+            <div style="font-size:10px;color:var(--muted)">
+              ${i.convRatio?`${i.qty}${i.punit}×${i.convRatio}=<b style="color:var(--green-dark)">${i.stockAdded}${i.stockUnit}</b>`:`+${i.stockAdded||i.qty} ${i.stockUnit||i.punit}`}
+              · ₹${(i.total||0).toLocaleString('en-IN')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }).join('');
 }
 
 /* ── PRODUCTION ── */
