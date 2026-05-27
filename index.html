@@ -4777,108 +4777,13 @@ function downloadWorkerMonthlyPDF(wid){
 
 <script>window.onload=function(){window.print();};<\/script>
 
-<!-- ════ INVENTORY: ADJUST STOCK MODAL ════ -->
-<div class="modal-bg" id="inv-adj-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:flex-end;justify-content:center;">
-  <div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:500px;animation:slideUp .25s ease;max-height:90vh;overflow-y:auto;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <div style="font-size:15px;font-weight:800;color:var(--navy2)">📦 Stock Adjust Karo</div>
-      <button onclick="invCloseAdjModal()" style="width:30px;height:30px;border:none;background:#f0f4fb;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
-    </div>
-    <div class="fg">
-      <label>Material</label>
-      <select class="finp" id="inv-adj-mat" onchange="invOnAdjMatChange()"><option value="">-- chunno --</option></select>
-    </div>
-    <div class="g2">
-      <div class="fg">
-        <label>Action</label>
-        <select class="finp" id="inv-adj-action">
-          <option value="add">➕ Add</option>
-          <option value="sub">➖ Ghata</option>
-          <option value="set">🔧 Set</option>
-        </select>
-      </div>
-      <div class="fg">
-        <label>Qty <span id="inv-adj-unit" style="color:var(--orange);font-size:11px"></span></label>
-        <input class="finp" type="number" id="inv-adj-qty" min="0" step="any" placeholder="0">
-      </div>
-    </div>
-    <div class="fg"><label>Note</label><input class="finp" type="text" id="inv-adj-note" placeholder="correction, waste, etc."></div>
-    <div id="inv-adj-cur" style="font-size:12px;color:var(--muted);font-weight:700;margin-bottom:12px"></div>
-    <button class="btn-save" style="width:100%;text-align:center" onclick="invSaveAdj()">✅ Update Stock</button>
-  </div>
-</div>
-
-<!-- ════ INVENTORY: ADD MATERIAL MODAL ════ -->
-<div class="modal-bg" id="inv-addmat-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:flex-end;justify-content:center;">
-  <div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:500px;animation:slideUp .25s ease;max-height:90vh;overflow-y:auto;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <div style="font-size:15px;font-weight:800;color:var(--navy2)">➕ Naya Material Add Karo</div>
-      <button onclick="invCloseAddMatModal()" style="width:30px;height:30px;border:none;background:#f0f4fb;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
-    </div>
-    <div class="fg"><label>Material Name</label><input class="finp" type="text" id="inv-nm-name" placeholder="e.g. New Part"></div>
-    <div class="g2">
-      <div class="fg">
-        <label>Purchase Unit</label>
-        <select class="finp" id="inv-nm-punit">
-          <option value="kg">kg</option><option value="nos">nos</option>
-          <option value="pcs">pcs</option><option value="roll">roll</option>
-        </select>
-      </div>
-      <div class="fg">
-        <label>BOM Use Unit</label>
-        <select class="finp" id="inv-nm-uunit">
-          <option value="nos">nos</option><option value="kg">kg</option>
-          <option value="pcs">pcs</option><option value="gms">gms</option>
-        </select>
-      </div>
-    </div>
-    <div class="g2">
-      <div class="fg"><label>Current Stock</label><input class="finp" type="number" id="inv-nm-stock" min="0" step="any" placeholder="0"></div>
-      <div class="fg"><label>Reorder Level</label><input class="finp" type="number" id="inv-nm-reorder" min="0" step="any" placeholder="0"></div>
-    </div>
-    <div class="fg"><label>Rate (₹/unit)</label><input class="finp" type="number" id="inv-nm-rate" min="0" step="any" placeholder="0"></div>
-    <button class="btn-save" style="width:100%;text-align:center" onclick="invSaveNewMat()">✅ Add Karo</button>
-  </div>
-</div>
-
-<!-- ════ INVENTORY: EDIT MATERIAL MODAL ════ -->
-<div class="modal-bg" id="inv-editmat-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:flex-end;justify-content:center;">
-  <div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:500px;animation:slideUp .25s ease;max-height:90vh;overflow-y:auto;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <div style="font-size:15px;font-weight:800;color:var(--navy2)" id="inv-em-title">✏️ Edit Material</div>
-      <button onclick="invCloseEditMatModal()" style="width:30px;height:30px;border:none;background:#f0f4fb;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
-    </div>
-    <input type="hidden" id="inv-em-id">
-    <div class="fg"><label>Name</label><input class="finp" type="text" id="inv-em-name"></div>
-    <div class="g2">
-      <div class="fg">
-        <label>Purchase Unit</label>
-        <select class="finp" id="inv-em-punit">
-          <option value="kg">kg</option><option value="nos">nos</option>
-          <option value="pcs">pcs</option><option value="roll">roll</option>
-        </select>
-      </div>
-      <div class="fg">
-        <label>BOM Use Unit</label>
-        <select class="finp" id="inv-em-uunit">
-          <option value="nos">nos</option><option value="kg">kg</option>
-          <option value="pcs">pcs</option><option value="gms">gms</option>
-        </select>
-      </div>
-    </div>
-    <div class="g2">
-      <div class="fg"><label>Current Stock</label><input class="finp" type="number" id="inv-em-stock" min="0" step="any"></div>
-      <div class="fg"><label>Reorder Level</label><input class="finp" type="number" id="inv-em-reorder" min="0" step="any"></div>
-    </div>
-    <div class="fg"><label>Rate (₹/unit)</label><input class="finp" type="number" id="inv-em-rate" min="0" step="any"></div>
-    <div style="display:flex;gap:8px;margin-top:4px">
-      <button class="btn-save" style="flex:1;text-align:center" onclick="invSaveEditMat()">✅ Save</button>
-      <button onclick="invDeleteMat()" style="padding:10px 16px;background:var(--red);color:#fff;border:none;border-radius:var(--r2);font-family:Nunito,sans-serif;font-size:12px;font-weight:800;cursor:pointer">🗑 Delete</button>
-    </div>
-  </div>
-</div>
-
 </body></html>`;
+
+  _openPrintWindow(html);
+  toast(`📄 ${w.name} ka PDF ready!`);
+}
+
+
 
   _openPrintWindow(html);
   toast(`📄 ${w.name} ka PDF ready!`);
@@ -14316,5 +14221,103 @@ invInit();
 // All functions defined — now safe to init
 init();
 </script>
+
+<!-- ════ INVENTORY MODALS (outside script tag) ════ -->
+
+<!-- Adjust Stock Modal -->
+<div class="modal-bg" id="inv-adj-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:flex-end;justify-content:center;">
+  <div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:500px;animation:slideUp .25s ease;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:15px;font-weight:800;color:var(--navy2)">📦 Stock Adjust Karo</div>
+      <button onclick="invCloseAdjModal()" style="width:30px;height:30px;border:none;background:#f0f4fb;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
+    </div>
+    <div class="fg"><label>Material</label>
+      <select class="finp" id="inv-adj-mat" onchange="invOnAdjMatChange()"><option value="">-- chunno --</option></select>
+    </div>
+    <div class="g2">
+      <div class="fg"><label>Action</label>
+        <select class="finp" id="inv-adj-action">
+          <option value="add">➕ Add</option>
+          <option value="sub">➖ Ghata</option>
+          <option value="set">🔧 Set</option>
+        </select>
+      </div>
+      <div class="fg"><label>Qty <span id="inv-adj-unit" style="color:var(--orange);font-size:11px"></span></label>
+        <input class="finp" type="number" id="inv-adj-qty" min="0" step="any" placeholder="0">
+      </div>
+    </div>
+    <div class="fg"><label>Note</label><input class="finp" type="text" id="inv-adj-note" placeholder="correction, waste, etc."></div>
+    <div id="inv-adj-cur" style="font-size:12px;color:var(--muted);font-weight:700;margin-bottom:12px"></div>
+    <button class="btn-save" style="width:100%;text-align:center" onclick="invSaveAdj()">✅ Update Stock</button>
+  </div>
+</div>
+
+<!-- Add Material Modal -->
+<div class="modal-bg" id="inv-addmat-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:flex-end;justify-content:center;">
+  <div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:500px;animation:slideUp .25s ease;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:15px;font-weight:800;color:var(--navy2)">➕ Naya Material Add Karo</div>
+      <button onclick="invCloseAddMatModal()" style="width:30px;height:30px;border:none;background:#f0f4fb;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
+    </div>
+    <div class="fg"><label>Material Name</label><input class="finp" type="text" id="inv-nm-name" placeholder="e.g. New Part"></div>
+    <div class="g2">
+      <div class="fg"><label>Purchase Unit</label>
+        <select class="finp" id="inv-nm-punit">
+          <option value="kg">kg</option><option value="nos">nos</option>
+          <option value="pcs">pcs</option><option value="roll">roll</option>
+        </select>
+      </div>
+      <div class="fg"><label>BOM Use Unit</label>
+        <select class="finp" id="inv-nm-uunit">
+          <option value="nos">nos</option><option value="kg">kg</option>
+          <option value="pcs">pcs</option><option value="gms">gms</option>
+        </select>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="fg"><label>Opening Stock</label><input class="finp" type="number" id="inv-nm-stock" min="0" step="any" placeholder="0"></div>
+      <div class="fg"><label>Reorder Level</label><input class="finp" type="number" id="inv-nm-reorder" min="0" step="any" placeholder="0"></div>
+    </div>
+    <div class="fg"><label>Rate (₹/unit)</label><input class="finp" type="number" id="inv-nm-rate" min="0" step="any" placeholder="0"></div>
+    <button class="btn-save" style="width:100%;text-align:center" onclick="invSaveNewMat()">✅ Add Material</button>
+  </div>
+</div>
+
+<!-- Edit Material Modal -->
+<div class="modal-bg" id="inv-editmat-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:flex-end;justify-content:center;">
+  <div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:500px;animation:slideUp .25s ease;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:15px;font-weight:800;color:var(--navy2)" id="inv-em-title">✏️ Edit Material</div>
+      <button onclick="invCloseEditMatModal()" style="width:30px;height:30px;border:none;background:#f0f4fb;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
+    </div>
+    <input type="hidden" id="inv-em-id">
+    <div class="fg"><label>Name</label><input class="finp" type="text" id="inv-em-name"></div>
+    <div class="g2">
+      <div class="fg"><label>Purchase Unit</label>
+        <select class="finp" id="inv-em-punit">
+          <option value="kg">kg</option><option value="nos">nos</option>
+          <option value="pcs">pcs</option><option value="roll">roll</option>
+        </select>
+      </div>
+      <div class="fg"><label>BOM Use Unit</label>
+        <select class="finp" id="inv-em-uunit">
+          <option value="nos">nos</option><option value="kg">kg</option>
+          <option value="pcs">pcs</option><option value="gms">gms</option>
+        </select>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="fg"><label>Current Stock</label><input class="finp" type="number" id="inv-em-stock" min="0" step="any"></div>
+      <div class="fg"><label>Reorder Level</label><input class="finp" type="number" id="inv-em-reorder" min="0" step="any"></div>
+    </div>
+    <div class="fg"><label>Rate (₹/unit)</label><input class="finp" type="number" id="inv-em-rate" min="0" step="any"></div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn-save" style="flex:1;text-align:center" onclick="invSaveEditMat()">✅ Save</button>
+      <button onclick="invDeleteMat()" style="padding:10px 16px;background:var(--red);color:#fff;border:none;border-radius:var(--r2);font-family:Nunito,sans-serif;font-size:12px;font-weight:800;cursor:pointer">🗑 Delete</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
+      
