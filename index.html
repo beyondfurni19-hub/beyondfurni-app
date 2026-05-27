@@ -1941,12 +1941,10 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 
       <div class="fg">
         <label>Product / Stand Type</label>
-        <input class="finp" id="bt-product" placeholder="e.g. Metal Stand Adjustable" list="bt-prod-dl">
-        <datalist id="bt-prod-dl">
-          <option value="Metal Stand (Adjustable)">
-          <option value="Plastic Stand">
-          <option value="Custom / Other">
-        </datalist>
+        <select class="finp" id="bt-product" onchange="btCheckStockOnProductChange()">
+          <option value="">-- Product chunno --</option>
+        </select>
+        <div id="bt-stock-status" style="margin-top:6px;display:none"></div>
       </div>
 
       <div class="fg">
@@ -3018,11 +3016,39 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <button class="inv-tab" onclick="invBomSubTab('mats',this)">⚙️ Materials</button>
   </div>
 
-  <!-- BOM sub -->
+  <!-- BOM sub — Product-wise -->
   <div id="inv-bom-sub-bom">
-    <div style="font-size:11px;color:var(--muted);margin-bottom:10px">1 Stand banane mein har material ki quantity — editable</div>
-    <div class="card" id="inv-bom-list"></div>
-    <button class="btn-save" style="width:100%;text-align:center" onclick="invSaveBOM()">💾 BOM Save Karo</button>
+    <!-- Product selector + management -->
+    <div class="card" style="padding:12px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:800;color:var(--navy2);flex:1">📦 Product Chunno</div>
+        <button onclick="invOpenAddProductModal()" style="padding:6px 12px;background:var(--orange);color:#fff;border:none;border-radius:var(--r3);font-family:Nunito,sans-serif;font-size:11px;font-weight:800;cursor:pointer">＋ Naya Product</button>
+      </div>
+      <div id="inv-product-list" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+    </div>
+
+    <!-- BOM for selected product -->
+    <div id="inv-bom-product-section" style="display:none">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div id="inv-bom-product-title" style="font-size:13px;font-weight:800;color:var(--navy2);flex:1"></div>
+        <button id="inv-bom-edit-prod-btn" onclick="invEditSelectedProduct()" style="padding:5px 10px;background:transparent;border:1.5px solid var(--border2);border-radius:var(--r3);font-family:Nunito,sans-serif;font-size:10px;font-weight:800;cursor:pointer;color:var(--muted)">✏️ Edit</button>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">1 unit banane mein har material ki quantity</div>
+      <div class="card" id="inv-bom-list"></div>
+      <button class="btn-save" style="width:100%;text-align:center;margin-top:8px" onclick="invSaveBOM()">💾 BOM Save Karo</button>
+    </div>
+    <div id="inv-bom-empty-hint" style="text-align:center;padding:24px;color:var(--muted);font-size:12px;font-weight:700">
+      ☝️ Upar se product chunno ya naya banao
+    </div>
+
+    <!-- Materials quick management -->
+    <div class="card" style="padding:12px;margin-top:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:800;color:var(--navy2)">🧱 Materials List</div>
+        <button onclick="invOpenAddMatModal()" style="padding:5px 11px;background:var(--navy);color:#fff;border:none;border-radius:var(--r3);font-family:Nunito,sans-serif;font-size:11px;font-weight:800;cursor:pointer">＋ Add</button>
+      </div>
+      <div id="inv-bom-mat-quicklist"></div>
+    </div>
   </div>
 
   <!-- Conversion sub -->
@@ -3038,6 +3064,46 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
       <button class="btn-add" onclick="invOpenAddMatModal()">＋ Naya Material</button>
     </div>
     <div id="inv-mat-settings-list"></div>
+  </div>
+</div>
+
+<!-- ADD/EDIT PRODUCT MODAL -->
+<div class="modal-bg" id="inv-product-modal-bg" style="display:none">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3 id="inv-prod-modal-title" style="font-family:'Bebas Neue';font-size:20px;color:var(--navy2);letter-spacing:1px;margin-bottom:12px">Naya Product</h3>
+    <input type="hidden" id="inv-prod-edit-id">
+    <div class="fg">
+      <label>Product Name *</label>
+      <input class="finp" id="inv-prod-name" placeholder="e.g. Metal Stand Adjustable">
+    </div>
+    <div class="fg" style="margin-bottom:0">
+      <label>Emoji Icon</label>
+      <input class="finp" id="inv-prod-icon" placeholder="🏭" maxlength="4" style="width:80px">
+    </div>
+    <div class="modal-btns">
+      <button class="mbtn-primary" onclick="invSaveProduct()">💾 Save</button>
+      <button id="inv-prod-delete-btn" class="mbtn-cancel" onclick="invDeleteProduct()" style="display:none;background:var(--red-bg);color:var(--red-dark);border-color:#fca5a5">🗑️ Delete</button>
+      <button class="mbtn-cancel" onclick="invCloseProductModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- STOCK WARNING MODAL (Batch create ke waqt) -->
+<div class="modal-bg" id="bom-warn-modal-bg" style="display:none">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div style="font-size:22px;text-align:center;margin-bottom:6px">⚠️</div>
+    <h3 style="font-family:'Bebas Neue';font-size:20px;color:var(--red-dark);letter-spacing:1px;margin-bottom:4px;text-align:center">Stock Kam Hai!</h3>
+    <p id="bom-warn-product" style="font-size:11px;color:var(--muted);margin-bottom:10px;text-align:center"></p>
+    <div id="bom-warn-list" style="margin-bottom:12px"></div>
+    <div style="font-size:11px;color:var(--muted);background:var(--yellow-bg);border:1px solid #fde68a;border-radius:var(--r3);padding:10px;margin-bottom:12px">
+      💡 Pehle stock add karo — phir batch create karo
+    </div>
+    <div class="modal-btns">
+      <button class="mbtn-primary" style="background:var(--red)" onclick="bomWarnForceCreate()">⚡ Phir Bhi Create Karo</button>
+      <button class="mbtn-cancel" onclick="bomWarnClose()">↩️ Wapas Jao</button>
+    </div>
   </div>
 </div>
 
@@ -3500,7 +3566,7 @@ const BT_STAGES=[
    SUPABASE AUTO-SYNC
    Real-time cloud sync — dono devices pe same data
 ═══════════════════════════════════════════════ */
-const SB_URL  = 'https://nckyirexejnttsxmhbmd.supabase.co';
+const SB_URL  = 'https://nckyirexejnttxmhbmd.supabase.co';
 const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ja3lpcmV4ZWpudHRzeG1oYm1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3ODMwNjgsImV4cCI6MjA5NTM1OTA2OH0.d8NKL-2q5f5NLDfOs0dWOYu1oxLb2TfwcQPxAv_hGn0';
 const GD_KEYS = [
   // Core floor plan & production
@@ -3512,7 +3578,8 @@ const GD_KEYS = [
   // Invoicing & customers
   'bf9_invoices','bf9_invsettings','bf9_customers','bf9_ledger',
   // Inventory module
-  'bf9_inv_mats','bf9_inv_bom','bf9_inv_conv','bf9_inv_purlog','bf9_inv_prodlog',
+  'bf9_inv_mats','bf9_inv_bom','bf9_inv_bom','bf9_inv_conv','bf9_inv_purlog','bf9_inv_prodlog',
+  'bf9_inv_products','bf9_inv_all_boms',
   // Daybook
   'bf9_daybook','bf9_cat_labels',
   // Attendance & Salary
@@ -3747,7 +3814,7 @@ function sw(name,btn){
   if(name==='inv-materials') { invRenderMaterials(); invCheckLowBadge(); }
   if(name==='inv-purchase')  { invInitPurForm(); invRenderPurLogMini(); }
   if(name==='inv-produce')   { invInitProdForm(); invRenderProdLogMini(); }
-  if(name==='inv-bom')       { invRenderBOM(); invRenderConversion(); invRenderMatSettings(); }
+  if(name==='inv-bom')       { invRenderBOM(); invRenderConversion(); invRenderMatSettings(); invRenderProductChips(); invRenderBomMatQuickList(); }
 }
 
 function toggleSidebar(){
@@ -6217,6 +6284,7 @@ function renderBatchTab(){
   renderBtKpis();
   renderBtActive();
   btRefreshCustDropdown();
+  btRefreshProductDropdown();
   const od=document.getElementById('bt-order-date');
   if(od&&!od.value) od.value=btToday();
 }
@@ -6367,19 +6435,33 @@ function btCalcTotal(){
   const el=document.getElementById('bt-total-display');
   if(el) el.textContent='₹'+(qty*rate).toLocaleString('en-IN');
 }
-function createBatch(){
+function createBatch(force){
   const custId=document.getElementById('bt-cust-sel').value;
   const qty=parseInt(document.getElementById('bt-qty').value)||0;
   const rate=parseFloat(document.getElementById('bt-rate').value)||0;
   const advance=parseFloat(document.getElementById('bt-advance').value)||0;
   const orderDate=document.getElementById('bt-order-date').value||btToday();
-  const prod=document.getElementById('bt-product').value.trim()||'Metal Stand (Adjustable)';
+  const prodSel=document.getElementById('bt-product');
+  const productId=prodSel.value;
+  const prodOpt=prodSel.options[prodSel.selectedIndex];
+  const prod=(prodOpt&&prodOpt.value)?prodOpt.text.replace(/^.\s*/,'').trim():'';
   const deliv=document.getElementById('bt-delivery').value;
   const note=document.getElementById('bt-note').value.trim();
   const start=parseInt(document.getElementById('bt-start').value)||0;
   if(!custId){toast('⚠️ Customer chunno!');return;}
   if(!qty){toast('⚠️ Pieces ki qty dalo!');return;}
   if(!rate){toast('⚠️ Rate dalo!');return;}
+  if(!productId){toast('⚠️ Product chunno!');return;}
+  // ── Stock check ──
+  if(!force){
+    const short=btCheckStock(productId,qty);
+    if(short.length>0){
+      const prods=invGetProducts();
+      const prodName=prods.find(p=>p.id===productId)?.name||prod;
+      bomWarnShow(prodName,short,qty);
+      return;
+    }
+  }
   const c=CUSTOMERS.find(x=>x.id===custId);
   const party=c?.name||'—';
   // Create Order
@@ -6393,18 +6475,20 @@ function createBatch(){
   BT_STAGES.forEach((s,i)=>{
     stages[s.id]=i<start?{done:true,date:btToday(),note:'Pehle se complete'}:{done:false,date:null,note:''};
   });
-  const b={id:btGenId(),party,custId,orderId:ordId,qty,product:prod,
+  const b={id:btGenId(),party,custId,orderId:ordId,qty,product:prod,productId,
     deliveryDate:deliv,note,createdAt:new Date().toISOString(),stages,deleted:false,
     deliveries:[]};
   BATCHES.unshift(b);
   save('bf9_batches',BATCHES);
   // Reset form
-  ['bt-qty','bt-rate','bt-advance','bt-note','bt-delivery','bt-order-date','bt-product'].forEach(id=>{
+  ['bt-qty','bt-rate','bt-advance','bt-note','bt-delivery','bt-order-date'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.value='';
   });
   document.getElementById('bt-cust-sel').value='';
+  document.getElementById('bt-product').value='';
   document.getElementById('bt-start').value='0';
   document.getElementById('bt-total-display').textContent='₹0';
+  const sd=document.getElementById('bt-stock-status');if(sd)sd.style.display='none';
   toast(`✅ ${b.id} — ${party} — Order + Batch shuru!`);
   updateBatchBadge();
   renderBatchSelectCard();
@@ -6429,6 +6513,11 @@ function confirmBtStage(){
   const s=BT_STAGES[_btPending.si];
   b.stages[s.id]={done:true,date:document.getElementById('btsm-date').value||btToday(),note:document.getElementById('btsm-note').value.trim()};
   save('bf9_batches',BATCHES);
+  // ── Auto-deduct stock when dispatch (last stage) is marked done ──
+  if(s.id==='dispatch'){
+    const pid=b.productId||btGetProductId(b.product);
+    if(pid) btDeductStockForBatch({...b, productId:pid});
+  }
   closeBtModal();
   toast(`✅ ${s.name} done!`);
   updateBatchBadge();
@@ -13809,6 +13898,110 @@ function invRenderProdLogMini(){
   el.innerHTML=log.map(l=>'<div class="inv-log-row"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:Bebas Neue;font-size:20px;color:var(--orange)">'+l.qty+' STANDS</span><span style="font-size:10px;color:var(--muted)">'+new Date(l.ts).toLocaleDateString('en-IN',{day:'2-digit',month:'short'})+'</span></div>'+(l.note?'<div style="font-size:11px;font-weight:700">'+l.note+'</div>':'')+'<div style="font-size:10px;color:var(--muted)">'+(l.matUsed||[]).slice(0,4).join(' · ')+'</div></div>').join('');
 }
 
+/* ══════════════════════════════════════════
+   PRODUCT MASTER + PRODUCT-WISE BOM
+══════════════════════════════════════════ */
+
+/* ── Product Master ── */
+function invGetProducts(){ return INV_LS.get('products', [{id:'prod_default',name:'Metal Stand (Adjustable)',icon:'🏭'}]); }
+function invSetProducts(v){ INV_LS.set('products',v); }
+
+let _invSelectedProdId = null;
+
+/* ── Render product chips ── */
+function invRenderProductChips(){
+  const prods = invGetProducts();
+  const list = document.getElementById('inv-product-list');
+  if(!list) return;
+  list.innerHTML = prods.map(p=>`
+    <div onclick="invSelectProduct('${p.id}')" id="inv-prod-chip-${p.id}" style="
+      padding:7px 13px;border-radius:20px;border:2px solid var(--border2);
+      background:${_invSelectedProdId===p.id?'var(--navy)':'var(--card)'};
+      color:${_invSelectedProdId===p.id?'#fff':'var(--navy2)'};
+      font-size:12px;font-weight:800;cursor:pointer;transition:all .15s;
+      display:flex;align-items:center;gap:5px;
+    ">${p.icon||'🏭'} ${p.name}</div>
+  `).join('');
+}
+
+function invSelectProduct(id){
+  _invSelectedProdId = id;
+  const prods = invGetProducts();
+  const prod = prods.find(p=>p.id===id);
+  if(!prod) return;
+  invRenderProductChips();
+  document.getElementById('inv-bom-product-section').style.display = '';
+  document.getElementById('inv-bom-empty-hint').style.display = 'none';
+  document.getElementById('inv-bom-product-title').textContent = (prod.icon||'🏭')+' '+prod.name+' — BOM';
+  invRenderBOM();
+}
+
+/* ── Add/Edit Product Modal ── */
+function invOpenAddProductModal(){
+  document.getElementById('inv-prod-edit-id').value = '';
+  document.getElementById('inv-prod-name').value = '';
+  document.getElementById('inv-prod-icon').value = '🏭';
+  document.getElementById('inv-prod-modal-title').textContent = 'Naya Product';
+  document.getElementById('inv-prod-delete-btn').style.display = 'none';
+  document.getElementById('inv-product-modal-bg').classList.add('show');
+}
+function invEditSelectedProduct(){
+  if(!_invSelectedProdId) return;
+  const prod = invGetProducts().find(p=>p.id===_invSelectedProdId);
+  if(!prod) return;
+  document.getElementById('inv-prod-edit-id').value = prod.id;
+  document.getElementById('inv-prod-name').value = prod.name;
+  document.getElementById('inv-prod-icon').value = prod.icon||'🏭';
+  document.getElementById('inv-prod-modal-title').textContent = '✏️ Product Edit Karo';
+  document.getElementById('inv-prod-delete-btn').style.display = '';
+  document.getElementById('inv-product-modal-bg').classList.add('show');
+}
+function invCloseProductModal(){ document.getElementById('inv-product-modal-bg').classList.remove('show'); }
+function invSaveProduct(){
+  const name = document.getElementById('inv-prod-name').value.trim();
+  if(!name){ invToast('Product name bharo!','err'); return; }
+  const icon = document.getElementById('inv-prod-icon').value.trim()||'🏭';
+  const editId = document.getElementById('inv-prod-edit-id').value;
+  const prods = invGetProducts();
+  if(editId){
+    const idx = prods.findIndex(p=>p.id===editId);
+    if(idx>=0){ prods[idx].name=name; prods[idx].icon=icon; }
+  } else {
+    prods.push({id:'prod_'+Date.now().toString(36), name, icon});
+  }
+  invSetProducts(prods);
+  invCloseProductModal();
+  invToast('✅ Product saved!');
+  invRenderProductChips();
+  btRefreshProductDropdown();
+  if(editId && editId===_invSelectedProdId){
+    document.getElementById('inv-bom-product-title').textContent = icon+' '+name+' — BOM';
+  }
+}
+function invDeleteProduct(){
+  if(!confirm('Is product ko delete karo? Iski BOM bhi delete ho jayegi.')) return;
+  const editId = document.getElementById('inv-prod-edit-id').value;
+  let prods = invGetProducts().filter(p=>p.id!==editId);
+  invSetProducts(prods);
+  // Remove BOM for this product
+  const allBoms = invGetAllBOMs();
+  delete allBoms[editId];
+  invSetAllBOMs(allBoms);
+  invCloseProductModal();
+  invToast('Deleted','err');
+  if(_invSelectedProdId===editId){
+    _invSelectedProdId=null;
+    document.getElementById('inv-bom-product-section').style.display='none';
+    document.getElementById('inv-bom-empty-hint').style.display='';
+  }
+  invRenderProductChips();
+  btRefreshProductDropdown();
+}
+
+/* ── All BOMs stored as { productId: { matId: qty, ... } } ── */
+function invGetAllBOMs(){ return INV_LS.get('all_boms', {}); }
+function invSetAllBOMs(v){ INV_LS.set('all_boms',v); }
+
 /* ── BOM ── */
 function invBomSubTab(tab,btn){
   ['bom','conv','mats'].forEach(t=>{
@@ -13817,15 +14010,168 @@ function invBomSubTab(tab,btn){
   });
   document.querySelectorAll('#s-inv-bom .inv-tab').forEach(t=>t.classList.remove('active'));
   if(btn)btn.classList.add('active');
+  if(tab==='bom') invRenderProductChips();
 }
 function invRenderBOM(){
-  const mats=invGetMats(),bom=invGetBOM();
-  document.getElementById('inv-bom-list').innerHTML=mats.map(mat=>'<div class="inv-bom-row"><div style="flex:1;font-size:12px;font-weight:700">'+mat.icon+' '+mat.name+'</div><input class="inv-small-inp" type="number" min="0" step="any" id="invbom_'+mat.id+'" value="'+(bom[mat.id]||0)+'"><div style="font-size:11px;color:var(--muted);min-width:35px">'+mat.uunit+'</div><div style="font-size:10px;color:var(--orange);min-width:50px">/stand</div></div>').join('');
+  if(!_invSelectedProdId) return;
+  const mats = invGetMats();
+  const allBoms = invGetAllBOMs();
+  const bom = allBoms[_invSelectedProdId] || {};
+  document.getElementById('inv-bom-list').innerHTML = mats.map(mat=>
+    `<div class="inv-bom-row">
+      <div style="flex:1;font-size:12px;font-weight:700">${mat.icon} ${mat.name}</div>
+      <input class="inv-small-inp" type="number" min="0" step="any" id="invbom_${mat.id}" value="${bom[mat.id]||0}">
+      <div style="font-size:11px;color:var(--muted);min-width:35px">${mat.uunit}</div>
+      <div style="font-size:10px;color:var(--orange);min-width:50px">/unit</div>
+    </div>`
+  ).join('');
+  invRenderBomMatQuickList();
+}
+
+function invRenderBomMatQuickList(){
+  const el = document.getElementById('inv-bom-mat-quicklist');
+  if(!el) return;
+  const mats = invGetMats();
+  el.innerHTML = mats.map(m=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:16px;width:22px;text-align:center">${m.icon}</div>
+      <div style="flex:1;font-size:12px;font-weight:700">${m.name}</div>
+      <div style="font-size:10px;color:var(--muted);min-width:50px">${m.punit} · ${m.uunit}</div>
+      <button onclick="invOpenEditMatModal('${m.id}')" style="padding:4px 9px;background:transparent;border:1.5px solid var(--border2);border-radius:8px;font-family:Nunito,sans-serif;font-size:10px;font-weight:800;cursor:pointer;color:var(--navy2)">✏️</button>
+    </div>
+  `).join('') || '<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px">Koi material nahi — Add karo!</div>';
 }
 function invSaveBOM(){
-  const mats=invGetMats(),bom={};
-  mats.forEach(mat=>{bom[mat.id]=parseFloat(document.getElementById('invbom_'+mat.id)?.value)||0;});
-  invSetBOM(bom); invToast('✅ BOM saved!');
+  if(!_invSelectedProdId){ invToast('Pehle product chunno!','err'); return; }
+  const mats = invGetMats();
+  const allBoms = invGetAllBOMs();
+  const bom = {};
+  mats.forEach(mat=>{ bom[mat.id] = parseFloat(document.getElementById('invbom_'+mat.id)?.value)||0; });
+  allBoms[_invSelectedProdId] = bom;
+  invSetAllBOMs(allBoms);
+  invToast('✅ BOM saved!');
+}
+
+/* ── Get BOM for a specific product ── */
+function invGetBOMForProduct(productId){
+  const allBoms = invGetAllBOMs();
+  // Fallback: old single BOM if new not set
+  return allBoms[productId] || invGetBOM();
+}
+
+/* ══════════════════════════════════════════
+   STOCK CHECK — Batch create ke waqt
+══════════════════════════════════════════ */
+let _bomWarnPendingCreate = false;
+
+function btCheckStock(productId, qty){
+  // Returns array of {mat, needed, have, short} for items that are short
+  const bom = invGetBOMForProduct(productId);
+  const mats = invGetMats();
+  const conv = invGetConv();
+  const short = [];
+  mats.forEach(mat=>{
+    const bomQty = bom[mat.id]||0;
+    if(bomQty<=0) return;
+    let needed = bomQty * qty;
+    let have = mat.stock||0;
+    // Unit conversion if needed
+    if(mat.uunit==='nos' && mat.punit==='kg'){
+      const cr = conv[mat.id]||0;
+      if(cr>0) have = (mat.stock||0) * cr;
+    }
+    if(have < needed){
+      short.push({ mat, needed, have: parseFloat(have.toFixed(4)), short: parseFloat((needed-have).toFixed(4)), unit: mat.uunit });
+    }
+  });
+  return short;
+}
+
+function btCheckStockOnProductChange(){
+  const sel = document.getElementById('bt-product');
+  const qty = parseInt(document.getElementById('bt-qty')?.value)||0;
+  const statusDiv = document.getElementById('bt-stock-status');
+  if(!statusDiv) return;
+  const productId = sel.value;
+  if(!productId || qty<=0){ statusDiv.style.display='none'; return; }
+  const short = btCheckStock(productId, qty);
+  if(short.length===0){
+    statusDiv.style.display='';
+    statusDiv.innerHTML=`<div style="padding:7px 10px;background:var(--green-bg);border:1px solid #6ee7b7;border-radius:var(--r3);font-size:11px;font-weight:800;color:var(--green-dark)">✅ Stock sufficient hai — Batch ready!</div>`;
+  } else {
+    statusDiv.style.display='';
+    statusDiv.innerHTML=`<div style="padding:7px 10px;background:var(--red-bg);border:1px solid #fca5a5;border-radius:var(--r3);font-size:11px;font-weight:800;color:var(--red-dark)">⚠️ ${short.length} material(s) kam hain</div>`;
+  }
+}
+
+function bomWarnShow(productName, short, qty){
+  document.getElementById('bom-warn-product').textContent = productName+' — '+qty+' units ke liye';
+  document.getElementById('bom-warn-list').innerHTML = short.map(s=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--red-bg);border:1px solid #fca5a5;border-radius:var(--r3);margin-bottom:6px">
+      <div style="font-size:18px">${s.mat.icon}</div>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:800;color:var(--red-dark)">${s.mat.name}</div>
+        <div style="font-size:10px;color:var(--muted)">Chahiye: <b>${s.needed} ${s.unit}</b> · Hai: <b>${s.have} ${s.unit}</b></div>
+      </div>
+      <div style="font-size:11px;font-weight:800;color:var(--red-dark);background:#fff;padding:3px 8px;border-radius:10px;border:1px solid #fca5a5">
+        −${s.short} ${s.unit}
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('bom-warn-modal-bg').classList.add('show');
+}
+function bomWarnClose(){
+  document.getElementById('bom-warn-modal-bg').classList.remove('show');
+  _bomWarnPendingCreate=false;
+}
+function bomWarnForceCreate(){
+  document.getElementById('bom-warn-modal-bg').classList.remove('show');
+  _bomWarnPendingCreate=true;
+  createBatch(true);
+}
+
+/* ══════════════════════════════════════════
+   STOCK AUTO-DEDUCT — Dispatch stage pe
+══════════════════════════════════════════ */
+function btDeductStockForBatch(batch){
+  const productId = btGetProductId(batch.product);
+  if(!productId) return;
+  const bom = invGetBOMForProduct(productId);
+  const mats = invGetMats();
+  const conv = invGetConv();
+  let deducted = [];
+  mats.forEach((mat,idx)=>{
+    const bomQty = bom[mat.id]||0;
+    if(bomQty<=0) return;
+    let needed = bomQty * batch.qty;
+    let deductInPurchaseUnit = needed;
+    if(mat.uunit==='nos' && mat.punit==='kg'){
+      const cr = conv[mat.id]||0;
+      if(cr>0) deductInPurchaseUnit = needed/cr;
+    }
+    mats[idx].stock = Math.max(0, (mat.stock||0) - deductInPurchaseUnit);
+    deducted.push(mat.name);
+  });
+  invSetMats(mats);
+  invCheckLowBadge();
+  invToast('📦 Stock auto-deducted: '+deducted.length+' materials');
+}
+
+/* Helper: find product id from product name */
+function btGetProductId(productName){
+  const prods = invGetProducts();
+  const p = prods.find(p=>p.name===productName||p.id===productName);
+  return p ? p.id : null;
+}
+
+/* ── Refresh batch product dropdown ── */
+function btRefreshProductDropdown(){
+  const sel = document.getElementById('bt-product');
+  if(!sel) return;
+  const prods = invGetProducts();
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">-- Product chunno --</option>' +
+    prods.map(p=>`<option value="${p.id}" ${cur===p.id?'selected':''}>${p.icon||'🏭'} ${p.name}</option>`).join('');
 }
 
 /* ── CONVERSION ── */
@@ -13914,7 +14260,7 @@ function invSaveNewMat(){
   invSetMats(mats);
   invToast('✅ '+name+' added!');
   invCloseAddMatModal();
-  invRenderMatSettings(); invRenderMaterials(); invCheckLowBadge();
+  invRenderMatSettings(); invRenderMaterials(); invCheckLowBadge(); invRenderBomMatQuickList(); if(_invSelectedProdId) invRenderBOM();
 }
 
 /* ── EDIT MATERIAL MODAL ── */
