@@ -1963,6 +1963,15 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
       </div>
 
       <div class="fg">
+        <label>Packing Type</label>
+        <select class="finp" id="bt-packing-type">
+          <option value="none">🎁 No Packing (sirf stand + wrapping)</option>
+          <option value="standard">📦 Standard (Box + Plastic Bag + Wrapping)</option>
+          <option value="master">🗃️ Master Carton (per 10 stands)</option>
+        </select>
+      </div>
+
+      <div class="fg">
         <label>Production Start Stage</label>
         <select class="finp" id="bt-start">
           <option value="0">🪨 Raw Material — Aaj aaya</option>
@@ -3069,6 +3078,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 <div class="sc" id="s-inv-bom">
   <div class="inv-tabs">
     <button class="inv-tab active" onclick="invBomSubTab('bom',this)">📐 BOM</button>
+    <button class="inv-tab" onclick="invBomSubTab('packing',this)">📦 Packing BOM</button>
     <button class="inv-tab" onclick="invBomSubTab('mats',this)">⚙️ Materials</button>
   </div>
 
@@ -3096,7 +3106,60 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <div id="inv-bom-empty-hint" style="text-align:center;padding:24px;color:var(--muted);font-size:12px;font-weight:700">
       ☝️ Upar se product chunno ya naya banao
     </div>
+  </div>
 
+  <!-- Packing BOM sub -->
+  <div id="inv-bom-sub-packing" style="display:none">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px">
+      Har packing type ke liye materials aur quantity set karo (per stand). Dispatch pe auto-deduct hoga.
+    </div>
+
+    <!-- No Packing -->
+    <div class="card" style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <div style="font-size:18px">🎁</div>
+        <div style="font-size:13px;font-weight:800;color:var(--navy2);flex:1">No Packing <span style="font-size:10px;color:var(--muted);font-weight:700">(sirf stand + wrapping)</span></div>
+      </div>
+      <div id="pack-bom-none"></div>
+      <div style="display:flex;gap:7px;margin-top:8px">
+        <select id="pack-add-sel-none" class="finp" style="flex:1;font-size:12px">
+          <option value="">-- Material add karo --</option>
+        </select>
+        <button onclick="packBomAddMat('none')" style="padding:7px 12px;background:var(--navy);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">＋</button>
+      </div>
+    </div>
+
+    <!-- Standard -->
+    <div class="card" style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <div style="font-size:18px">📦</div>
+        <div style="font-size:13px;font-weight:800;color:var(--navy2);flex:1">Standard <span style="font-size:10px;color:var(--muted);font-weight:700">(Box + Plastic Bag + Wrapping)</span></div>
+      </div>
+      <div id="pack-bom-standard"></div>
+      <div style="display:flex;gap:7px;margin-top:8px">
+        <select id="pack-add-sel-standard" class="finp" style="flex:1;font-size:12px">
+          <option value="">-- Material add karo --</option>
+        </select>
+        <button onclick="packBomAddMat('standard')" style="padding:7px 12px;background:var(--navy);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">＋</button>
+      </div>
+    </div>
+
+    <!-- Master Carton -->
+    <div class="card" style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <div style="font-size:18px">🗃️</div>
+        <div style="font-size:13px;font-weight:800;color:var(--navy2);flex:1">Master Carton <span style="font-size:10px;color:var(--muted);font-weight:700">(Master Carton per 10 stands + Wrapping)</span></div>
+      </div>
+      <div id="pack-bom-master"></div>
+      <div style="display:flex;gap:7px;margin-top:8px">
+        <select id="pack-add-sel-master" class="finp" style="flex:1;font-size:12px">
+          <option value="">-- Material add karo --</option>
+        </select>
+        <button onclick="packBomAddMat('master')" style="padding:7px 12px;background:var(--navy);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">＋</button>
+      </div>
+    </div>
+
+    <button class="btn-save" style="width:100%;text-align:center" onclick="packBomSave()">💾 Packing BOM Save Karo</button>
   </div>
 
   <!-- Material settings sub -->
@@ -3712,7 +3775,7 @@ const GD_KEYS = [
   'bf9_invoices','bf9_invsettings','bf9_customers','bf9_ledger',
   // Inventory module
   'bf9_inv_mats','bf9_inv_bom','bf9_inv_bom','bf9_inv_conv','bf9_inv_purlog','bf9_inv_prodlog',
-  'bf9_inv_products','bf9_inv_all_boms',
+  'bf9_inv_products','bf9_inv_all_boms','bf9_inv_pack_bom',
   // Daybook
   'bf9_daybook','bf9_cat_labels',
   // Attendance & Salary
@@ -6580,6 +6643,7 @@ function createBatch(force){
     stages[s.id]=i<start?{done:true,date:btToday(),note:'Pehle se complete'}:{done:false,date:null,note:''};
   });
   const b={id:btGenId(),party,custId,orderId:ordId,qty,product:prod,productId,
+    packingType:document.getElementById('bt-packing-type')?.value||'none',
     deliveryDate:deliv,note,createdAt:new Date().toISOString(),stages,deleted:false,
     deliveries:[]};
   BATCHES.unshift(b);
@@ -6621,6 +6685,7 @@ function confirmBtStage(){
   if(s.id==='dispatch'){
     const pid=b.productId||btGetProductId(b.product);
     if(pid) btDeductStockForBatch({...b, productId:pid});
+    packDeductStock(b);
   }
   closeBtModal();
   toast(`✅ ${s.name} done!`);
@@ -14477,13 +14542,113 @@ function invSetAllBOMs(v){ INV_LS.set('all_boms',v); }
 
 /* ── BOM ── */
 function invBomSubTab(tab,btn){
-  ['bom','conv','mats'].forEach(t=>{
+  ['bom','packing','conv','mats'].forEach(t=>{
     const el=document.getElementById('inv-bom-sub-'+t);
     if(el)el.style.display=t===tab?'':'none';
   });
   document.querySelectorAll('#s-inv-bom .inv-tab').forEach(t=>t.classList.remove('active'));
   if(btn)btn.classList.add('active');
   if(tab==='bom') invRenderProductChips();
+  if(tab==='packing') packBomRender();
+  if(tab==='mats') invRenderMatSettings();
+}
+
+/* ══════════════════════════════════════════
+   PACKING BOM
+══════════════════════════════════════════ */
+const PACK_TYPES = ['none','standard','master'];
+function packBomGet(){ return INV_LS.get('pack_bom', {none:{},standard:{},master:{}}); }
+function packBomSet(v){ INV_LS.set('pack_bom',v); }
+
+function packBomRender(){
+  const bom = packBomGet();
+  PACK_TYPES.forEach(type=>{
+    const typeBom = bom[type]||{};
+    const matIds = Object.keys(typeBom);
+    const el = document.getElementById('pack-bom-'+type);
+    if(!el) return;
+    el.innerHTML = matIds.map(matId=>{
+      const mat = STK.find(m=>m.id===matId);
+      if(!mat) return '';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:16px">${mat.ico||'📦'}</div>
+        <div style="flex:1;font-size:12px;font-weight:700">${mat.name}</div>
+        <input type="number" id="packbom_${type}_${matId}" value="${typeBom[matId]||0}" min="0" step="any"
+          style="width:70px;padding:5px 8px;border:1.5px solid var(--border);border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800">
+        <div style="font-size:10px;color:var(--muted);min-width:30px">${mat.unit}</div>
+        <button onclick="packBomRemove('${type}','${matId}')"
+          style="width:24px;height:24px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:12px">✕</button>
+      </div>`;
+    }).join('') || '<div style="font-size:11px;color:var(--muted);padding:8px 0">Koi material nahi — add karo</div>';
+    const addedIds = new Set(matIds);
+    const sel = document.getElementById('pack-add-sel-'+type);
+    if(sel) sel.innerHTML = '<option value="">-- Material add karo --</option>' +
+      STK.filter(m=>!addedIds.has(m.id)).map(m=>`<option value="${m.id}">${m.ico||'📦'} ${m.name} (${m.unit})</option>`).join('');
+  });
+}
+
+function packBomAddMat(type){
+  const sel = document.getElementById('pack-add-sel-'+type);
+  const matId = sel?.value;
+  if(!matId){ invToast('Material chunno!','err'); return; }
+  const bom = packBomGet();
+  if(!bom[type]) bom[type]={};
+  bom[type][matId] = 1;
+  packBomSet(bom);
+  packBomRender();
+}
+
+function packBomRemove(type, matId){
+  const bom = packBomGet();
+  if(bom[type]) delete bom[type][matId];
+  packBomSet(bom);
+  packBomRender();
+}
+
+function packBomSave(){
+  const bom = packBomGet();
+  PACK_TYPES.forEach(type=>{
+    const typeBom = bom[type]||{};
+    Object.keys(typeBom).forEach(matId=>{
+      const inp = document.getElementById('packbom_'+type+'_'+matId);
+      if(inp) typeBom[matId] = parseFloat(inp.value)||0;
+    });
+    bom[type] = typeBom;
+  });
+  packBomSet(bom);
+  invToast('✅ Packing BOM saved!');
+}
+
+function packDeductStock(batch){
+  const packType = batch.packingType||'none';
+  const qty = batch.qty||0;
+  const bom = packBomGet();
+  const typeBom = bom[packType]||{};
+  let deducted = [];
+  Object.keys(typeBom).forEach(matId=>{
+    let perUnit = typeBom[matId]||0;
+    if(perUnit<=0) return;
+    let totalDeduct = perUnit * qty;
+    // Master carton: ceil(qty/10) cartons — detect by name
+    if(packType==='master'){
+      const mat = STK.find(m=>m.id===matId);
+      if(mat && mat.name.toLowerCase().includes('carton')){
+        totalDeduct = Math.ceil(qty/10) * perUnit;
+      }
+    }
+    const idx = STK.findIndex(m=>m.id===matId);
+    if(idx<0) return;
+    STK[idx].current = Math.max(0,(STK[idx].current||0)-totalDeduct);
+    STXN.push({id:Date.now()+'_pk_'+Math.random().toString(36).slice(2,4),
+      itemId:matId,type:'out',qty:totalDeduct,
+      note:'Packing('+packType+') Batch '+batch.id,date:new Date().toISOString()});
+    deducted.push(STK[idx].name);
+  });
+  if(deducted.length>0){
+    save('bf9_stk',STK); save('bf9_stxn',STXN);
+    if(typeof renderStock==='function') renderStock();
+    toast('📦 Packing deducted: '+deducted.join(', '));
+  }
 }
 function invRenderBOM(){
   if(!_invSelectedProdId) return;
