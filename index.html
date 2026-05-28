@@ -1374,11 +1374,8 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <button class="sbnav" data-tab="inv-purchase" onclick="sw('inv-purchase',this)">
       <span class="sb-ico">🛒</span><span class="sb-lbl">Purchase Entry</span>
     </button>
-    <button class="sbnav" data-tab="inv-produce" onclick="sw('inv-produce',this)">
-      <span class="sb-ico">🏭</span><span class="sb-lbl">Produce Stands</span>
-    </button>
     <button class="sbnav" data-tab="inv-bom" onclick="sw('inv-bom',this)">
-      <span class="sb-ico">📐</span><span class="sb-lbl">BOM / Conversion</span>
+      <span class="sb-ico">📐</span><span class="sb-lbl">BOM</span>
     </button>
   </div>
 
@@ -3067,35 +3064,11 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     </div>
   </div>
 </div>
-<div class="sc" id="s-inv-produce">
-  <div class="card-title" style="font-size:14px;margin-bottom:12px">🏭 Production — Stands Banao</div>
-  <div class="card">
-    <div class="fg">
-      <label>Kitne Stand Banana Hai?</label>
-      <input class="finp" type="number" id="inv-prod-qty" min="1" step="1" placeholder="e.g. 50" oninput="invUpdateProdPreview()">
-    </div>
-    <div class="fg">
-      <label>Note (optional)</label>
-      <input class="finp" type="text" id="inv-prod-note" placeholder="e.g. Aaj ka order, batch no.">
-    </div>
-    <div id="inv-prod-preview-wrap" style="display:none">
-      <div class="inv-preview-box">
-        <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📦 Material Requirement Preview</div>
-        <div id="inv-prod-preview-list"></div>
-      </div>
-      <div id="inv-prod-warning"></div>
-    </div>
-    <button class="btn-save" style="width:100%;text-align:center" onclick="invDoProduction()">🏭 Production Complete → Stock Ghata Do</button>
-  </div>
-  <div class="card-title" style="font-size:13px;margin-bottom:8px;margin-top:4px">📊 Recent Production</div>
-  <div id="inv-prod-log-mini"></div>
-</div>
 
 <!-- ════ INVENTORY: BOM + CONVERSION ════ -->
 <div class="sc" id="s-inv-bom">
   <div class="inv-tabs">
     <button class="inv-tab active" onclick="invBomSubTab('bom',this)">📐 BOM</button>
-    <button class="inv-tab" onclick="invBomSubTab('conv',this)">🔄 Kg↔Nos</button>
     <button class="inv-tab" onclick="invBomSubTab('mats',this)">⚙️ Materials</button>
   </div>
 
@@ -3124,21 +3097,6 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
       ☝️ Upar se product chunno ya naya banao
     </div>
 
-    <!-- Materials quick management -->
-    <div class="card" style="padding:12px;margin-top:10px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div style="font-size:12px;font-weight:800;color:var(--navy2)">🧱 Materials List</div>
-        <button onclick="invOpenAddMatModal()" style="padding:5px 11px;background:var(--navy);color:#fff;border:none;border-radius:var(--r3);font-family:Nunito,sans-serif;font-size:11px;font-weight:800;cursor:pointer">＋ Add</button>
-      </div>
-      <div id="inv-bom-mat-quicklist"></div>
-    </div>
-  </div>
-
-  <!-- Conversion sub -->
-  <div id="inv-bom-sub-conv" style="display:none">
-    <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Kg mein aane wale materials ke liye — 1 kg = kitne nos</div>
-    <div class="card" id="inv-conv-list"></div>
-    <button class="btn-save" style="width:100%;text-align:center" onclick="invSaveConversion()">💾 Save Karo</button>
   </div>
 
   <!-- Material settings sub -->
