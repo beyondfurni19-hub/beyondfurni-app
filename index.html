@@ -3557,27 +3557,69 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 
 <!-- Stock Edit Modal -->
 <div class="modal-bg" id="stk-edit-modal">
-  <div class="modal" style="max-height:85vh;overflow-y:auto">
+  <div class="modal" style="max-height:90vh;overflow-y:auto;border-radius:var(--r) var(--r) 0 0">
     <div class="modal-handle"></div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-      <h3 id="stk-em-title" style="font-family:'Bebas Neue';font-size:20px;color:var(--navy2);letter-spacing:1px"></h3>
-      <button onclick="closeStkEditModal()" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:#f0f4ff;font-size:14px;cursor:pointer">✕</button>
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div>
+        <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Update Item</div>
+        <div id="stk-em-title" style="font-size:16px;font-weight:900;color:var(--navy2);margin-top:2px"></div>
+      </div>
+      <div style="display:flex;gap:7px;align-items:center">
+        <button onclick="saveStkEditModal()" style="padding:8px 16px;background:var(--green);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:5px">✅ Update</button>
+        <button onclick="closeStkEditModal()" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:#f0f4ff;font-size:14px;cursor:pointer">✕</button>
+      </div>
     </div>
     <input type="hidden" id="stk-em-id">
+
+    <!-- Name + Code -->
     <div class="g2">
-      <div class="fg" style="margin:0"><label>Name</label><input class="finp" id="stk-em-name"></div>
-      <div class="fg" style="margin:0"><label>Icon (emoji)</label><input class="finp" id="stk-em-icon" maxlength="4" style="width:70px"></div>
+      <div class="fg" style="margin:0"><label>Name *</label><input class="finp" id="stk-em-name" placeholder="Material naam"></div>
+      <div class="fg" style="margin:0"><label>Code / SKU</label><input class="finp" id="stk-em-code" placeholder="e.g. SQ30-12"></div>
     </div>
-    <div class="fg"><label>Category</label><select class="finp" id="stk-em-cat"></select></div>
+
+    <!-- Category + Sub-category + Importance -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 90px;gap:7px;margin-bottom:10px">
+      <div class="fg" style="margin:0"><label>Category</label><select class="finp" id="stk-em-cat"></select></div>
+      <div class="fg" style="margin:0"><label>Sub-Category</label><input class="finp" id="stk-em-subcat" placeholder="e.g. Pipe, Angle..."></div>
+      <div class="fg" style="margin:0"><label>Importance</label>
+        <select class="finp" id="stk-em-importance">
+          <option>High</option><option>Normal</option><option>Low</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Icon + Supplier -->
     <div class="g2">
+      <div class="fg" style="margin:0"><label>Icon (emoji)</label><input class="finp" id="stk-em-icon" maxlength="4" placeholder="📦" style="width:70px"></div>
+      <div class="fg" style="margin:0"><label>Supplier</label><input class="finp" type="text" id="stk-em-supplier" placeholder="Supplier name/number"></div>
+    </div>
+
+    <!-- Costs -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:10px">
+      <div class="fg" style="margin:0"><label>Std. Cost (₹)</label><input class="finp" type="number" id="stk-em-stdcost" min="0" step="any" placeholder="0"></div>
+      <div class="fg" style="margin:0"><label>Purch. Cost (₹)</label><input class="finp" type="number" id="stk-em-rate" min="0" step="any" placeholder="0"></div>
+      <div class="fg" style="margin:0"><label>Sale Price (₹)</label><input class="finp" type="number" id="stk-em-saleprice" min="0" step="any" placeholder="0"></div>
+    </div>
+
+    <!-- HSN + GST -->
+    <div class="g2">
+      <div class="fg" style="margin:0"><label>HSN / SAC Code</label><input class="finp" id="stk-em-hsn" placeholder="e.g. 7308"></div>
+      <div class="fg" style="margin:0"><label>GST %</label><input class="finp" type="number" id="stk-em-gst" min="0" max="28" placeholder="18"></div>
+    </div>
+
+    <!-- Stock numbers -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:10px">
       <div class="fg" style="margin:0"><label>Current Stock</label><input class="finp" type="number" id="stk-em-current" min="0" step="any"></div>
-      <div class="fg" style="margin:0"><label>Reorder Level</label><input class="finp" type="number" id="stk-em-reorder" min="0"></div>
+      <div class="fg" style="margin:0"><label>Min Stock</label><input class="finp" type="number" id="stk-em-reorder" min="0"></div>
+      <div class="fg" style="margin:0"><label>Lead Time (days)</label><input class="finp" type="number" id="stk-em-leadtime" min="0" placeholder="0"></div>
     </div>
-    <div class="g2">
-      <div class="fg" style="margin:0"><label>Order Qty</label><input class="finp" type="number" id="stk-em-orderqty" min="0"></div>
-      <div class="fg" style="margin:0"><label>Supplier</label><input class="finp" type="text" id="stk-em-supplier" placeholder="Name/number"></div>
+    <div class="fg">
+      <label>Order Qty</label>
+      <input class="finp" type="number" id="stk-em-orderqty" min="0">
     </div>
-    <!-- Conversion -->
+
+    <!-- Unit Conversion -->
     <div style="background:var(--yellow-bg);border:1px solid #fde68a;border-radius:var(--r2);padding:10px 12px;margin-bottom:10px">
       <div style="font-size:11px;font-weight:800;color:var(--yellow-dark);margin-bottom:8px">🔄 Unit Conversion (Purchase → Stock)</div>
       <div class="g2">
@@ -3589,8 +3631,16 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         <input class="finp" type="number" id="stk-em-convratio" min="0" step="any" placeholder="1">
       </div>
     </div>
-    <div class="modal-btns">
-      <button class="mbtn-primary" onclick="saveStkEditModal()">💾 Save</button>
+
+    <!-- Description + Notes -->
+    <div class="g2">
+      <div class="fg" style="margin:0"><label>Description</label><textarea class="finp" id="stk-em-desc" rows="2" placeholder="Item description..." style="resize:none"></textarea></div>
+      <div class="fg" style="margin:0"><label>Internal Notes</label><textarea class="finp" id="stk-em-notes" rows="2" placeholder="Internal notes..." style="resize:none"></textarea></div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="modal-btns" style="margin-top:14px">
+      <button class="mbtn-primary" onclick="saveStkEditModal()">✅ Update</button>
       <button class="mbtn-cancel" style="background:var(--red-bg);color:var(--red-dark);border-color:#fca5a5" onclick="deleteStkItem()">🗑️ Delete</button>
       <button class="mbtn-cancel" onclick="closeStkEditModal()">Cancel</button>
     </div>
@@ -5222,17 +5272,28 @@ function openStkEditModal(id){
   const units=['pcs','nos','kg','meter','liter','box','roll','set'];
   const cats=['Raw Material','Hardware','Packaging','Chemical','Other'];
   document.getElementById('stk-em-id').value=id;
-  document.getElementById('stk-em-title').textContent=it.ico+' '+it.name;
+  document.getElementById('stk-em-title').textContent=(it.ico||'📦')+' '+it.name;
   document.getElementById('stk-em-name').value=it.name;
+  document.getElementById('stk-em-code').value=it.code||'';
   document.getElementById('stk-em-cat').innerHTML=cats.map(c=>`<option ${it.cat===c?'selected':''}>${c}</option>`).join('');
+  document.getElementById('stk-em-subcat').value=it.subcat||'';
+  document.getElementById('stk-em-importance').value=it.importance||'Normal';
   document.getElementById('stk-em-icon').value=it.ico||'📦';
+  document.getElementById('stk-em-supplier').value=it.suppliers||'';
+  document.getElementById('stk-em-stdcost').value=it.stdCost||0;
+  document.getElementById('stk-em-rate').value=it.rate||0;
+  document.getElementById('stk-em-saleprice').value=it.salePrice||0;
+  document.getElementById('stk-em-hsn').value=it.hsn||'';
+  document.getElementById('stk-em-gst').value=it.gst||18;
   document.getElementById('stk-em-current').value=it.current||0;
   document.getElementById('stk-em-reorder').value=it.reorder||0;
+  document.getElementById('stk-em-leadtime').value=it.leadTime||0;
   document.getElementById('stk-em-orderqty').value=it.orderQty||0;
-  document.getElementById('stk-em-supplier').value=it.suppliers||'';
   document.getElementById('stk-em-purunit').innerHTML=units.map(u=>`<option ${purUnit===u?'selected':''}>${u}</option>`).join('');
   document.getElementById('stk-em-stockunit').innerHTML=units.map(u=>`<option ${it.unit===u?'selected':''}>${u}</option>`).join('');
   document.getElementById('stk-em-convratio').value=it.convRatio||1;
+  document.getElementById('stk-em-desc').value=it.desc||'';
+  document.getElementById('stk-em-notes').value=it.notes||'';
   stkUpdateConvLabel();
   document.getElementById('stk-edit-modal').classList.add('show');
 }
@@ -5246,16 +5307,27 @@ function saveStkEditModal(){
   const id=document.getElementById('stk-em-id').value;
   const idx=STK.findIndex(i=>i.id===id); if(idx<0) return;
   STK[idx].name=document.getElementById('stk-em-name').value.trim()||STK[idx].name;
+  STK[idx].code=document.getElementById('stk-em-code').value.trim();
   STK[idx].cat=document.getElementById('stk-em-cat').value;
+  STK[idx].subcat=document.getElementById('stk-em-subcat').value.trim();
+  STK[idx].importance=document.getElementById('stk-em-importance').value;
   STK[idx].ico=document.getElementById('stk-em-icon').value.trim()||'📦';
+  STK[idx].suppliers=document.getElementById('stk-em-supplier').value.trim();
+  STK[idx].stdCost=parseFloat(document.getElementById('stk-em-stdcost').value)||0;
+  STK[idx].rate=parseFloat(document.getElementById('stk-em-rate').value)||0;
+  STK[idx].salePrice=parseFloat(document.getElementById('stk-em-saleprice').value)||0;
+  STK[idx].hsn=document.getElementById('stk-em-hsn').value.trim();
+  STK[idx].gst=parseFloat(document.getElementById('stk-em-gst').value)||0;
   STK[idx].current=parseFloat(document.getElementById('stk-em-current').value)||0;
   STK[idx].reorder=parseFloat(document.getElementById('stk-em-reorder').value)||0;
+  STK[idx].leadTime=parseFloat(document.getElementById('stk-em-leadtime').value)||0;
   STK[idx].orderQty=parseFloat(document.getElementById('stk-em-orderqty').value)||0;
-  STK[idx].suppliers=document.getElementById('stk-em-supplier').value.trim();
   STK[idx].purUnit=document.getElementById('stk-em-purunit').value;
   STK[idx].unit=document.getElementById('stk-em-stockunit').value;
   STK[idx].convRatio=parseFloat(document.getElementById('stk-em-convratio').value)||1;
-  save('bf9_stk',STK); closeStkEditModal(); renderStock(); toast('✅ Saved!');
+  STK[idx].desc=document.getElementById('stk-em-desc').value.trim();
+  STK[idx].notes=document.getElementById('stk-em-notes').value.trim();
+  save('bf9_stk',STK); closeStkEditModal(); renderStock(); toast('✅ Updated!');
 }
 function deleteStkItem(){
   const id=document.getElementById('stk-em-id').value;
@@ -14473,39 +14545,84 @@ function invBomSubTab(tab,btn){
 }
 function invRenderBOM(){
   if(!_invSelectedProdId) return;
-  const mats = invGetMats();
   const allBoms = invGetAllBOMs();
   const bom = allBoms[_invSelectedProdId] || {};
-  document.getElementById('inv-bom-list').innerHTML = mats.map(mat=>
-    `<div class="inv-bom-row">
-      <div style="flex:1;font-size:12px;font-weight:700">${mat.icon} ${mat.name}</div>
-      <input class="inv-small-inp" type="number" min="0" step="any" id="invbom_${mat.id}" value="${bom[mat.id]||0}">
-      <div style="font-size:11px;color:var(--muted);min-width:35px">${mat.uunit}</div>
-      <div style="font-size:10px;color:var(--orange);min-width:50px">/unit</div>
-    </div>`
-  ).join('');
+  // Only show materials that are in BOM (have qty > 0) + add button
+  const bomMatIds = Object.keys(bom).filter(id=>bom[id]>0);
+
+  document.getElementById('inv-bom-list').innerHTML = bomMatIds.map(matId=>{
+    // Find in STK
+    const mat = STK.find(m=>m.id===matId);
+    if(!mat) return '';
+    return `<div class="inv-bom-row" style="display:flex;align-items:center;gap:8px">
+      <div style="font-size:16px">${mat.ico||'📦'}</div>
+      <div style="flex:1;font-size:12px;font-weight:700">${mat.name}</div>
+      <input class="inv-small-inp" type="number" min="0" step="any" id="invbom_${matId}" value="${bom[matId]||0}" style="width:70px">
+      <div style="font-size:11px;color:var(--muted);min-width:30px">${mat.unit}</div>
+      <div style="font-size:10px;color:var(--orange);min-width:40px">/unit</div>
+      <button onclick="invBomRemoveMat('${matId}')" style="width:26px;height:26px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800;flex-shrink:0">✕</button>
+    </div>`;
+  }).join('') || '<div style="text-align:center;padding:12px;color:var(--muted);font-size:12px">Koi item nahi — neeche se add karo</div>';
+
+  // Add item dropdown from STK
+  const addedIds = new Set(bomMatIds);
+  const available = STK.filter(m=>!addedIds.has(m.id));
+  const addRow = `<div style="display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+    <select id="inv-bom-add-sel" class="finp" style="flex:1;font-size:12px">
+      <option value="">-- Material chunno --</option>
+      ${available.map(m=>`<option value="${m.id}">${m.ico||'📦'} ${m.name} (${m.unit})</option>`).join('')}
+    </select>
+    <button onclick="invBomAddMat()" style="padding:7px 14px;background:var(--navy);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">＋ Add</button>
+  </div>`;
+  document.getElementById('inv-bom-list').innerHTML += addRow;
+
   invRenderBomMatQuickList();
 }
 
+function invBomAddMat(){
+  if(!_invSelectedProdId) return;
+  const sel = document.getElementById('inv-bom-add-sel');
+  const matId = sel.value;
+  if(!matId){ invToast('Material chunno!','err'); return; }
+  const allBoms = invGetAllBOMs();
+  if(!allBoms[_invSelectedProdId]) allBoms[_invSelectedProdId]={};
+  allBoms[_invSelectedProdId][matId] = 1; // default qty 1
+  invSetAllBOMs(allBoms);
+  invRenderBOM();
+}
+
+function invBomRemoveMat(matId){
+  if(!_invSelectedProdId) return;
+  if(!confirm('Is material ko BOM se hatao?')) return;
+  const allBoms = invGetAllBOMs();
+  if(allBoms[_invSelectedProdId]) delete allBoms[_invSelectedProdId][matId];
+  invSetAllBOMs(allBoms);
+  invRenderBOM();
+}
+
 function invRenderBomMatQuickList(){
+  // Show STK materials list for reference
   const el = document.getElementById('inv-bom-mat-quicklist');
   if(!el) return;
-  const mats = invGetMats();
-  el.innerHTML = mats.map(m=>`
+  el.innerHTML = STK.map(m=>`
     <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
-      <div style="font-size:16px;width:22px;text-align:center">${m.icon}</div>
+      <div style="font-size:16px;width:22px;text-align:center">${m.ico||'📦'}</div>
       <div style="flex:1;font-size:12px;font-weight:700">${m.name}</div>
-      <div style="font-size:10px;color:var(--muted);min-width:50px">${m.punit} · ${m.uunit}</div>
-      <button onclick="invOpenEditMatModal('${m.id}')" style="padding:4px 9px;background:transparent;border:1.5px solid var(--border2);border-radius:8px;font-family:Nunito,sans-serif;font-size:10px;font-weight:800;cursor:pointer;color:var(--navy2)">✏️</button>
+      <div style="font-size:10px;color:var(--muted);min-width:50px">${m.unit} · Stock: ${m.current||0}</div>
+      <button onclick="openStkEditModal('${m.id}')" style="padding:4px 9px;background:transparent;border:1.5px solid var(--border2);border-radius:8px;font-family:Nunito,sans-serif;font-size:10px;font-weight:800;cursor:pointer;color:var(--navy2)">✏️</button>
     </div>
-  `).join('') || '<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px">Koi material nahi — Add karo!</div>';
+  `).join('') || '<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px">Stock mein koi material nahi</div>';
 }
+
 function invSaveBOM(){
   if(!_invSelectedProdId){ invToast('Pehle product chunno!','err'); return; }
-  const mats = invGetMats();
   const allBoms = invGetAllBOMs();
-  const bom = {};
-  mats.forEach(mat=>{ bom[mat.id] = parseFloat(document.getElementById('invbom_'+mat.id)?.value)||0; });
+  const bom = allBoms[_invSelectedProdId] || {};
+  // Save all visible qty inputs
+  Object.keys(bom).forEach(matId=>{
+    const inp = document.getElementById('invbom_'+matId);
+    if(inp) bom[matId] = parseFloat(inp.value)||0;
+  });
   allBoms[_invSelectedProdId] = bom;
   invSetAllBOMs(allBoms);
   invToast('✅ BOM saved!');
@@ -14525,22 +14642,45 @@ let _bomWarnPendingCreate = false;
 
 function btCheckStock(productId, qty){
   // Returns array of {mat, needed, have, short} for items that are short
+  // Uses STK (Stock module) for current stock levels
   const bom = invGetBOMForProduct(productId);
-  const mats = invGetMats();
-  const conv = invGetConv();
   const short = [];
-  mats.forEach(mat=>{
-    const bomQty = bom[mat.id]||0;
+
+  Object.keys(bom).forEach(matId=>{
+    const bomQty = bom[matId]||0;
     if(bomQty<=0) return;
-    let needed = bomQty * qty;
-    let have = mat.stock||0;
-    // Unit conversion if needed
-    if(mat.uunit==='nos' && mat.punit==='kg'){
-      const cr = conv[mat.id]||0;
-      if(cr>0) have = (mat.stock||0) * cr;
+
+    // Find in STK first, fallback to invGetMats
+    let mat = STK.find(m=>m.id===matId);
+    let have = 0;
+    let unit = '';
+    let matName = '';
+    let matIcon = '📦';
+
+    if(mat){
+      have = mat.current||0;
+      unit = mat.unit;
+      matName = mat.name;
+      matIcon = mat.ico||'📦';
+    } else {
+      // fallback: old invGetMats format
+      const imat = invGetMats().find(m=>m.id===matId);
+      if(!imat) return;
+      have = imat.stock||0;
+      unit = imat.uunit||imat.punit;
+      matName = imat.name;
+      matIcon = imat.icon||'📦';
     }
+
+    const needed = bomQty * qty;
     if(have < needed){
-      short.push({ mat, needed, have: parseFloat(have.toFixed(4)), short: parseFloat((needed-have).toFixed(4)), unit: mat.uunit });
+      short.push({
+        mat: {id:matId, name:matName, icon:matIcon},
+        needed: parseFloat(needed.toFixed(4)),
+        have: parseFloat(have.toFixed(4)),
+        short: parseFloat((needed-have).toFixed(4)),
+        unit
+      });
     }
   });
   return short;
@@ -14593,27 +14733,32 @@ function bomWarnForceCreate(){
    STOCK AUTO-DEDUCT — Dispatch stage pe
 ══════════════════════════════════════════ */
 function btDeductStockForBatch(batch){
-  const productId = btGetProductId(batch.product);
+  const productId = batch.productId || btGetProductId(batch.product);
   if(!productId) return;
   const bom = invGetBOMForProduct(productId);
-  const mats = invGetMats();
-  const conv = invGetConv();
   let deducted = [];
-  mats.forEach((mat,idx)=>{
-    const bomQty = bom[mat.id]||0;
+
+  Object.keys(bom).forEach(matId=>{
+    const bomQty = bom[matId]||0;
     if(bomQty<=0) return;
-    let needed = bomQty * batch.qty;
-    let deductInPurchaseUnit = needed;
-    if(mat.uunit==='nos' && mat.punit==='kg'){
-      const cr = conv[mat.id]||0;
-      if(cr>0) deductInPurchaseUnit = needed/cr;
-    }
-    mats[idx].stock = Math.max(0, (mat.stock||0) - deductInPurchaseUnit);
-    deducted.push(mat.name);
+    const needed = bomQty * batch.qty;
+    const idx = STK.findIndex(m=>m.id===matId);
+    if(idx<0) return;
+    STK[idx].current = Math.max(0, (STK[idx].current||0) - needed);
+    // Log transaction
+    STXN.push({
+      id:Date.now()+'_'+Math.random().toString(36).slice(2,4),
+      itemId:matId, type:'out', qty:needed,
+      note:'Batch '+batch.id+' production',
+      date:new Date().toISOString()
+    });
+    deducted.push(STK[idx].name);
   });
-  invSetMats(mats);
-  invCheckLowBadge();
-  invToast('📦 Stock auto-deducted: '+deducted.length+' materials');
+
+  save('bf9_stk', STK);
+  save('bf9_stxn', STXN);
+  if(typeof renderStock==='function') renderStock();
+  toast('📦 Stock deducted: '+deducted.length+' materials');
 }
 
 /* Helper: find product id from product name */
