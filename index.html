@@ -1377,10 +1377,6 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <button class="sbnav" data-tab="inv-produce" onclick="sw('inv-produce',this)">
       <span class="sb-ico">🏭</span><span class="sb-lbl">Produce Stands</span>
     </button>
-    <button class="sbnav" data-tab="inv-materials" onclick="sw('inv-materials',this)">
-      <span class="sb-ico">🧱</span><span class="sb-lbl">Raw Materials</span>
-      <span class="ndot" id="inv-low-ndot" style="display:none"></span>
-    </button>
     <button class="sbnav" data-tab="inv-bom" onclick="sw('inv-bom',this)">
       <span class="sb-ico">📐</span><span class="sb-lbl">BOM / Conversion</span>
     </button>
@@ -2951,19 +2947,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 </div>
 
 
-<!-- ════ INVENTORY: RAW MATERIALS ════ -->
-<div class="sc" id="s-inv-materials">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-    <div class="card-title" style="font-size:14px">🧱 Raw Materials Stock</div>
-    <button class="btn-save" style="margin:0" onclick="invOpenAdjModal()">+ Adjust Stock</button>
-  </div>
-  <div class="inv-tabs">
-    <button class="inv-tab active" onclick="invFilterMats('all',this)">Sab</button>
-    <button class="inv-tab" onclick="invFilterMats('low',this)">⚠️ Low/Critical</button>
-    <button class="inv-tab" onclick="invFilterMats('ok',this)">✅ OK</button>
-  </div>
-  <div id="inv-mat-list"></div>
-</div>
+
 
 <!-- ════ INVENTORY: PURCHASE ENTRY ════ -->
 <div class="sc" id="s-inv-purchase">
