@@ -1401,12 +1401,6 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <button class="sbnav" data-tab="settings" onclick="sw('settings',this)">
       <span class="sb-ico">⚙️</span><span class="sb-lbl">Settings</span>
     </button>
-    <button class="sbnav" onclick="gdForcePull()" style="border-top:1px solid #1e3060">
-      <span class="sb-ico">☁️</span><span class="sb-lbl" style="color:#7ab8ff">Cloud se Lo</span>
-    </button>
-    <button class="sbnav" onclick="gdPush()" >
-      <span class="sb-ico">⬆️</span><span class="sb-lbl" style="color:#90e8b0">Cloud pe Save</span>
-    </button>
   </div>
 </div>
 
@@ -1424,8 +1418,8 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   </div>
   <div class="top-right">
     <div class="top-date" id="top-date"></div>
-    <!-- Cloud Sync Status — tap to force-pull -->
-    <div onclick="gdForcePull()" title="Tap = doosre device ka latest data lo" style="display:flex;align-items:center;gap:5px;padding:4px 10px;background:rgba(255,255,255,.08);border-radius:20px;border:1px solid rgba(255,255,255,.12);cursor:pointer">
+    <!-- Cloud Sync Status — sirf indicator, auto sync hota hai -->
+    <div style="display:flex;align-items:center;gap:5px;padding:4px 10px;background:rgba(255,255,255,.08);border-radius:20px;border:1px solid rgba(255,255,255,.12)" title="Auto sync every 5 sec">
       <div id="gd-dot" style="width:8px;height:8px;border-radius:50%;background:#6b7a99;flex-shrink:0;transition:background .3s"></div>
       <div id="gd-lbl" style="font-size:9px;font-weight:800;color:#7a9bcc;white-space:nowrap">Sync</div>
     </div>
@@ -3794,8 +3788,9 @@ let _gdLoaded    = false;
 function load(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; }}
 function save(k,v){
   localStorage.setItem(k,JSON.stringify(v));
-  // Debounced push to Drive — 3 sec baad push karo (rapid saves batch ho jayein)
+  // Mark local as modified — timestamp update karo
   if(GD_KEYS.includes(k)){
+    localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
     clearTimeout(_gdPushTimer);
     _gdPushTimer = setTimeout(gdPush, 3000);
   }
@@ -3847,7 +3842,77 @@ function gdLoad(){
     setTimeout(gdPush, 1000);
     return;
   }
-  _gdFetch(false);
+  _gdSmartSync();
+}
+
+/* ── Smart sync — compare timestamps, newer wins ── */
+async function _gdSmartSync(){
+  gdSetDot('syncing');
+  try {
+    const res = await fetch(SB_URL+'/rest/v1/bf_sync?id=eq.main&select=data,updated_at', {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer '+SB_KEY }
+    });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const rows = await res.json();
+    const cloud = (rows && rows[0] && rows[0].data) ? rows[0].data : {};
+    const cloudUpdatedAt = rows && rows[0] ? new Date(rows[0].updated_at) : null;
+
+    // Local last modified time
+    const localLastSync = localStorage.getItem('bf9_gd_lastsync');
+    const localTime = localLastSync ? new Date(localLastSync) : null;
+
+    // Case 1: Cloud is empty → push local data
+    if(!cloud || Object.keys(cloud).length === 0){
+      gdSetDot('ok');
+      _gdLoaded = true;
+      gdPush();
+      return;
+    }
+
+    // Case 2: Local has never synced → pull from cloud
+    if(!localTime){
+      let restored = 0;
+      GD_KEYS.forEach(k=>{
+        if(cloud[k] !== undefined && cloud[k] !== '' && cloud[k] !== 'null'){
+          localStorage.setItem(k, cloud[k]);
+          restored++;
+        }
+      });
+      localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
+      _gdLoaded = true;
+      gdSetDot('ok');
+      if(restored > 0){ localStorage.setItem('bf9_gd_reloaded','1'); location.reload(); }
+      return;
+    }
+
+    // Case 3: Local is NEWER than cloud → push local to cloud
+    if(localTime >= cloudUpdatedAt){
+      _gdLoaded = true;
+      gdSetDot('ok');
+      gdPush(); // local data cloud pe bhejo
+      return;
+    }
+
+    // Case 4: Cloud is NEWER than local → pull from cloud
+    let restored = 0;
+    GD_KEYS.forEach(k=>{
+      if(cloud[k] !== undefined && cloud[k] !== '' && cloud[k] !== 'null'){
+        localStorage.setItem(k, cloud[k]);
+        restored++;
+      }
+    });
+    localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
+    _gdLoaded = true;
+    gdSetDot('ok');
+    if(restored > 0){
+      localStorage.setItem('bf9_gd_reloaded','1');
+      location.reload();
+    }
+  } catch(e){
+    console.warn('Supabase load failed:', e.message);
+    gdSetDot('err');
+    _gdLoaded = true;
+  }
 }
 
 /* ── Force pull from Supabase (doosre device ka data lana) ── */
@@ -3856,7 +3921,7 @@ function gdForcePull(){
   _gdFetch(true);
 }
 
-/* ── Silent pull — background mein check karo, koi notification nahi ── */
+/* ── Silent pull — background mein check karo, reload nahi ── */
 async function _gdSilentPull(){
   try {
     const res = await fetch(SB_URL+'/rest/v1/bf_sync?id=eq.main&select=data,updated_at', {
@@ -3865,15 +3930,19 @@ async function _gdSilentPull(){
     if(!res.ok) return;
     const rows = await res.json();
     const cloud = (rows && rows[0] && rows[0].data) ? rows[0].data : {};
-    if(!cloud || Object.keys(cloud).length === 0) return;
+    if(!cloud || Object.keys(cloud).length === 0){ gdPush(); return; }
 
-    // Compare cloud updated_at with last local sync time
     const cloudTime = rows[0].updated_at ? new Date(rows[0].updated_at) : null;
     const localTime = localStorage.getItem('bf9_gd_lastsync') ? new Date(localStorage.getItem('bf9_gd_lastsync')) : null;
 
-    if(cloudTime && localTime && cloudTime <= localTime) return; // no change
+    // Local is newer or same → push to cloud
+    if(!cloudTime || (localTime && localTime >= cloudTime)){
+      gdPush();
+      return;
+    }
 
-    // Cloud is newer — apply non-conflicting keys and reload
+    // Cloud is newer → silently update localStorage only
+    // NO reload — bas data update karo background mein
     let restored = 0;
     GD_KEYS.forEach(k=>{
       if(cloud[k] !== undefined && cloud[k] !== '' && cloud[k] !== 'null'){
@@ -3883,9 +3952,8 @@ async function _gdSilentPull(){
     });
     if(restored > 0){
       localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
-      localStorage.setItem('bf9_gd_reloaded','1');
-      toast('🔄 Naya data mila — refresh ho raha hai...');
-      setTimeout(()=>location.reload(), 1200);
+      gdSetDot('ok');
+      // Sirf dot update karo — koi toast, koi reload nahi
     }
   } catch(e){ /* silent fail */ }
 }
@@ -6378,19 +6446,30 @@ function init(){
   // Agar Drive pe naya data hai toh page reload hoga automatically
   gdLoad();
 
-  // ── Auto-sync jab app dobara focus mein aaye (tab switch / phone unlock) ──
-  // 5 minute se zyada baad aaye to silently check karo cloud pe naya data hai kya
-  let _lastVisibleSync = Date.now();
-  document.addEventListener('visibilitychange', ()=>{
-    if(document.visibilityState === 'visible'){
-      const gap = Date.now() - _lastVisibleSync;
-      if(gap > 5 * 60 * 1000){ // 5 minutes
-        _lastVisibleSync = Date.now();
-        _gdSilentPull(); // quiet pull — sirf naya data ho to reload
+  // ── Auto sync every 5 seconds — smart (newer wins) ──
+  setInterval(async ()=>{
+    if(!navigator.onLine) return; // offline hai toh skip
+    try {
+      const res = await fetch(SB_URL+'/rest/v1/bf_sync?id=eq.main&select=updated_at', {
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer '+SB_KEY }
+      });
+      if(!res.ok) return;
+      const rows = await res.json();
+      const cloudTime = rows && rows[0] ? new Date(rows[0].updated_at) : null;
+      const localTime = localStorage.getItem('bf9_gd_lastsync') ? new Date(localStorage.getItem('bf9_gd_lastsync')) : null;
+
+      if(!cloudTime) { gdPush(); return; }
+      if(!localTime || localTime >= cloudTime){
+        // Local newer ya same → push
+        gdPush();
+      } else {
+        // Cloud newer → silent pull + reload
+        await _gdSilentPull();
       }
-    }
-  });
-}
+    } catch(e){ /* offline or error — skip */ }
+  }, 5000);
+
+} // end init()
 
 /* ═══════════════════════════════════════════════════
    BATCH TRACKER — Full integration
