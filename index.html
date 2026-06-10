@@ -6968,7 +6968,11 @@ function btDeleteDelivery(bid,idx){
 
 function toggleBtBody(bid){
   const el=document.getElementById('btb-'+bid);
-  if(el)el.classList.toggle('bt-collapsed');
+  if(!el)return;
+  el.classList.toggle('bt-collapsed');
+  const isCollapsed=el.classList.contains('bt-collapsed');
+  const chev=document.querySelector(`.bt-chevron-${bid}`);
+  if(chev) chev.textContent=isCollapsed?'▼':'▲';
 }
 
 /* ── Render Active Batches ── */
@@ -7127,10 +7131,11 @@ function renderBtCard(b){
       <div class="bt-right">
         <div class="bt-qty">${b.qty}</div>
         <div class="bt-qunit">pieces</div>
+        <div style="font-size:16px;color:var(--muted);margin-top:4px" class="bt-chevron-${b.id}">▼</div>
       </div>
     </div>
     ${alert}
-    <div class="bt-body-wrap" id="btb-${b.id}">
+    <div class="bt-body-wrap bt-collapsed" id="btb-${b.id}">
       ${track}${names}${rows}
       ${orderBar}
       ${b.note?`<div style="background:#f8faff;border-radius:var(--r3);padding:8px 10px;margin:8px 14px;font-size:11px;color:var(--muted);font-weight:700">📝 ${esc(b.note)}</div>`:''}
