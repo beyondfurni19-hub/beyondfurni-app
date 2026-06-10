@@ -1726,7 +1726,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         <div id="pending-section"></div>
         <div class="issue-chips" id="issue-chips"></div>
         <div class="fg" style="margin-bottom:8px">
-          <label>Isse fill karo (very important)</label>
+          <label>Kal Ke Liye Note</label>
           <textarea class="finp" id="eod-note" rows="2" placeholder="Kal kya karna hai, kya pending hai..."></textarea>
         </div>
         <div class="fg" style="margin:0">
@@ -10391,21 +10391,28 @@ function _renderHealthCheck(){
   const today=new Date();
   const todayStr=today.toISOString().split('T')[0];
   const issues=[];
+  // Helper: kya date1 aur date2 same mahine mein hain?
+  const inM_today=(d1,d2)=>{
+    const a=new Date(d1), b=new Date(d2);
+    return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth();
+  };
 
   /* ─── 1. ENTRY ERRORS ─── */
 
-  // Invoice hai par Ledger mein entry nahi
-  INVOICES.forEach(inv=>{
-    const c=CUSTOMERS.find(x=>x.name===inv.party);
+  // Invoice hai par Ledger mein entry nahi — sirf unpaid invoices check karo
+  INVOICES.filter(inv=>inv.status!=='paid'&&!inv.deleted).forEach(inv=>{
+    const c=CUSTOMERS.find(x=>x.name===inv.party||x.id===inv.customerId);
     if(!c) return;
-    const hasEntry=(LEDGER[c.id]||[]).some(e=>e.ref===inv.id);
-    if(!hasEntry){
+    const entries=(LEDGER[c.id]||[]);
+    const hasDr=entries.some(e=>e.ref===inv.id&&e.type==='dr');
+    const hasCr=entries.some(e=>e.type==='cr'&&inM_today(e.date,inv.date));
+    if(!hasDr&&!hasCr){
       issues.push({
-        cat:'entry', sev:'red',
+        cat:'entry', sev:'yellow',
         ico:'🧾',
-        title:`Invoice ${inv.num} — Ledger mein entry nahi!`,
-        desc:`${inv.party} ko ₹${_fmtAmt(inv.grandTotal)} ka invoice hai par ledger mein Baaki entry nahi dikh rahi.`,
-        tag:'Entry Error',
+        title:`Invoice ${inv.num} — Ledger mein entry nahi`,
+        desc:`${inv.party} ko ₹${_fmtAmt(inv.grandTotal)} ka invoice hai par ledger mein koi entry nahi dikh rahi.`,
+        tag:'Entry Check',
         action:()=>{ sw('invoice',document.querySelector('.bnav[data-tab=invoice]')); openInvDetail(inv.id); }
       });
     }
@@ -10492,7 +10499,7 @@ function _renderHealthCheck(){
   // Stock khatam ya low
   STK.forEach(s=>{
     const status=getStockStatus(s);
-    if(status==='out'){
+    if(status==='crit'){
       issues.push({
         cat:'ops', sev:'red',
         ico:'🚨',
