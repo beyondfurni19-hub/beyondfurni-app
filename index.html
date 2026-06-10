@@ -10418,25 +10418,6 @@ function _renderHealthCheck(){
     }
   });
 
-  // Order hai par 7+ din mein koi invoice nahi bana
-  ORDERS.forEach(o=>{
-    if(o.status==='cancelled'||o.status==='complete') return;
-    const c=CUSTOMERS.find(x=>x.id===o.custId);
-    const orderDate=new Date(o.date);
-    const daysDiff=Math.floor((today-orderDate)/(1000*60*60*24));
-    const linkedInvs=(o.deliveries||[]).filter(d=>d.invoiceId).length;
-    if(daysDiff>=7 && linkedInvs===0){
-      issues.push({
-        cat:'entry', sev:'yellow',
-        ico:'📦',
-        title:`Order — ${o.product} (${c?.name||'—'}) — ${daysDiff} din se koi invoice nahi`,
-        desc:`${o.qty} pcs ka order ₹${_fmtAmt(o.qty*o.rate)} — banaya tha ${new Date(o.date).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} ko. Delivery hui ya invoice bana?`,
-        tag:'Pending Invoice',
-        action:()=>{ sw('batch',document.querySelector('.sbnav[data-tab="batch"]'));setBTab('active'); }
-      });
-    }
-  });
-
   // EOD nahi kiya aaj (agar plan hai)
   if(curPlan && curPlan.date===todayStr){
     const eod=EOD[todayStr];
@@ -10530,26 +10511,6 @@ function _renderHealthCheck(){
       tag:'Delayed',
       action:()=>{ sw('batch',document.querySelector('.bnav[data-tab=batch]')); }
     });
-  });
-
-  // Order partially delivered — 14+ din se stuck
-  ORDERS.filter(o=>o.status!=='cancelled').forEach(o=>{
-    if((o.delivered||0)===0 || (o.delivered||0)>=o.qty) return;
-    const lastDel=(o.deliveries||[]).slice(-1)[0];
-    if(!lastDel) return;
-    const daysSinceDel=Math.floor((today-new Date(lastDel.date))/(1000*60*60*24));
-    if(daysSinceDel>=14){
-      const c=CUSTOMERS.find(x=>x.id===o.custId);
-      const pending=o.qty-(o.delivered||0);
-      issues.push({
-        cat:'ops', sev:'yellow',
-        ico:'🔵',
-        title:`Order stuck — ${c?.name||'—'} (${pending} pcs baaki)`,
-        desc:`${o.product} — Last delivery ${daysSinceDel} din pehle hui thi. ${pending} pcs abhi bhi pending hain.`,
-        tag:'Stuck Order',
-        action:()=>{ sw('batch',document.querySelector('.sbnav[data-tab="batch"]'));setBTab('active'); }
-      });
-    }
   });
 
   // Aaj ka plan nahi bana
@@ -16013,3 +15974,4 @@ init();
 
 </body>
 </html>
+        
