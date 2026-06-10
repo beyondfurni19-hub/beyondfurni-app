@@ -1388,6 +1388,9 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <button class="sbnav" data-tab="cfo" onclick="sw('cfo',this)">
       <span class="sb-ico">💹</span><span class="sb-lbl">CFO Dashboard</span>
     </button>
+    <button class="sbnav" data-tab="ceo-report" onclick="sw('ceo-report',this)">
+      <span class="sb-ico">🏆</span><span class="sb-lbl">CEO Report</span>
+    </button>
     <button class="sbnav wip-nav">
       <span class="sb-ico">📈</span><span class="sb-lbl">Analytics</span><span class="sb-wip">WIP</span>
     </button>
@@ -2819,6 +2822,21 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   </div>
 </div>
 
+<!-- ════ CEO REPORT ════ -->
+<div class="sc" id="s-ceo-report">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+    <div>
+      <div style="font-size:20px;font-weight:900;color:var(--navy2)">🏆 CEO Report</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px" id="ceo-period-label">—</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <select id="ceo-month-sel" onchange="renderCEOReport()" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:var(--navy2);background:#fff"></select>
+      <button onclick="renderCEOReport()" style="padding:7px 14px;background:var(--navy2);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🔄 Refresh</button>
+    </div>
+  </div>
+  <div id="ceo-report-body"></div>
+</div>
+
 <!-- ════ ATTENDANCE ════ -->
 <div class="sc" id="s-attendance">
   <!-- Header -->
@@ -4072,6 +4090,7 @@ function sw(name,btn){
   if(name==='attendance') renderAttendanceTab();
   if(name==='daily')    renderBatchSelectCard();
   if(name==='cfo')      renderCFO();
+  if(name==='ceo-report') renderCEOReport();
   if(name==='daybook')  renderDaybook();
   // Close sidebar on mobile
   if(window.innerWidth<=768) closeSidebar();
@@ -13386,6 +13405,267 @@ function _dbGetCFOMapping(yearMonth){
     }
   });
   return cfoTotals; // {cfo_field: total}
+}
+
+/* ═══════════════════════════════════════════════════
+   CEO REPORT MODULE — BeyondFurni
+═══════════════════════════════════════════════════ */
+function renderCEOReport(){
+  // ── Populate month selector ──
+  const sel = document.getElementById('ceo-month-sel');
+  if(!sel) return;
+
+  // Collect all months from EOD data
+  const allDates = Object.keys(EOD);
+  const monthSet = new Set();
+  allDates.forEach(d => {
+    const dt = new Date(d);
+    if(!isNaN(dt)) monthSet.add(`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`);
+  });
+  // Also check H (plan history)
+  (H||[]).forEach(h => {
+    const dt = new Date(h.date);
+    if(!isNaN(dt)) monthSet.add(`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`);
+  });
+
+  const months = [...monthSet].sort().reverse();
+  if(!months.length){
+    document.getElementById('ceo-report-body').innerHTML = `<div class="empty"><div class="empty-ico">📭</div><div>EOD data nahi mila.<br>Pehle kuch EOD entries karo.</div></div>`;
+    return;
+  }
+
+  // Build dropdown if needed
+  const curVal = sel.value;
+  sel.innerHTML = months.map(m => {
+    const [yr,mo] = m.split('-');
+    const lbl = new Date(yr, mo-1, 1).toLocaleDateString('en-IN',{month:'long',year:'numeric'});
+    return `<option value="${m}">${lbl}</option>`;
+  }).join('');
+  if(curVal && months.includes(curVal)) sel.value = curVal;
+  else sel.value = months[0];
+
+  const selMonth = sel.value; // "2026-06"
+  const [selYr, selMo] = selMonth.split('-').map(Number);
+
+  document.getElementById('ceo-period-label').textContent =
+    new Date(selYr, selMo-1, 1).toLocaleDateString('en-IN',{month:'long',year:'numeric'}) + ' — BeyondFurni, Nashik';
+
+  // ── Filter data for selected month ──
+  const monthPlans = (H||[]).filter(h => {
+    const d = new Date(h.date);
+    return d.getFullYear()===selYr && d.getMonth()===selMo-1;
+  }).sort((a,b) => new Date(a.date)-new Date(b.date));
+
+  const monthEODKeys = allDates.filter(d => {
+    const dt = new Date(d);
+    return dt.getFullYear()===selYr && dt.getMonth()===selMo-1;
+  });
+
+  const workingDays = monthPlans.length;
+  const closedDays  = monthEODKeys.filter(d => EOD[d]?.closed).length;
+
+  // ── Stage-wise production ──
+  const stageMap = {}; // {stageId: {target:0, actual:0}}
+  EOD_STAGES.forEach(s => stageMap[s.id] = {target:0, actual:0, name:s.name, ico:s.ico, unit:s.unit});
+
+  monthEODKeys.forEach(d => {
+    const eod = EOD[d];
+    if(!eod) return;
+    EOD_STAGES.forEach(s => {
+      const v = eod.stageData?.[s.id] || {target:0,actual:0};
+      stageMap[s.id].target += (v.target||0);
+      stageMap[s.id].actual += (v.actual||0);
+    });
+  });
+
+  // ── Worker attendance ──
+  const workerStats = {}; // {wid: {name, present, half, absent, total}}
+  (W||[]).forEach(w => { workerStats[w.id] = {name:w.name, role:w.role||'—', present:0, half:0, absent:0, total:0}; });
+
+  monthEODKeys.forEach(d => {
+    const eod = EOD[d]; if(!eod) return;
+    Object.entries(eod.workerData||{}).forEach(([wid, wd]) => {
+      if(!workerStats[wid]) workerStats[wid] = {name:wd.name||wid, role:'—', present:0, half:0, absent:0, total:0};
+      const ws = workerStats[wid];
+      ws.total++;
+      if(wd.att==='full') ws.present++;
+      else if(wd.att==='half') ws.half++;
+      else ws.absent++;
+    });
+  });
+
+  // ── Invoice revenue for month ──
+  const monthInvoices = (INVOICES||[]).filter(inv => {
+    if(inv.deleted) return false;
+    const d = new Date(inv.date||inv.createdAt||'');
+    return d.getFullYear()===selYr && d.getMonth()===selMo-1;
+  });
+  const totalRevenue = monthInvoices.reduce((sum,inv) => sum + (parseFloat(inv.total||inv.grandTotal||0)), 0);
+  const invoiceCount  = monthInvoices.length;
+
+  // ── Batch summary ──
+  const monthBatches = (BATCHES||[]).filter(b => {
+    if(b.deleted) return false;
+    const d = new Date(b.date||b.createdAt||'');
+    return d.getFullYear()===selYr && d.getMonth()===selMo-1;
+  });
+  const completedBatches = monthBatches.filter(b => b.status==='done'||b.status==='complete'||b.completed).length;
+  const totalBatchUnits  = monthBatches.reduce((sum,b) => sum + (parseInt(b.qty||b.units||0)), 0);
+
+  // ── EOD Issues / Notes ──
+  const issues = [];
+  monthEODKeys.forEach(d => {
+    const eod = EOD[d]; if(!eod) return;
+    const dateStr = new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+    if(eod.note && eod.note.trim()) issues.push({date:dateStr, text:eod.note.trim()});
+    (eod.issues||[]).forEach(iss => issues.push({date:dateStr, text:iss}));
+  });
+
+  // ── Production Score (overall) ──
+  let totalTarget=0, totalActual=0;
+  EOD_STAGES.forEach(s => { totalTarget+=stageMap[s.id].target; totalActual+=stageMap[s.id].actual; });
+  const prodScore = totalTarget>0 ? Math.min(Math.round(totalActual/totalTarget*100),100) : 0;
+  const scoreColor = prodScore>=85?'#16a34a':prodScore>=60?'#d97706':'#dc2626';
+  const scoreBg    = prodScore>=85?'#f0fdf4':prodScore>=60?'#fffbeb':'#fef2f2';
+
+  // ── Attendance rate ──
+  let attPresent=0, attTotal=0;
+  Object.values(workerStats).forEach(ws => {
+    attPresent += ws.present + ws.half*0.5;
+    attTotal   += ws.total;
+  });
+  const attRate = attTotal>0 ? Math.round(attPresent/attTotal*100) : 0;
+  const attColor = attRate>=90?'#16a34a':attRate>=70?'#d97706':'#dc2626';
+
+  // ── Business Score (0-100 composite) ──
+  const bScore = Math.round(prodScore*0.5 + attRate*0.3 + Math.min(closedDays/Math.max(workingDays,1)*100,100)*0.2);
+  const bGrade = bScore>=85?'A+':bScore>=75?'A':bScore>=65?'B+':bScore>=55?'B':'C';
+  const bColor = bScore>=75?'#16a34a':bScore>=55?'#d97706':'#dc2626';
+
+  // ── Stage bar chart HTML ──
+  const stageRows = EOD_STAGES.map(s => {
+    const sd = stageMap[s.id];
+    if(!sd.target && !sd.actual) return '';
+    const pct = sd.target>0 ? Math.min(Math.round(sd.actual/sd.target*100),100) : 0;
+    const barColor = pct>=85?'#16a34a':pct>=60?'#f59e0b':'#ef4444';
+    return `
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:12px;font-weight:700;color:var(--navy2)">${s.ico} ${s.name}</span>
+        <span style="font-size:11px;font-weight:800;color:${barColor}">${sd.actual} / ${sd.target} ${s.unit} (${pct}%)</span>
+      </div>
+      <div style="background:#e5e7eb;border-radius:6px;height:10px;overflow:hidden">
+        <div style="width:${pct}%;height:100%;background:${barColor};border-radius:6px;transition:width 0.6s ease"></div>
+      </div>
+    </div>`;
+  }).filter(Boolean).join('');
+
+  // ── Worker attendance cards ──
+  const workerCards = Object.values(workerStats).filter(ws=>ws.total>0).map(ws => {
+    const rate = ws.total>0 ? Math.round((ws.present+ws.half*0.5)/ws.total*100) : 0;
+    const rateColor = rate>=90?'#16a34a':rate>=70?'#d97706':'#dc2626';
+    return `
+    <div style="background:#f8faff;border:1px solid var(--border);border-radius:var(--r2);padding:10px 12px;display:flex;align-items:center;gap:10px">
+      <div style="width:36px;height:36px;background:var(--navy2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#fff;flex-shrink:0">${ws.name.slice(0,2).toUpperCase()}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:800;color:var(--navy2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(ws.name)}</div>
+        <div style="font-size:10px;color:var(--muted)">${esc(ws.role)}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">✅ ${ws.present} &nbsp;⚠️ ${ws.half} &nbsp;❌ ${ws.absent}</div>
+      </div>
+      <div style="font-size:18px;font-weight:900;color:${rateColor}">${rate}%</div>
+    </div>`;
+  }).join('');
+
+  // ── Issues list ──
+  const issueHtml = issues.length
+    ? issues.map(iss=>`<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:10px;font-weight:800;color:var(--muted);white-space:nowrap;padding-top:1px">${iss.date}</span>
+        <span style="font-size:12px;color:var(--text)">${esc(iss.text)}</span>
+      </div>`).join('')
+    : `<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">✅ Koi issue nahi</div>`;
+
+  // ── Render ──
+  document.getElementById('ceo-report-body').innerHTML = `
+
+    <!-- KPI Cards Row -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px">
+
+      <div style="background:${scoreBg};border:1.5px solid ${scoreColor}33;border-radius:var(--r2);padding:12px 14px;text-align:center">
+        <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Production Score</div>
+        <div style="font-size:32px;font-weight:900;color:${scoreColor};line-height:1.1;margin:4px 0">${prodScore}%</div>
+        <div style="font-size:10px;color:var(--muted)">${totalActual} / ${totalTarget} pcs</div>
+      </div>
+
+      <div style="background:#f0fdf4;border:1.5px solid #16a34a33;border-radius:var(--r2);padding:12px 14px;text-align:center">
+        <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Attendance Rate</div>
+        <div style="font-size:32px;font-weight:900;color:${attColor};line-height:1.1;margin:4px 0">${attRate}%</div>
+        <div style="font-size:10px;color:var(--muted)">${Object.values(workerStats).filter(w=>w.total>0).length} workers tracked</div>
+      </div>
+
+      <div style="background:#f0f4ff;border:1.5px solid #3b5fc033;border-radius:var(--r2);padding:12px 14px;text-align:center">
+        <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Working Days</div>
+        <div style="font-size:32px;font-weight:900;color:var(--navy2);line-height:1.1;margin:4px 0">${closedDays}<span style="font-size:16px;color:var(--muted)">/${workingDays}</span></div>
+        <div style="font-size:10px;color:var(--muted)">EOD closed / planned</div>
+      </div>
+
+      <div style="background:#fff8f0;border:1.5px solid #f59e0b33;border-radius:var(--r2);padding:12px 14px;text-align:center">
+        <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Revenue</div>
+        <div style="font-size:22px;font-weight:900;color:#b45309;line-height:1.2;margin:4px 0">₹${totalRevenue>=1e5?(totalRevenue/1e5).toFixed(1)+'L':totalRevenue>=1000?(totalRevenue/1000).toFixed(0)+'K':totalRevenue.toFixed(0)}</div>
+        <div style="font-size:10px;color:var(--muted)">${invoiceCount} invoice${invoiceCount!==1?'s':''}</div>
+      </div>
+
+      <div style="background:${bScore>=75?'#f0fdf4':bScore>=55?'#fffbeb':'#fef2f2'};border:1.5px solid ${bColor}33;border-radius:var(--r2);padding:12px 14px;text-align:center">
+        <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Business Score</div>
+        <div style="font-size:32px;font-weight:900;color:${bColor};line-height:1.1;margin:4px 0">${bScore}</div>
+        <div style="font-size:13px;font-weight:900;color:${bColor};background:${bColor}22;border-radius:20px;padding:2px 10px;display:inline-block">Grade ${bGrade}</div>
+      </div>
+
+    </div>
+
+    <!-- Production Stages -->
+    <div style="background:#fff;border:1px solid var(--border);border-radius:var(--r2);padding:14px 16px;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:900;color:var(--navy2);margin-bottom:12px">🏭 Stage-wise Production</div>
+      ${stageRows || '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">Is mahine ka koi stage data nahi</div>'}
+    </div>
+
+    <!-- Worker Attendance -->
+    <div style="background:#fff;border:1px solid var(--border);border-radius:var(--r2);padding:14px 16px;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:900;color:var(--navy2);margin-bottom:12px">👷 Team Attendance</div>
+      ${workerCards
+        ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">${workerCards}</div>`
+        : '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">Worker data nahi mila</div>'}
+    </div>
+
+    <!-- Batches Summary -->
+    <div style="background:#fff;border:1px solid var(--border);border-radius:var(--r2);padding:14px 16px;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:900;color:var(--navy2);margin-bottom:10px">📦 Batch Summary</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap">
+        <div style="text-align:center;flex:1;min-width:80px">
+          <div style="font-size:24px;font-weight:900;color:var(--navy2)">${monthBatches.length}</div>
+          <div style="font-size:10px;color:var(--muted);font-weight:700">Total Batches</div>
+        </div>
+        <div style="text-align:center;flex:1;min-width:80px">
+          <div style="font-size:24px;font-weight:900;color:#16a34a">${completedBatches}</div>
+          <div style="font-size:10px;color:var(--muted);font-weight:700">Completed</div>
+        </div>
+        <div style="text-align:center;flex:1;min-width:80px">
+          <div style="font-size:24px;font-weight:900;color:#d97706">${monthBatches.length - completedBatches}</div>
+          <div style="font-size:10px;color:var(--muted);font-weight:700">In Progress</div>
+        </div>
+        <div style="text-align:center;flex:1;min-width:80px">
+          <div style="font-size:24px;font-weight:900;color:var(--navy2)">${totalBatchUnits}</div>
+          <div style="font-size:10px;color:var(--muted);font-weight:700">Total Units</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Issues & Notes -->
+    <div style="background:#fff;border:1px solid var(--border);border-radius:var(--r2);padding:14px 16px;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:900;color:var(--navy2);margin-bottom:10px">⚠️ EOD Issues & Notes (${issues.length})</div>
+      ${issueHtml}
+    </div>
+
+  `;
 }
 
 /* ═══════════════════════════════════════════════════
