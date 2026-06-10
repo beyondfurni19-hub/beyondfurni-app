@@ -10390,6 +10390,7 @@ function _renderHealthCheck(){
   const el=document.getElementById('dash-health-wrap'); if(!el) return;
   const today=new Date();
   const todayStr=today.toISOString().split('T')[0];
+  const todayPlan=(H||[]).find(h=>h.date===todayStr);
   const issues=[];
   // Helper: kya date1 aur date2 same mahine mein hain?
   const inM_today=(d1,d2)=>{
@@ -10419,14 +10420,14 @@ function _renderHealthCheck(){
   });
 
   // EOD nahi kiya aaj (agar plan hai)
-  if(curPlan && curPlan.date===todayStr){
+  if(todayPlan){
     const eod=EOD[todayStr];
     if(!eod?.closed){
       issues.push({
         cat:'entry', sev:'yellow',
         ico:'📊',
         title:'Aaj ka EOD abhi tak close nahi hua!',
-        desc:`${curPlan.shift} shift ka plan hai — din khatam hone ke baad EOD record karo.`,
+        desc:`${todayPlan.shift} shift ka plan hai — din khatam hone ke baad EOD record karo.`,
         tag:'EOD Pending',
         action:()=>{ sw('tracking',document.querySelector('.bnav[data-tab=tracking]')); }
       });
@@ -10514,7 +10515,7 @@ function _renderHealthCheck(){
   });
 
   // Aaj ka plan nahi bana
-  if(!curPlan || curPlan.date!==todayStr){
+  if(!todayPlan){
     issues.push({
       cat:'ops', sev:'blue',
       ico:'📋',
@@ -15974,4 +15975,3 @@ init();
 
 </body>
 </html>
-        
