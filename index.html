@@ -13505,12 +13505,11 @@ function renderCEOReport(){
   const monthPlans=(H||[]).filter(h=>inM(h.date)).sort((a,b)=>new Date(a.date)-new Date(b.date));
   const workingDays=monthPlans.length;
   const closedDays=monthEODKeys.filter(d=>EOD[d]?.closed).length;
-  const stageMap={};
-  EOD_STAGES.forEach(s=>stageMap[s.id]={target:0,actual:0,name:s.name,ico:s.ico,unit:s.unit});
-  monthEODKeys.forEach(d=>{ const eod=EOD[d]; if(!eod) return; EOD_STAGES.forEach(s=>{ const v=eod.stageData?.[s.id]||{target:0,actual:0}; stageMap[s.id].target+=(v.target||0); stageMap[s.id].actual+=(v.actual||0); }); });
-  let totTarget=0,totActual=0;
-  EOD_STAGES.forEach(s=>{totTarget+=stageMap[s.id].target; totActual+=stageMap[s.id].actual;});
-  const prodScore=totTarget>0?Math.min(Math.round(totActual/totTarget*100),100):0;
+
+  // Production Score — Daily Entry ka tot = target, invoice units = actual
+  const prodTarget=monthPlans.reduce((s,h)=>s+(h.tot||0),0); // sum of all daily targets
+  // prodActual will be set after totalUnits is calculated below
+
 
   const workerStats={};
   (W||[]).forEach(w=>{workerStats[w.id]={name:w.name,role:w.role||'—',present:0,half:0,absent:0,total:0};});
@@ -13530,6 +13529,7 @@ function renderCEOReport(){
   const invCount=mInvoices.length;
   let totalUnits=0; mInvoices.forEach(inv=>(inv.items||[]).forEach(it=>totalUnits+=(parseFloat(it.qty)||0)));
   const avgPrice=totalUnits>0?rev/totalUnits:0;
+  const prodScore=prodTarget>0?Math.min(Math.round(totalUnits/prodTarget*100),100):0;
   const pendingAmt=mInvoices.reduce((s,inv)=>{ const paid=(LEDGER[inv.customerId]||[]).filter(e=>e.ref===inv.id).reduce((ss,e)=>ss+(e.amt||0),0); return s+Math.max(0,(inv.grandTotal||0)-paid); },0);
 
   // ── Daybook P&L ──
@@ -13602,7 +13602,7 @@ function renderCEOReport(){
     ${kpiCard('&#8377;'+fmtL(netProfit),'Net Profit',pct(netMargin)+' margin',mC,gbg(netMargin,14,8))}
     ${kpiCard(pct(grossMargin),'Gross Margin','Rev - COGS',gc(grossMargin,35,25),gbg(grossMargin,35,25))}
     ${kpiCard(Math.round(totalUnits)+' pcs','Units Sold','&#8377;'+fmtL(avgPrice)+' avg price',gc(totalUnits,300,150),'#f0f4ff')}
-    ${kpiCard(prodScore+'%','Production Score',totActual+'/'+totTarget+' pcs',sC,gbg(prodScore,85,60))}
+    ${kpiCard(prodScore+'%','Production Score',Math.round(totalUnits)+'/'+prodTarget+' pcs',sC,gbg(prodScore,85,60))}
     ${kpiCard(attRate+'%','Attendance',attTotal+' worker-days',aC,gbg(attRate,90,70))}
     ${kpiCard(closedDays+'/'+workingDays,'EOD Discipline','Days closed/planned',gc(closedDays/Math.max(workingDays,1)*100,90,70),'#f8faff')}
     ${kpiCard(batchUnits+' pcs','Units Produced',mBatches.length+' batches',gc(batchUnits,400,200),'#f8faff')}
@@ -13612,7 +13612,7 @@ function renderCEOReport(){
   const alerts=[];
   if(netMargin<14) alerts.push({t:'red',msg:`<strong>Net Margin ${pct(netMargin)}</strong> — 14% target se neeche. ${intExp>rev*0.08?`Interest/EMI &#8377;${fmt(intExp)} (${pct(intExp/rev*100)} of revenue) sabse bada drag. `:''}Vendor negotiate karo ya pricing badhao.`});
   if(intExp>rev*0.1) alerts.push({t:'red',msg:`<strong>Interest/EMI &#8377;${fmt(intExp)}</strong> — Revenue ka ${pct(intExp/rev*100)}. Yeh sab profit kha raha hai. High-interest loan pehle close karo.`});
-  if(prodScore<70) alerts.push({t:'amber',msg:`<strong>Production Score ${prodScore}%</strong> — Target 85%+. ${totActual}/${totTarget} pcs complete. Bottleneck stage dhundho.`});
+  if(prodScore<70) alerts.push({t:'amber',msg:`<strong>Production Score ${prodScore}%</strong> — Target 85%+. ${Math.round(totalUnits)}/${prodTarget} pcs sold vs planned. Invoice units aur daily targets check karo.`});
   if(attRate<85) alerts.push({t:'amber',msg:`<strong>Attendance ${attRate}%</strong> — Team absenteeism high. Production target miss ho raha hai.`});
   if(closedDays<workingDays*0.8) alerts.push({t:'amber',msg:`<strong>EOD Discipline: ${closedDays}/${workingDays} days</strong> — ${workingDays-closedDays} din ka EOD close nahi hua. Har din close karo.`});
   if(pendingAmt>20000) alerts.push({t:'amber',msg:`<strong>&#8377;${fmt(pendingAmt)} pending payments</strong> — Party se collection baaki. Seedha call karo.`});
@@ -13663,12 +13663,37 @@ function renderCEOReport(){
   html+=secHead('03','Production Floor Report',`${mLabel} — Stage-wise EOD performance`);
   html+=theoryBox('<strong>EOD data = factory ki pulse.</strong> Stage-wise track karo konhi stage bottleneck hai. Wahan resource lagao. Har closed EOD = accurate data. Unclosed EOD = estimate. Production Score directly revenue capacity decide karta hai.');
   html+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
-    ${kpiCard(prodScore+'%','Production Score',totActual+'/'+totTarget+' pcs',sC,gbg(prodScore,85,60))}
+    ${kpiCard(prodScore+'%','Production Score',Math.round(totalUnits)+'/'+prodTarget+' pcs',sC,gbg(prodScore,85,60))}
     ${kpiCard(closedDays+'/'+workingDays,'EOD Closed','Days this month',gc(closedDays/Math.max(workingDays,1)*100,90,70),'#f8faff')}
     ${kpiCard(batchUnits,'Units Produced',mBatches.length+' batches',gc(batchUnits,400,200),'#f8faff')}
   </div>`;
-  const stageRowsHtml=EOD_STAGES.map(s=>{ const sd=stageMap[s.id]; if(!sd.target&&!sd.actual) return ''; const p=sd.target>0?Math.min(Math.round(sd.actual/sd.target*100),100):0; const bc=p>=85?'#16a34a':p>=60?'#d97706':'#dc2626'; return `<div style="margin-bottom:10px;padding:10px 14px;background:#fff;border:1px solid var(--border);border-radius:var(--r2)"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:12px;font-weight:800;color:var(--navy2)">${s.ico} ${s.name}</span><span style="font-size:12px;font-weight:900;color:${bc}">${sd.actual} / ${sd.target} ${s.unit} — ${p}%</span></div><div style="background:#e5e7eb;border-radius:6px;height:10px;overflow:hidden"><div style="width:${p}%;height:100%;background:${bc};border-radius:6px"></div></div><div style="font-size:9px;color:var(--muted);margin-top:4px">${p>=85?'&#10003; On target':p>=60?'&#9888; Improve karo — 85%+ target':'&#10007; Below target — root cause dhundho'}</div></div>`; }).filter(Boolean).join('');
-  html+=stageRowsHtml||'<div style="font-size:12px;color:var(--muted);text-align:center;padding:16px">Is mahine ka koi stage data nahi</div>';
+  // Production progress bar — Daily Entry target vs Invoice units
+  const prodBarPct=prodTarget>0?Math.min(Math.round(totalUnits/prodTarget*100),100):0;
+  const prodBarColor=prodBarPct>=85?'#16a34a':prodBarPct>=60?'#d97706':'#dc2626';
+  html+=`<div style="padding:14px;background:#fff;border:1px solid var(--border);border-radius:var(--r2);margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+      <span style="font-size:12px;font-weight:800;color:var(--navy2)">&#128230; Units Sold vs Daily Target</span>
+      <span style="font-size:13px;font-weight:900;color:${prodBarColor}">${Math.round(totalUnits)} / ${prodTarget} pcs (${prodBarPct}%)</span>
+    </div>
+    <div style="background:#e5e7eb;border-radius:6px;height:12px;overflow:hidden;margin-bottom:8px">
+      <div style="width:${prodBarPct}%;height:100%;background:${prodBarColor};border-radius:6px"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px">
+      <div style="text-align:center;padding:8px;background:#f8faff;border-radius:var(--r2)">
+        <div style="font-size:16px;font-weight:900;color:var(--navy2)">${prodTarget}</div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase">Monthly Target<br>(Daily Entry sum)</div>
+      </div>
+      <div style="text-align:center;padding:8px;background:#f8faff;border-radius:var(--r2)">
+        <div style="font-size:16px;font-weight:900;color:${prodBarColor}">${Math.round(totalUnits)}</div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase">Actual Sold<br>(Invoice units)</div>
+      </div>
+      <div style="text-align:center;padding:8px;background:#f8faff;border-radius:var(--r2)">
+        <div style="font-size:16px;font-weight:900;color:${prodTarget>Math.round(totalUnits)?'#dc2626':'#16a34a'}">${prodTarget>Math.round(totalUnits)?'-'+(prodTarget-Math.round(totalUnits)):'+'+Math.round(Math.round(totalUnits)-prodTarget)}</div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase">Gap<br>(Target vs Actual)</div>
+      </div>
+    </div>
+    <div style="font-size:10px;color:var(--muted);margin-top:8px;padding:6px 10px;background:#f0f4ff;border-radius:4px">&#128161; Target = Daily Entry mein set kiya hua target × working days. Actual = Is mahine ke invoices mein total units.</div>
+  </div>`;
   if(issues.length){ html+=`<div style="font-size:11px;font-weight:700;color:var(--navy2);margin:14px 0 8px;text-transform:uppercase;letter-spacing:.06em">&#9888; EOD Issues (${issues.length})</div><div style="background:#fff;border:1px solid var(--border);border-radius:var(--r2);padding:10px 14px">`; issues.forEach(iss=>html+=`<div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-size:10px;font-weight:800;color:var(--muted);white-space:nowrap;min-width:40px">${iss.date}</span><span style="font-size:11px;color:var(--text)">${esc(iss.text)}</span></div>`); html+='</div>'; }
   html+='</div>';
 
@@ -13686,7 +13711,7 @@ function renderCEOReport(){
   const problems=[];
   if(netMargin<14) problems.push({ico:'&#128176;',prob:`Net Margin ${pct(netMargin)} — Target 14%+`,root:`Revenue &#8377;${fmt(rev)} se expenses &#8377;${fmt(cogs+opex+intExp)} kat ke &#8377;${fmt(netProfit)} bacha. ${intExp>rev*0.08?`Interest/EMI &#8377;${fmt(intExp)} (${pct(intExp/rev*100)} of revenue) sabse bada fixed drain hai. `:''}Manufacturing mein COGS = Raw Material + Labour + PC + Packaging. Abhi COGS ${pct(cogs/rev*100)} of revenue — ideal 50-55% hona chahiye.`,sol:[`Steel vendor se negotiate karo — "Consistently ${Math.round(totalUnits||50)}+ units/month banate hain — bulk rate do." Worst case na bolega.`,'Powder coating ke 2-3 vendors rakho — competition se rate better milega.','Packaging items (tape, box, dori) ek saath bulk mein kharido — 10-15% unit cost bachega.',intExp>20000?'Sabse high-interest loan identify karo — extra paisa aaye toh pehle yahi close karo.':''],imp:`COGS 5% reduce = &#8377;${fmt(cogs*0.05)} extra profit/month. Saal mein &#8377;${fmt(cogs*0.05*12)}.`,color:'#d97706'});
   if(intExp>rev*0.1) problems.push({ico:'&#128179;',prob:`Interest/EMI &#8377;${fmt(intExp)} — Revenue ka ${pct(intExp/rev*100)}`,root:`B2B manufacturing mein fixed costs sabse dangerous hote hain — party se order kam aaye ya zyada, EMI toh jaayegi hi. &#8377;${fmt(intExp*12)}/year sirf byaaj mein. Jab tak interest high hai tab tak margin cap rahega — kitni bhi efficiency improve karo, yeh kha jaayega.`,sol:['Sabse high-interest loan list karo — balance, rate, EMI sab ek jagah likhao.','Har mahine extra &#8377;5-10K bacha toh sabse mehnga loan pe prepay karo — snowball method.','Vendors se 30-45 din ka credit terms negotiate karo — cash flow better hogi, loan pe rely kam.','Loan consolidation ya balance transfer explore karo — lower interest pe shift karo.'],imp:`Interest 30% reduce = &#8377;${fmt(intExp*0.3)}/month direct profit improvement. Saal mein &#8377;${fmt(intExp*0.3*12)}.`,color:'#dc2626'});
-  if(prodScore<75) problems.push({ico:'&#127981;',prob:`Production Score ${prodScore}% — Target 85%+`,root:`${totActual}/${totTarget} pieces complete. ${closedDays<workingDays?`${workingDays-closedDays} din ka EOD close nahi hua — data aur bhi incomplete ho sakta hai. `:''}B2B mein production delay = party ka order late = trust loss = repeat order ka risk. Bottleneck woh stage hai jahan % sabse kam hai — wahi sab rok raha hai.`,sol:['Stage-wise data dekho — sabse low % stage identify karo aaj.','Woh stage pe physically jaao — workers se poocho: "Kya rok raha hai?" Machine? Material? Log karo.','Powder coating trip ka schedule fix karo — random trips se batch delay hoti hai.','Critical stations (welding/assembly) pe 2 trained workers rakho — ek absent ho toh production na ruke.'],imp:`Production 10% improve = ${Math.round(totTarget*0.1)} extra units/month = &#8377;${fmt(Math.round(totTarget*0.1)*Math.round(avgPrice||600))} revenue potential.`,color:'#d97706'});
+  if(prodScore<75) problems.push({ico:'&#127981;',prob:`Production Score ${prodScore}% — Target 85%+`,root:`${Math.round(totalUnits)}/${prodTarget} units sold vs planned. Daily Entry mein target set hai — actual dispatch us ke comparison mein kam hai. Delivery slow hai ya production ke baad dispatch delay ho raha hai?`,sol:['Stage-wise data dekho — sabse low % stage identify karo aaj.','Woh stage pe physically jaao — workers se poocho: "Kya rok raha hai?" Machine? Material? Log karo.','Powder coating trip ka schedule fix karo — random trips se batch delay hoti hai.','Critical stations (welding/assembly) pe 2 trained workers rakho — ek absent ho toh production na ruke.'],imp:`Production 10% improve = ${Math.round(prodTarget*0.1)} extra units/month = &#8377;${fmt(Math.round(prodTarget*0.1)*Math.round(avgPrice||600))} revenue potential.`,color:'#d97706'});
   if(pendingAmt>15000) problems.push({ico:'&#128148;',prob:`Party Receivables &#8377;${fmt(pendingAmt)} pending`,root:`B2B mein parties advance deti hain aur baaki dispatch pe deti hain — lekin kuch parties payment delay karti hain. Raw material kharidna padta hai agle batch ke liye, lekin pichle order ka paisa nahi aaya. Yeh working capital squeeze karta hai aur loan pe depend hona padta hai.`,sol:['Top 3 pending parties ko directly call karo aaj — "Aapka &#8377;X pending hai, kab tak transfer karoge?" Note karo.','Naye orders ke liye policy: 40-50% advance mandatory. Party agree nahi kare toh pehle chhota order karo.','Har invoice pe clearly mention karo: "Payment within 7 days."','Bade repeat parties ke liye monthly ledger statement bhejo — transparency se payment jaldi aati hai.'],imp:`&#8377;${fmt(pendingAmt)} collect = working capital free. Raw material agle batch ke liye advance buy kar sakte ho.`,color:'#d97706'});
   if(attRate<85) problems.push({ico:'&#128119;',prob:`Attendance ${attRate}% — Target 90%+`,root:`Manufacturing mein ek worker absent = ek station slow ya band. ${Math.round(attTotal*(1-attRate/100))} worker-days absent is mahine. Agar welding ya assembly worker absent ho toh poora batch delay hota hai. B2B parties ko delivery commitment dete ho — delay pe trust toot ta hai.`,sol:['Absence pattern dekho — kaunsa worker consistently absent hai. Pattern se root cause milega.','Critical stations ke liye 2 trained workers hamesha — backup plan must hai.','Advance mein weekly schedule share karo workers ke saath — Sunday ko agle hafte ka plan batao.','Regular present workers ko monthly acknowledge karo — ek cup chai ya verbal appreciation. Retention hiring se sasta hai.'],imp:`Attendance 5% improve = ${Math.round(attTotal*0.05)} extra worker-days = consistent delivery, party trust badhega.`,color:'#2563eb'});
   if(!problems.length) problems.push({ico:'&#10003;',prob:'Sab metrics target mein!',root:'Business healthy hai — foundation strong hai.',sol:['Volume badhao — existing parties se zyada order lo.','2-3 naye B2B parties onboard karo — Pune, Aurangabad explore karo.','Adjacent product test karo — fridge stand ya AC stand same setup mein.'],imp:'Scale karne ka sahi waqt hai.',color:'#16a34a'});
@@ -13730,7 +13755,7 @@ function renderCEOReport(){
   html+=secHead('07','Kaizen Tracker','1% weekly improvement → 67% annual growth');
   html+=theoryBox('Kaizen = har hafte ek chota improvement. 1.01^52 = 1.67. Har Monday yeh table dekho.');
   html+=tblHead(['Area','Abhi','Target','Is Hafte Action','Status','Impact']);
-  [{a:'Net Margin',cur:pct(netMargin),t:'14%+',act:'Top cost item pe vendor call karo',s:netMargin>=14?'&#128994;':netMargin>=8?'&#128993;':'&#128308;',imp:`1% = &#8377;${fmt(rev*0.01)}/month`},{a:'Production Score',cur:prodScore+'%',t:'85%+',act:'Low stage bottleneck fix karo',s:prodScore>=85?'&#128994;':prodScore>=65?'&#128993;':'&#128308;',imp:`10% = ${Math.round(totTarget*0.1)} units`},{a:'Attendance',cur:attRate+'%',t:'90%+',act:'Absent pattern identify karo',s:attRate>=90?'&#128994;':attRate>=75?'&#128993;':'&#128308;',imp:'Better output'},{a:'EOD Discipline',cur:closedDays+'/'+workingDays,t:'100%',act:'Har din EOD close karo',s:closedDays>=workingDays*0.9?'&#128994;':closedDays>=workingDays*0.7?'&#128993;':'&#128308;',imp:'Accurate data'},{a:'Receivables',cur:'&#8377;'+fmtL(pendingAmt),t:'< &#8377;10K',act:'Top 3 parties ko call karo',s:pendingAmt<=10000?'&#128994;':pendingAmt<=30000?'&#128993;':'&#128308;',imp:'Cash flow'},{a:'Interest Load',cur:'&#8377;'+fmtL(intExp),t:'< &#8377;20K',act:'High-interest loan identify karo',s:intExp<=20000?'&#128994;':intExp<=40000?'&#128993;':'&#128308;',imp:'Margin improve'},{a:'Raw Material %',cur:rev>0?pct(rawmat/rev*100):'—',t:'45% of rev',act:'Bulk order plan karo',s:(rev>0&&rawmat/rev<=0.45)?'&#128994;':(rev>0&&rawmat/rev<=0.55)?'&#128993;':'&#128308;',imp:`5% = &#8377;${fmt(rawmat*0.05)}`}].forEach(k=>html+=tblRow([[k.a,'var(--navy2)',true],[k.cur,'var(--muted)'],[k.t,'#16a34a',true],[k.act,'var(--muted)'],[k.s,'var(--text)'],[k.imp,'var(--muted)']]));
+  [{a:'Net Margin',cur:pct(netMargin),t:'14%+',act:'Top cost item pe vendor call karo',s:netMargin>=14?'&#128994;':netMargin>=8?'&#128993;':'&#128308;',imp:`1% = &#8377;${fmt(rev*0.01)}/month`},{a:'Production Score',cur:prodScore+'%',t:'85%+',act:'Low stage bottleneck fix karo',s:prodScore>=85?'&#128994;':prodScore>=65?'&#128993;':'&#128308;',imp:`10% = ${Math.round(prodTarget*0.1)} units`},{a:'Attendance',cur:attRate+'%',t:'90%+',act:'Absent pattern identify karo',s:attRate>=90?'&#128994;':attRate>=75?'&#128993;':'&#128308;',imp:'Better output'},{a:'EOD Discipline',cur:closedDays+'/'+workingDays,t:'100%',act:'Har din EOD close karo',s:closedDays>=workingDays*0.9?'&#128994;':closedDays>=workingDays*0.7?'&#128993;':'&#128308;',imp:'Accurate data'},{a:'Receivables',cur:'&#8377;'+fmtL(pendingAmt),t:'< &#8377;10K',act:'Top 3 parties ko call karo',s:pendingAmt<=10000?'&#128994;':pendingAmt<=30000?'&#128993;':'&#128308;',imp:'Cash flow'},{a:'Interest Load',cur:'&#8377;'+fmtL(intExp),t:'< &#8377;20K',act:'High-interest loan identify karo',s:intExp<=20000?'&#128994;':intExp<=40000?'&#128993;':'&#128308;',imp:'Margin improve'},{a:'Raw Material %',cur:rev>0?pct(rawmat/rev*100):'—',t:'45% of rev',act:'Bulk order plan karo',s:(rev>0&&rawmat/rev<=0.45)?'&#128994;':(rev>0&&rawmat/rev<=0.55)?'&#128993;':'&#128308;',imp:`5% = &#8377;${fmt(rawmat*0.05)}`}].forEach(k=>html+=tblRow([[k.a,'var(--navy2)',true],[k.cur,'var(--muted)'],[k.t,'#16a34a',true],[k.act,'var(--muted)'],[k.s,'var(--text)'],[k.imp,'var(--muted)']]));
   html+='</tbody></table></div>';
   html+=`<div style="display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;margin-top:12px">`;
   [{p:'P — PLAN',c:'#2563eb',bg:'rgba(37,99,235,.05)',items:['3 metrics chunno','Action steps decide karo','Resource allocate karo']},{p:'D — DO',c:'#16a34a',bg:'rgba(22,163,74,.05)',items:['Vendor call karo','Attendance follow karo','EOD close karo']},{p:'C — CHECK',c:'#d97706',bg:'rgba(217,119,6,.05)',items:['7 din baad dekho','Margin change hua?','Score improve hua?']},{p:'A — ACT',c:'#7c3aed',bg:'rgba(124,58,237,.05)',items:['Jo kaam kiya standardize','Jo nahi — root cause','Next plan adjust']}].forEach(p=>{ html+=`<div style="background:${p.bg};padding:12px;border-right:1px solid var(--border)"><div style="font-size:10px;font-weight:800;color:${p.c};text-transform:uppercase;margin-bottom:6px">${p.p}</div>${p.items.map(i=>`<div style="font-size:10px;color:var(--muted);padding:3px 0;line-height:1.5">• ${i}</div>`).join('')}</div>`; });
