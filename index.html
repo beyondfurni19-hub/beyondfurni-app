@@ -13467,72 +13467,71 @@ div[style*="font-size:60px"]{font-size:40px !important;}
    CEO REPORT MODULE — BeyondFurni
 ═══════════════════════════════════════════════════ */
 function renderCEOReport(){
-  const sel = document.getElementById('ceo-month-sel');
+  const sel=document.getElementById('ceo-month-sel');
   if(!sel) return;
 
-  // ── Build month list ──
-  const monthSet = new Set();
-  Object.keys(EOD).forEach(d=>{ const dt=new Date(d); if(!isNaN(dt)) monthSet.add(`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`); });
-  (H||[]).forEach(h=>{ const dt=new Date(h.date); if(!isNaN(dt)) monthSet.add(`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`); });
-  (DAYBOOK||[]).forEach(e=>{ const dt=new Date(e.date); if(!isNaN(dt)) monthSet.add(`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`); });
-  (INVOICES||[]).forEach(i=>{ const dt=new Date(i.date); if(!isNaN(dt)) monthSet.add(`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`); });
-
-  const months = [...monthSet].sort().reverse();
+  // ── Month list ──
+  const monthSet=new Set();
+  Object.keys(EOD).forEach(d=>{const dt=new Date(d);if(!isNaN(dt))monthSet.add(`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`);});
+  (H||[]).forEach(h=>{const dt=new Date(h.date);if(!isNaN(dt))monthSet.add(`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`);});
+  (DAYBOOK||[]).forEach(e=>{const dt=new Date(e.date);if(!isNaN(dt))monthSet.add(`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`);});
+  (INVOICES||[]).forEach(i=>{const dt=new Date(i.date);if(!isNaN(dt))monthSet.add(`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`);});
+  const months=[...monthSet].sort().reverse();
   if(!months.length){
-    document.getElementById('ceo-report-body').innerHTML='<div class="empty"><div class="empty-ico">📭</div><div>Koi data nahi mila. Pehle Daybook ya EOD entries karo.</div></div>';
+    document.getElementById('ceo-report-body').innerHTML='<div class="empty"><div class="empty-ico">📭</div><div>Koi data nahi. Daybook ya Invoice entries karo.</div></div>';
     return;
   }
-  const curVal = sel.value;
-  sel.innerHTML = months.map(m=>{ const [yr,mo]=m.split('-'); return `<option value="${m}">${new Date(yr,mo-1,1).toLocaleDateString('en-IN',{month:'long',year:'numeric'})}</option>`; }).join('');
-  if(curVal && months.includes(curVal)) sel.value=curVal; else sel.value=months[0];
-
-  const selMonth=sel.value;
-  const [selYr,selMo]=selMonth.split('-').map(Number);
+  const curVal=sel.value;
+  sel.innerHTML=months.map(m=>{const[yr,mo]=m.split('-');return`<option value="${m}">${new Date(yr,mo-1,1).toLocaleDateString('en-IN',{month:'long',year:'numeric'})}</option>`;}).join('');
+  if(curVal&&months.includes(curVal))sel.value=curVal;else sel.value=months[0];
+  const selMonth=sel.value,[selYr,selMo]=selMonth.split('-').map(Number);
   const mLabel=new Date(selYr,selMo-1,1).toLocaleDateString('en-IN',{month:'long',year:'numeric'});
   document.getElementById('ceo-period-label').textContent=mLabel+' — BeyondFurni, Nashik';
 
-  const inM=d=>{ const dt=new Date(d); return !isNaN(dt)&&dt.getFullYear()===selYr&&dt.getMonth()===selMo-1; };
+  // ── Helpers ──
+  const inM=d=>{const dt=new Date(d);return!isNaN(dt)&&dt.getFullYear()===selYr&&dt.getMonth()===selMo-1;};
+  const prevM=months[months.indexOf(selMonth)+1]||null;
+  const[prevYr,prevMo]=prevM?prevM.split('-').map(Number):[0,0];
+  const inPrev=d=>{const dt=new Date(d);return!isNaN(dt)&&dt.getFullYear()===prevYr&&dt.getMonth()===prevMo-1;};
   const fmt=n=>Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:0});
   const fmtL=n=>n>=1e5?(n/1e5).toFixed(1)+'L':n>=1000?(n/1000).toFixed(1)+'K':fmt(n);
   const pct=n=>parseFloat(n||0).toFixed(1)+'%';
+  const gc=(v,g,a)=>v>=g?'#16a34a':v>=a?'#d97706':'#dc2626';
+  const gbg=(v,g,a)=>v>=g?'#f0fdf4':v>=a?'#fffbeb':'#fef2f2';
 
-  const prevM=months[months.indexOf(selMonth)+1]||null;
-  const [prevYr,prevMo]=prevM?prevM.split('-').map(Number):[0,0];
-  const inPrev=d=>{ const dt=new Date(d); return !isNaN(dt)&&dt.getFullYear()===prevYr&&dt.getMonth()===prevMo-1; };
+  // ── Multi-month trend (last 3 months) ──
+  const trendMonths=months.slice(0,3).reverse();
+  const trendData=trendMonths.map(m=>{
+    const[yr,mo]=m.split('-').map(Number);
+    const inT=d=>{const dt=new Date(d);return!isNaN(dt)&&dt.getFullYear()===yr&&dt.getMonth()===mo-1;};
+    const invs=(INVOICES||[]).filter(i=>!i.deleted&&inT(i.date));
+    const db=(DAYBOOK||[]).filter(e=>inT(e.date));
+    const r=invs.reduce((s,i)=>s+(i.subtotal||i.grandTotal||0),0);
+    const rm=db.filter(e=>e.type==='expense'&&e.category==='raw_material').reduce((s,e)=>s+(e.amount||0),0);
+    const lb=db.filter(e=>e.type==='expense'&&e.category==='labour').reduce((s,e)=>s+(e.amount||0),0);
+    const pc=db.filter(e=>e.type==='expense'&&(e.category==='powder_coating'||e.category==='outsource')).reduce((s,e)=>s+(e.amount||0),0);
+    const pk=db.filter(e=>e.type==='expense'&&e.category==='packaging').reduce((s,e)=>s+(e.amount||0),0);
+    const op=db.filter(e=>e.type==='expense'&&['transport','rent','admin_misc','repair_maint','marketing'].some(c=>e.category===c)).reduce((s,e)=>s+(e.amount||0),0);
+    const it=db.filter(e=>e.type==='expense'&&e.category==='interest_emi').reduce((s,e)=>s+(e.amount||0),0);
+    const cg=rm+lb+pc+pk;
+    const np=r-cg-op-it;
+    let tu=0; invs.forEach(inv=>(inv.items||[]).forEach(it=>tu+=(parseFloat(it.qty)||0)));
+    const plans=(H||[]).filter(h=>inT(h.date));
+    const pt=plans.reduce((s,h)=>s+(h.tot||0),0);
+    return{m,label:new Date(yr,mo-1,1).toLocaleDateString('en-IN',{month:'short',year:'2-digit'}),r,cg,op,it,np,nm:r>0?(np/r*100):0,gm:r>0?((r-cg)/r*100):0,tu,pt};
+  });
+  const cur=trendData[trendData.length-1]||{};
+  const prev=trendData[trendData.length-2]||{};
 
-  // ── EOD ──
-  const monthEODKeys=Object.keys(EOD).filter(inM);
-  const monthPlans=(H||[]).filter(h=>inM(h.date)).sort((a,b)=>new Date(a.date)-new Date(b.date));
-  const workingDays=monthPlans.length;
-  const closedDays=monthEODKeys.filter(d=>EOD[d]?.closed).length;
-
-  // Production Score — Daily Entry ka tot = target, invoice units = actual
-  const prodTarget=monthPlans.reduce((s,h)=>s+(h.tot||0),0); // sum of all daily targets
-  // prodActual will be set after totalUnits is calculated below
-
-
-  const workerStats={};
-  (W||[]).forEach(w=>{workerStats[w.id]={name:w.name,role:w.role||'—',present:0,half:0,absent:0,total:0};});
-  monthEODKeys.forEach(d=>{ const eod=EOD[d]; if(!eod) return; Object.entries(eod.workerData||{}).forEach(([wid,wd])=>{ if(!workerStats[wid]) workerStats[wid]={name:wd.name||wid,role:'—',present:0,half:0,absent:0,total:0}; const ws=workerStats[wid]; ws.total++; if(wd.att==='full') ws.present++; else if(wd.att==='half') ws.half++; else ws.absent++; }); });
-  let attPresent=0,attTotal=0;
-  Object.values(workerStats).forEach(ws=>{attPresent+=ws.present+ws.half*0.5; attTotal+=ws.total;});
-  const attRate=attTotal>0?Math.round(attPresent/attTotal*100):0;
-
-  const issues=[];
-  monthEODKeys.forEach(d=>{ const eod=EOD[d]; if(!eod) return; const ds=new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short'}); if(eod.note&&eod.note.trim()) issues.push({date:ds,text:eod.note.trim()}); (eod.issues||[]).forEach(i=>issues.push({date:ds,text:i})); });
-
-  // ── Invoices ──
-  const mInvoices=(INVOICES||[]).filter(inv=>!inv.deleted&&inM(inv.date));
-  const pInvoices=(INVOICES||[]).filter(inv=>!inv.deleted&&inPrev(inv.date));
+  // ── Selected month full data ──
+  const mInvoices=(INVOICES||[]).filter(i=>!i.deleted&&inM(i.date));
+  const pInvoices=(INVOICES||[]).filter(i=>!i.deleted&&inPrev(i.date));
   const rev=mInvoices.reduce((s,i)=>s+(i.subtotal||i.grandTotal||0),0);
   const pRev=pInvoices.reduce((s,i)=>s+(i.subtotal||i.grandTotal||0),0);
   const invCount=mInvoices.length;
-  let totalUnits=0; mInvoices.forEach(inv=>(inv.items||[]).forEach(it=>totalUnits+=(parseFloat(it.qty)||0)));
+  let totalUnits=0;mInvoices.forEach(inv=>(inv.items||[]).forEach(it=>totalUnits+=(parseFloat(it.qty)||0)));
   const avgPrice=totalUnits>0?rev/totalUnits:0;
-  const prodScore=prodTarget>0?Math.min(Math.round(totalUnits/prodTarget*100),100):0;
-  const pendingAmt=mInvoices.reduce((s,inv)=>{ const paid=(LEDGER[inv.customerId]||[]).filter(e=>e.ref===inv.id).reduce((ss,e)=>ss+(e.amt||0),0); return s+Math.max(0,(inv.grandTotal||0)-paid); },0);
 
-  // ── Daybook P&L ──
   const dbM=(DAYBOOK||[]).filter(e=>inM(e.date));
   const dbP=(DAYBOOK||[]).filter(e=>inPrev(e.date));
   const bizExpCats=['raw_material','labour','powder_coating','outsource','packaging','transport','rent','electric','admin_misc','repair_maint','marketing','tax_govt'];
@@ -13554,306 +13553,529 @@ function renderCEOReport(){
   const ebitda=grossProfit-opex;
   const netProfit=ebitda-intExp;
   const netMargin=rev>0?(netProfit/rev*100):0;
-
   const pRawmat=dbP.filter(e=>e.type==='expense'&&e.category==='raw_material').reduce((s,e)=>s+(e.amount||0),0);
   const pLabour=dbP.filter(e=>e.type==='expense'&&e.category==='labour').reduce((s,e)=>s+(e.amount||0),0);
   const pPc=dbP.filter(e=>e.type==='expense'&&(e.category==='powder_coating'||e.category==='outsource')).reduce((s,e)=>s+(e.amount||0),0);
   const pPack=dbP.filter(e=>e.type==='expense'&&e.category==='packaging').reduce((s,e)=>s+(e.amount||0),0);
   const pCogs=pRawmat+pLabour+pPc+pPack;
-  const pOpex=dbP.filter(e=>e.type==='expense'&&(e.category==='transport'||e.category==='rent'||e.category==='admin_misc'||e.category==='repair_maint'||e.category==='marketing')).reduce((s,e)=>s+(e.amount||0),0);
+  const pOpex=dbP.filter(e=>e.type==='expense'&&['transport','rent','admin_misc','repair_maint','marketing'].some(c=>e.category===c)).reduce((s,e)=>s+(e.amount||0),0);
   const pInt=dbP.filter(e=>e.type==='expense'&&e.category==='interest_emi').reduce((s,e)=>s+(e.amount||0),0);
   const pNetProfit=pRev-pCogs-pOpex-pInt;
   const pNetMargin=pRev>0?(pNetProfit/pRev*100):0;
   const momRev=pRev>0?((rev-pRev)/pRev*100):null;
 
-  const mBatches=(BATCHES||[]).filter(b=>!b.deleted&&inM(b.date||b.createdAt));
-  const completedBatches=mBatches.filter(b=>b.status==='done'||b.status==='complete'||b.completed).length;
-  const batchUnits=mBatches.reduce((s,b)=>s+(parseInt(b.qty||b.units||0)),0);
-  const bScore=Math.round(prodScore*0.4+attRate*0.3+Math.min(closedDays/Math.max(workingDays,1)*100,100)*0.15+(netMargin>0?Math.min(netMargin/30*100,100)*0.15:0));
+  // ── Production ──
+  const monthPlans=(H||[]).filter(h=>inM(h.date));
+  const workingDays=monthPlans.length;
+  const prodTarget=monthPlans.reduce((s,h)=>s+(h.tot||0),0);
+  const prodScore=prodTarget>0?Math.min(Math.round(totalUnits/prodTarget*100),100):0;
+  const monthEODKeys=Object.keys(EOD).filter(inM);
+  const closedDays=monthEODKeys.filter(d=>EOD[d]?.closed).length;
+
+  // ── Attendance ──
+  const workerStats={};
+  (W||[]).forEach(w=>{workerStats[w.id]={name:w.name,role:w.role||'—',present:0,half:0,absent:0,total:0};});
+  monthEODKeys.forEach(d=>{const eod=EOD[d];if(!eod)return;Object.entries(eod.workerData||{}).forEach(([wid,wd])=>{if(!workerStats[wid])workerStats[wid]={name:wd.name||wid,role:'—',present:0,half:0,absent:0,total:0};const ws=workerStats[wid];ws.total++;if(wd.att==='full')ws.present++;else if(wd.att==='half')ws.half++;else ws.absent++;});});
+  let attPresent=0,attTotal=0;
+  Object.values(workerStats).forEach(ws=>{attPresent+=ws.present+ws.half*0.5;attTotal+=ws.total;});
+  const attRate=attTotal>0?Math.round(attPresent/attTotal*100):0;
+
+  // ── Ledger / Receivables ──
+  const customers=(CUSTOMERS||[]).filter(c=>c.type!=='supplier');
+  const suppliers=(CUSTOMERS||[]).filter(c=>c.type==='supplier');
+  // Party-wise outstanding
+  const partyOutstanding=customers.map(c=>{
+    const entries=LEDGER[c.id]||[];
+    const bal=entries.reduce((s,e)=>s+(e.type==='dr'?e.amt:-e.amt),0);
+    // Invoiced this month
+    const mInv=(INVOICES||[]).filter(i=>!i.deleted&&i.customerId===c.id&&inM(i.date));
+    const mInvAmt=mInv.reduce((s,i)=>s+(i.grandTotal||0),0);
+    // Collected this month
+    const mColl=entries.filter(e=>e.type==='cr'&&inM(e.date)).reduce((s,e)=>s+e.amt,0);
+    // Overdue days (oldest unpaid dr entry)
+    const unpaidDr=entries.filter(e=>e.type==='dr').sort((a,b)=>new Date(a.date)-new Date(b.date));
+    const oldestUnpaid=bal>0&&unpaidDr.length?Math.floor((new Date()-new Date(unpaidDr[0].date))/(1000*60*60*24)):0;
+    return{id:c.id,name:c.name,bal:Math.max(0,bal),mInvAmt,mColl,oldestUnpaid};
+  }).filter(c=>c.bal>0||c.mInvAmt>0).sort((a,b)=>b.bal-a.bal);
+
+  const totalReceivable=partyOutstanding.reduce((s,c)=>s+c.bal,0);
+  const totalInvoicedM=partyOutstanding.reduce((s,c)=>s+c.mInvAmt,0);
+  const totalCollectedM=partyOutstanding.reduce((s,c)=>s+c.mColl,0);
+  const collectionEff=totalInvoicedM>0?Math.min(Math.round(totalCollectedM/totalInvoicedM*100),100):0;
+  // Aging buckets — total receivable by age
+  const aging={d30:0,d60:0,d90:0,d90plus:0};
+  partyOutstanding.forEach(c=>{
+    if(c.oldestUnpaid<=30)aging.d30+=c.bal;
+    else if(c.oldestUnpaid<=60)aging.d60+=c.bal;
+    else if(c.oldestUnpaid<=90)aging.d90+=c.bal;
+    else aging.d90plus+=c.bal;
+  });
+
+  // ── Business Score ──
+  const bScore=Math.round(
+    (netMargin>0?Math.min(netMargin/20*100,100):0)*0.25+
+    prodScore*0.20+
+    attRate*0.15+
+    collectionEff*0.20+
+    Math.min(closedDays/Math.max(workingDays,1)*100,100)*0.10+
+    (intExp<rev*0.1?100:intExp<rev*0.15?60:20)*0.10
+  );
   const bGrade=bScore>=85?'A+':bScore>=75?'A':bScore>=65?'B+':bScore>=55?'B':'C';
 
-  const gc=(v,g,a)=>v>=g?'#16a34a':v>=a?'#d97706':'#dc2626';
-  const gbg=(v,g,a)=>v>=g?'#f0fdf4':v>=a?'#fffbeb':'#fef2f2';
-  const sC=gc(prodScore,85,60); const aC=gc(attRate,90,70); const bC=gc(bScore,75,55);
-  const mC=gc(netMargin,14,8); const rC=gc(rev,400000,200000);
-
+  // ── HTML Helpers ──
   let html='';
-  const theoryBox=t=>`<div style="background:rgba(59,130,246,.05);border-left:3px solid var(--navy2);border-radius:0 6px 6px 0;padding:10px 14px;margin-bottom:14px;font-size:11px;color:var(--muted);line-height:1.8">${t}</div>`;
-  const secHead=(n,t,s)=>`<div style="margin-bottom:1.2rem"><div style="display:flex;align-items:baseline;gap:10px;margin-bottom:.4rem;padding-bottom:.4rem;border-bottom:2px solid var(--border)"><span style="font-size:10px;font-weight:800;color:var(--navy2);text-transform:uppercase;letter-spacing:.1em;font-family:monospace">${n}</span><div><div style="font-size:16px;font-weight:800;color:var(--navy2)">${t}</div><div style="font-size:10px;color:var(--muted);margin-top:1px">${s}</div></div></div>`;
-  const kpiCard=(val,lbl,sub,color,bg)=>`<div style="background:${bg};border:1px solid ${color}33;border-top:3px solid ${color};border-radius:var(--r2);padding:12px;text-align:center"><div style="font-size:22px;font-weight:900;color:${color};line-height:1;margin-bottom:4px">${val}</div><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">${lbl}</div><div style="font-size:9px;color:var(--muted);margin-top:2px">${sub}</div></div>`;
-  const alertRow=(type,msg)=>{ const c=type==='red'?'#dc2626':type==='amber'?'#d97706':type==='green'?'#16a34a':'#2563eb'; const i=type==='red'?'🚨':type==='amber'?'⚠️':type==='green'?'✅':'💡'; return `<div style="display:flex;gap:10px;padding:10px 14px;border:1px solid var(--border);border-left:3px solid ${c};border-radius:0 6px 6px 0;margin-bottom:8px"><span style="font-size:14px;flex-shrink:0">${i}</span><div style="font-size:11px;color:var(--text);line-height:1.6">${msg}</div></div>`; };
-  const insBox=(ico,ttl,txt,color)=>`<div style="display:flex;gap:10px;padding:10px 14px;border:1px solid var(--border);border-left:3px solid ${color};border-radius:0 6px 6px 0;margin-bottom:8px"><span style="font-size:18px;flex-shrink:0">${ico}</span><div><div style="font-size:12px;font-weight:700;color:var(--navy2);margin-bottom:2px">${ttl}</div><div style="font-size:11px;color:var(--muted);line-height:1.6">${txt}</div></div></div>`;
-  const tblHead=cols=>`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr>${cols.map(c=>`<th style="padding:7px 10px;text-align:left;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);background:#f8faff;white-space:nowrap">${c}</th>`).join('')}</tr></thead><tbody>`;
-  const tblRow=(cells,hl)=>`<tr style="${hl?'background:#f0f8ff;':''}">${cells.map(c=>`<td style="padding:7px 10px;border-bottom:1px solid var(--border);color:${c[1]||'var(--text)'};font-weight:${c[2]?700:400};font-size:11px;white-space:nowrap">${c[0]}</td>`).join('')}</tr>`;
+  const sec=(n,t,s,ico)=>`<div style="margin:20px 0 12px;padding-bottom:8px;border-bottom:2px solid #0d1b35;display:flex;align-items:center;gap:10px"><div style="background:#0d1b35;color:#fff;font-size:10px;font-weight:900;padding:3px 8px;border-radius:4px;font-family:monospace">${n}</div><div><div style="font-size:15px;font-weight:900;color:#0d1b35">${ico} ${t}</div><div style="font-size:10px;color:#6b7280;margin-top:1px">${s}</div></div></div>`;
+  const kpi=(val,lbl,sub,color,bg,trend)=>`<div style="background:${bg||'#f8faff'};border:1px solid ${color}22;border-top:3px solid ${color};border-radius:8px;padding:12px 14px"><div style="font-size:20px;font-weight:900;color:${color};line-height:1">${val}</div>${trend?`<div style="font-size:10px;color:${trend.startsWith('+')?'#16a34a':'#dc2626'};font-weight:700;margin-top:2px">${trend}</div>`:''}<div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;margin-top:4px">${lbl}</div><div style="font-size:9px;color:#9ca3af;margin-top:1px">${sub}</div></div>`;
+  const chip=(txt,color)=>`<span style="font-size:9px;padding:2px 8px;border-radius:20px;background:${color}15;color:${color};border:1px solid ${color}33;font-weight:700">${txt}</span>`;
+  const tblHead=cols=>`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#0d1b35">${cols.map(c=>`<th style="padding:7px 10px;text-align:left;font-size:9px;color:#aabbcc;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;font-weight:700">${c}</th>`).join('')}</tr></thead><tbody>`;
+  const tblRow=(cells,hl)=>`<tr style="background:${hl?'#f0f8ff':'#fff'};border-bottom:1px solid #e5e7eb">${cells.map(c=>`<td style="padding:7px 10px;color:${c[1]||'#111'};font-weight:${c[2]?700:400};font-size:11px;white-space:nowrap">${c[0]}</td>`).join('')}</tr>`;
+  const bar=(pct,color,h)=>`<div style="background:#e5e7eb;border-radius:4px;height:${h||8}px;overflow:hidden"><div style="width:${Math.min(pct,100)}%;height:100%;background:${color};border-radius:4px"></div></div>`;
+  const trend=(cur,prev,higher_better,suffix)=>{if(!prev)return'';const d=cur-prev;const p=prev>0?(d/prev*100):0;const good=higher_better?d>0:d<0;return`<span style="font-size:10px;font-weight:700;color:${good?'#16a34a':'#dc2626'}">${d>0?'▲':'▼'} ${Math.abs(p).toFixed(1)}%${suffix||''}</span>`;};
 
-  // SEC 01 — EXECUTIVE SUMMARY
-  html+=secHead('01','Executive Summary',`${mLabel} — Complete business picture`);
-  html+=theoryBox('<strong>Yeh section kyun?</strong> Manufacturing founder hone ka matlab hai ki tujhe floor se finance tak sab ek saath dekhna chahiye. Sirf production numbers kaafi nahi — revenue, margin, attendance, batch completion — sab ek saath dekhne pe hi asli picture milti hai.');
+  // ════════════════════════════════════════════════
+  // HEADER — Executive Summary Card
+  // ════════════════════════════════════════════════
   const grade=netMargin>=20?'A':netMargin>=14?'B':netMargin>=8?'C':'D';
-  const gradeColor=netMargin>=20?'#16a34a':netMargin>=14?'#2563eb':netMargin>=8?'#d97706':'#dc2626';
-  html+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px;background:#f8faff;border:1px solid var(--border);border-radius:var(--r2);margin-bottom:14px;flex-wrap:wrap;gap:12px">
-    <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Business Grade</div>
-    <div style="font-size:60px;font-weight:900;color:${gradeColor};line-height:1;font-family:monospace">${grade}</div>
-    <div style="font-size:11px;color:var(--muted);margin-top:4px">${mLabel} | Net Margin: ${pct(netMargin)}</div></div>
-    <div style="text-align:right"><div style="font-size:10px;color:var(--muted);margin-bottom:6px">Grade criteria:</div>
-    ${['A = 20%+ margin','B = 14–20% margin','C = 8–14% margin','D = <8% margin'].map((g,i)=>{ const gc=['#16a34a','#2563eb','#d97706','#dc2626'][i]; const bold=(i===0&&netMargin>=20)||(i===1&&netMargin>=14&&netMargin<20)||(i===2&&netMargin>=8&&netMargin<14)||(i===3&&netMargin<8); return `<div style="font-size:11px;color:${bold?gc:'var(--muted)'};font-weight:${bold?700:400};margin-bottom:2px">${g}</div>`; }).join('')}</div></div>`;
-  html+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px">
-    ${kpiCard('&#8377;'+fmtL(rev),'Revenue',invCount+' invoices',rC,gbg(rev,400000,200000))}
-    ${kpiCard('&#8377;'+fmtL(netProfit),'Net Profit',pct(netMargin)+' margin',mC,gbg(netMargin,14,8))}
-    ${kpiCard(pct(grossMargin),'Gross Margin','Rev - COGS',gc(grossMargin,35,25),gbg(grossMargin,35,25))}
-    ${kpiCard(Math.round(totalUnits)+' pcs','Units Sold','&#8377;'+fmtL(avgPrice)+' avg price',gc(totalUnits,300,150),'#f0f4ff')}
-    ${kpiCard(prodScore+'%','Production Score',Math.round(totalUnits)+'/'+prodTarget+' pcs',sC,gbg(prodScore,85,60))}
-    ${kpiCard(attRate+'%','Attendance',attTotal+' worker-days',aC,gbg(attRate,90,70))}
-    ${kpiCard(closedDays+'/'+workingDays,'EOD Discipline','Days closed/planned',gc(closedDays/Math.max(workingDays,1)*100,90,70),'#f8faff')}
-    ${kpiCard(batchUnits+' pcs','Units Produced',mBatches.length+' batches',gc(batchUnits,400,200),'#f8faff')}
-    ${kpiCard(bScore,'Business Score',bGrade+' Grade',bC,gbg(bScore,75,55))}
+  const gradeC=netMargin>=20?'#16a34a':netMargin>=14?'#2563eb':netMargin>=8?'#d97706':'#dc2626';
+  html+=`<div style="background:linear-gradient(135deg,#0d1b35 0%,#1a3260 100%);border-radius:10px;padding:20px 24px;margin-bottom:16px;color:#fff">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-size:10px;color:#7a9bcc;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Monthly Business Review</div>
+        <div style="font-size:22px;font-weight:900;margin-bottom:2px">BeyondFurni — ${mLabel}</div>
+        <div style="font-size:11px;color:#aabbcc">S.R. Enterprises | Nashik, Maharashtra | B2B Manufacturing</div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+          ${chip(netMargin>=14?'Margin: Healthy':'Margin: Needs Work',netMargin>=14?'#4ade80':'#fbbf24')}
+          ${chip('Collection: '+collectionEff+'%',collectionEff>=80?'#4ade80':collectionEff>=60?'#fbbf24':'#f87171')}
+          ${chip('Production: '+prodScore+'%',prodScore>=80?'#4ade80':prodScore>=60?'#fbbf24':'#f87171')}
+          ${chip('Attendance: '+attRate+'%',attRate>=90?'#4ade80':attRate>=75?'#fbbf24':'#f87171')}
+        </div>
+      </div>
+      <div style="text-align:center;background:rgba(255,255,255,.08);border-radius:10px;padding:16px 24px">
+        <div style="font-size:10px;color:#aabbcc;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Business Grade</div>
+        <div style="font-size:56px;font-weight:900;color:${gradeC};line-height:1;font-family:monospace">${grade}</div>
+        <div style="font-size:11px;color:#aabbcc;margin-top:4px">Score: ${bScore}/100</div>
+        <div style="margin-top:8px;background:rgba(255,255,255,.1);border-radius:4px;height:6px;overflow:hidden"><div style="width:${bScore}%;height:100%;background:${gradeC};border-radius:4px"></div></div>
+      </div>
+    </div>
   </div>`;
-  html+=`<div style="font-size:11px;font-weight:700;color:var(--navy2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">&#9889; Priority Alerts</div>`;
+
+  // ── KPI Row 1 — Financial ──
+  html+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:10px">
+    ${kpi('&#8377;'+fmtL(rev),'Revenue',invCount+' invoices',gc(rev,400000,200000),gbg(rev,400000,200000),momRev!==null?(momRev>0?'+'+momRev.toFixed(1)+'% MoM':momRev.toFixed(1)+'% MoM'):'')}
+    ${kpi('&#8377;'+fmtL(netProfit),'Net Profit',pct(netMargin)+' margin',gc(netMargin,14,8),gbg(netMargin,14,8),prevM?trend(netMargin,pNetMargin,true,'% pts'):'')}
+    ${kpi(pct(grossMargin),'Gross Margin','After COGS',gc(grossMargin,40,30),gbg(grossMargin,40,30),'')}
+    ${kpi('&#8377;'+fmtL(ebitda),'EBITDA',pct(rev>0?ebitda/rev*100:0)+' margin',gc(ebitda,50000,0),gbg(ebitda,50000,0),'')}
+    ${kpi('&#8377;'+fmtL(intExp),'Interest / EMI','Fixed drain',intExp<rev*0.1?'#16a34a':intExp<rev*0.15?'#d97706':'#dc2626',intExp<rev*0.1?'#f0fdf4':intExp<rev*0.15?'#fffbeb':'#fef2f2','')}
+    ${kpi('&#8377;'+fmtL(totalReceivable),'Total Receivable',partyOutstanding.length+' parties',totalReceivable<50000?'#16a34a':totalReceivable<100000?'#d97706':'#dc2626',totalReceivable<50000?'#f0fdf4':totalReceivable<100000?'#fffbeb':'#fef2f2','')}
+  </div>`;
+
+  // ── KPI Row 2 — Operational ──
+  html+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px">
+    ${kpi(Math.round(totalUnits)+' pcs','Units Sold','&#8377;'+fmtL(avgPrice)+' avg',gc(totalUnits,300,150),'#f8faff',prodTarget>0?trend(totalUnits,prodTarget*0.8,true,' vs target'):'')}
+    ${kpi(prodScore+'%','Production Score',prodTarget>0?Math.round(totalUnits)+'/'+prodTarget+' pcs':'No target set',gc(prodScore,85,65),gbg(prodScore,85,65),'')}
+    ${kpi(attRate+'%','Attendance',attTotal+' worker-days',gc(attRate,90,75),gbg(attRate,90,75),'')}
+    ${kpi(collectionEff+'%','Collection Eff.',totalCollectedM>0?'&#8377;'+fmtL(totalCollectedM)+' collected':'No collections',gc(collectionEff,80,60),gbg(collectionEff,80,60),'')}
+    ${kpi(closedDays+'/'+workingDays,'EOD Discipline','Days closed',gc(closedDays/Math.max(workingDays,1)*100,90,70),'#f8faff','')}
+    ${kpi(workingDays,'Working Days',mLabel,gc(workingDays,22,18),'#f8faff','')}
+  </div>`;
+
+  // ── Priority Alerts ──
   const alerts=[];
-  if(netMargin<14) alerts.push({t:'red',msg:`<strong>Net Margin ${pct(netMargin)}</strong> — 14% target se neeche. ${intExp>rev*0.08?`Interest/EMI &#8377;${fmt(intExp)} (${pct(intExp/rev*100)} of revenue) sabse bada drag. `:''}Vendor negotiate karo ya pricing badhao.`});
-  if(intExp>rev*0.1) alerts.push({t:'red',msg:`<strong>Interest/EMI &#8377;${fmt(intExp)}</strong> — Revenue ka ${pct(intExp/rev*100)}. Yeh sab profit kha raha hai. High-interest loan pehle close karo.`});
-  if(prodScore<70) alerts.push({t:'amber',msg:`<strong>Production Score ${prodScore}%</strong> — Target 85%+. ${Math.round(totalUnits)}/${prodTarget} pcs sold vs planned. Invoice units aur daily targets check karo.`});
-  if(attRate<85) alerts.push({t:'amber',msg:`<strong>Attendance ${attRate}%</strong> — Team absenteeism high. Production target miss ho raha hai.`});
-  if(closedDays<workingDays*0.8) alerts.push({t:'amber',msg:`<strong>EOD Discipline: ${closedDays}/${workingDays} days</strong> — ${workingDays-closedDays} din ka EOD close nahi hua. Har din close karo.`});
-  if(pendingAmt>20000) alerts.push({t:'amber',msg:`<strong>&#8377;${fmt(pendingAmt)} pending payments</strong> — Party se collection baaki. Seedha call karo.`});
-  if(!alerts.length) alerts.push({t:'green',msg:`Business healthy lag raha hai! Data aur add karo aur refresh karo for more insights.`});
-  alerts.slice(0,4).forEach(a=>html+=alertRow(a.t,a.msg));
+  if(netMargin<14)alerts.push({t:'red',msg:`<strong>Net Margin ${pct(netMargin)}</strong> — Target 14%+. ₹100 revenue mein sirf ₹${Math.round(netMargin)} tera hai. ${intExp>rev*0.08?`Interest ₹${fmtL(intExp)} sabse bada drag (${pct(intExp/rev*100)} of revenue). `:``}COGS ${pct(cogs/rev*100)} — vendor negotiate karo.`});
+  if(intExp>rev*0.12)alerts.push({t:'red',msg:`<strong>Interest/EMI ₹${fmtL(intExp)}</strong> — Revenue ka ${pct(intExp/rev*100)}. ₹${fmtL(intExp*12)}/year sirf byaaj. Sabse high-interest loan identify karo aur prepayment start karo.`});
+  if(totalReceivable>100000)alerts.push({t:'red',msg:`<strong>₹${fmtL(totalReceivable)} party receivables</strong> — ${partyOutstanding.filter(c=>c.oldestUnpaid>30).length} parties 30+ din se overdue. Working capital squeeze ho rahi hai. Top parties ko aaj call karo.`});
+  if(collectionEff<60)alerts.push({t:'amber',msg:`<strong>Collection Efficiency ${collectionEff}%</strong> — ₹${fmtL(totalInvoicedM)} invoiced, sirf ₹${fmtL(totalCollectedM)} collect hua. Advance policy strict karo.`});
+  if(prodScore<70)alerts.push({t:'amber',msg:`<strong>Production Score ${prodScore}%</strong> — ${Math.round(totalUnits)} units sold vs ${prodTarget} planned. ${prodTarget-Math.round(totalUnits)} units gap hai.`});
+  if(attRate<85)alerts.push({t:'amber',msg:`<strong>Attendance ${attRate}%</strong> — ${Math.round(attTotal*(1-attRate/100))} worker-days absent. Production aur delivery pe direct impact.`});
+  if(alerts.length===0)alerts.push({t:'green',msg:`<strong>Sab metrics target mein!</strong> Business healthy — scale karne ka waqt hai.`});
+  html+=`<div style="margin-bottom:16px">`;
+  alerts.forEach(a=>{
+    const c=a.t==='red'?'#dc2626':a.t==='amber'?'#d97706':'#16a34a';
+    const i=a.t==='red'?'🚨':a.t==='amber'?'⚠️':'✅';
+    html+=`<div style="display:flex;gap:10px;padding:10px 14px;border:1px solid ${c}33;border-left:3px solid ${c};border-radius:0 6px 6px 0;margin-bottom:7px;background:${c}08"><span style="font-size:14px;flex-shrink:0">${i}</span><div style="font-size:11px;color:#111;line-height:1.6">${a.msg}</div></div>`;
+  });
   html+='</div>';
 
-  // SEC 02 — P&L
-  html+=secHead('02','P&L Deep Dive',`${mLabel} — Paisa kahan aaya, kahan gaya`);
-  html+=theoryBox('<strong>Manufacturing P&L kyun alag hai?</strong> COGS = Raw Material + Labour + PC + Packaging — sab tum control karte ho. Gross Margin = manufacturing efficiency. EBITDA = operations ke baad. Net Profit = sab kuch nikalne ke baad tera. Interest/EMI sabse dangerous line — fixed hai, revenue kam ho tab bhi jaata hai.');
-  html+=tblHead(['Category','Amount','% of Revenue','vs Last Month','Status']);
+  // ════════════════════════════════════════════════
+  // SEC 01 — P&L STATEMENT
+  // ════════════════════════════════════════════════
+  html+=sec('01','Income Statement','Revenue se Net Profit tak — complete P&L','📊');
+  html+=tblHead(['Line Item','Amount','% of Revenue','vs Last Month','Status']);
   const plRows=[
-    {n:'&#128176; Revenue',v:rev,pv:pRev,c:'#16a34a',plus:true},
-    {n:'&#128297; Raw Material',v:rawmat,pv:pRawmat,c:'#7c3aed',plus:false},
-    {n:'&#128119; Labour',v:labour,pv:pLabour,c:'#2563eb',plus:false},
-    {n:'&#9881; Outsource (PC/Fab)',v:pc,pv:pPc,c:'#0891b2',plus:false},
-    {n:'&#128230; Packaging',v:pack,pv:pPack,c:'#6366f1',plus:false},
-    {n:'&#9654; COGS Total',v:cogs,pv:pCogs,c:'#7c3aed',plus:false,bold:true},
-    {n:'&#9654; Gross Profit',v:grossProfit,pv:pRev-pCogs,c:grossProfit>=0?'#16a34a':'#dc2626',plus:true,bold:true},
-    {n:'&#128665; Transport',v:trans,pv:0,c:'#d97706',plus:false},
-    {n:'&#127981; Rent + Electricity',v:rent,pv:0,c:'#d97706',plus:false},
-    {n:'&#128295; Admin + Repair',v:admn,pv:0,c:'#9ca3af',plus:false},
-    {n:'&#128226; Marketing',v:mktg,pv:0,c:'#f59e0b',plus:false},
-    {n:'&#9654; EBITDA',v:ebitda,pv:0,c:ebitda>=0?'#16a34a':'#dc2626',plus:true,bold:true},
-    {n:'&#128179; Interest / EMI',v:intExp,pv:pInt,c:'#dc2626',plus:false},
-    {n:'&#9654; NET PROFIT',v:netProfit,pv:pNetProfit,c:netProfit>=0?'#16a34a':'#dc2626',plus:true,bold:true},
+    {n:'Revenue (Net of GST)',v:rev,pv:pRev,c:'#16a34a',plus:true,bold:true},
+    {n:'(-) Raw Material',v:rawmat,pv:pRawmat,c:'#7c3aed',plus:false},
+    {n:'(-) Labour Cost',v:labour,pv:pLabour,c:'#2563eb',plus:false},
+    {n:'(-) Outsource (PC/Fab)',v:pc,pv:pPc,c:'#0891b2',plus:false},
+    {n:'(-) Packaging',v:pack,pv:pPack,c:'#6366f1',plus:false},
+    {n:'= COGS',v:cogs,pv:pCogs,c:'#7c3aed',plus:false,bold:true,sep:true},
+    {n:'= GROSS PROFIT',v:grossProfit,pv:pRev-pCogs,c:grossProfit>=0?'#16a34a':'#dc2626',plus:true,bold:true,sep:true},
+    {n:'(-) Transport',v:trans,pv:0,c:'#d97706',plus:false},
+    {n:'(-) Rent + Electricity',v:rent,pv:0,c:'#d97706',plus:false},
+    {n:'(-) Admin + Repair',v:admn,pv:0,c:'#9ca3af',plus:false},
+    {n:'(-) Marketing',v:mktg,pv:0,c:'#f59e0b',plus:false},
+    {n:'= EBITDA',v:ebitda,pv:0,c:ebitda>=0?'#16a34a':'#dc2626',plus:true,bold:true,sep:true},
+    {n:'(-) Interest / EMI',v:intExp,pv:pInt,c:'#dc2626',plus:false},
+    {n:'= NET PROFIT',v:netProfit,pv:pNetProfit,c:netProfit>=0?'#16a34a':'#dc2626',plus:true,bold:true,sep:true},
   ];
   plRows.forEach(r=>{
-    if(r.v===0&&!r.bold) return;
+    if(r.v===0&&!r.bold)return;
     const pR=rev>0?(r.v/rev*100):0;
-    const diff=r.pv?(r.v-r.pv):null;
-    const diffStr=diff!==null&&r.pv?`${diff>0?'+':''}&#8377;${fmtL(Math.abs(diff))} (${diff>0?'&#8593;':'&#8595;'}${Math.abs(r.pv>0?(diff/r.pv*100):0).toFixed(0)}%)`:prevM?'—':'';
-    const diffColor=(r.plus?diff>=0:diff<=0)?'#16a34a':'#dc2626';
-    html+=tblRow([[r.n,r.c,r.bold],[`${r.plus?'':'-'}&#8377;${fmt(r.v)}`,r.c,r.bold],[pct(pR),'var(--muted)'],[diffStr,diffColor],['—','var(--muted)']],r.bold);
+    const diff=r.pv!=null&&r.pv?(r.v-r.pv):null;
+    const diffStr=diff!=null&&r.pv?`${diff>0?'+':''}₹${fmtL(Math.abs(diff))} (${diff>0?'▲':'▼'}${Math.abs(r.pv>0?(diff/r.pv*100):0).toFixed(0)}%)`:prevM?'—':'';
+    const diffC=(r.plus?diff>=0:diff<=0)?'#16a34a':'#dc2626';
+    const sta=r.bold?(r.plus?(r.v>=0?'✅':'⚠️'):(r.v<rev*0.55?'✅':'⚠️')):'';
+    html+=tblRow([[r.n,r.c,r.bold],[(r.plus?'':'-')+'₹'+fmt(r.v),r.c,r.bold],[pct(pR),'#6b7280'],[diffStr,diffC],[sta,'#6b7280']],r.sep);
   });
   html+='</tbody></table></div>';
 
-  html+=`<div style="font-size:11px;font-weight:700;color:var(--navy2);margin:14px 0 8px;text-transform:uppercase;letter-spacing:.06em">Expense Breakdown</div>`;
-  const expItems=[{n:'Raw Material',v:rawmat,c:'#7c3aed',tip:'Steel, PP plastic, fasteners. Bulk se 5-8% bachega.'},{n:'Labour',v:labour,c:'#2563eb',tip:'Worker wages. Attendance improve = same cost, more output.'},{n:'PC + Outsource',v:pc,c:'#0891b2',tip:'Powder coating + fab. Multiple vendors rakho.'},{n:'Packaging',v:pack,c:'#6366f1',tip:'Bulk order = unit cost kam.'},{n:'Transport',v:trans,c:'#d97706',tip:'Batch trips plan karo — diesel save.'},{n:'Rent + Light',v:rent,c:'#d97706',tip:'Fixed. Revenue grow karo toh % kam hoga.'},{n:'Interest/EMI',v:intExp,c:'#dc2626',tip:'DANGER — fixed drain. Pehle yeh close karo.'},{n:'Admin + Repair',v:admn,c:'#9ca3af',tip:'Wi-fi, tools, misc.'}].filter(e=>e.v>0);
-  const totExpAll=expItems.reduce((s,e)=>s+e.v,0);
-  html+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:8px;margin-bottom:14px">`;
-  expItems.forEach(e=>{ const pR=rev>0?(e.v/rev*100):0; const pE=totExpAll>0?(e.v/totExpAll*100):0; html+=`<div style="background:#fff;border:1px solid var(--border);border-radius:var(--r2);padding:10px 12px"><div style="font-size:11px;font-weight:700;color:var(--navy2);margin-bottom:4px">${e.n}</div><div style="font-size:16px;font-weight:900;color:${e.c};margin-bottom:4px">&#8377;${fmtL(e.v)}</div><div style="height:3px;background:var(--border);border-radius:2px;margin-bottom:5px"><div style="height:3px;width:${Math.min(100,pE)}%;background:${e.c};border-radius:2px"></div></div><div style="font-size:9px;color:var(--muted)">${pR.toFixed(0)}% of rev | ${pE.toFixed(0)}% of exp</div><div style="font-size:9px;color:var(--muted);margin-top:2px;font-style:italic">${e.tip}</div></div>`; });
-  html+='</div>';
-  if(prevM) html+=insBox(momRev>0?'&#128200;':'&#128201;','MoM Analysis',`Revenue: &#8377;${fmtL(pRev)} &#8594; &#8377;${fmtL(rev)} (${momRev!==null?(momRev>0?'+':'')+momRev.toFixed(1)+'%':'—'}) | Net Margin: ${pct(pNetMargin)} &#8594; ${pct(netMargin)} (${netMargin>pNetMargin?'&#8593; Improved':'&#8595; Declined'}) | COGS: &#8377;${fmtL(pCogs)} &#8594; &#8377;${fmtL(cogs)} | Interest: &#8377;${fmtL(pInt)} &#8594; &#8377;${fmtL(intExp)}`,momRev>0?'#16a34a':'#dc2626');
-  html+='</div>';
+  // Expense breakdown visual
+  html+=`<div style="margin-top:12px"><div style="font-size:11px;font-weight:700;color:#0d1b35;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">Cost Structure — ${mLabel}</div>`;
+  html+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">`;
+  [{n:'Raw Material',v:rawmat,c:'#7c3aed'},{n:'Labour',v:labour,c:'#2563eb'},{n:'PC + Outsource',v:pc,c:'#0891b2'},{n:'Packaging',v:pack,c:'#6366f1'},{n:'Transport',v:trans,c:'#d97706'},{n:'Rent + Light',v:rent,c:'#f59e0b'},{n:'Interest/EMI',v:intExp,c:'#dc2626'},{n:'Admin + Repair',v:admn,c:'#9ca3af'}].filter(e=>e.v>0).forEach(e=>{
+    const pR=rev>0?(e.v/rev*100):0;
+    html+=`<div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:11px;font-weight:700;color:#0d1b35">${e.n}</span>
+        <span style="font-size:10px;font-weight:700;color:${e.c}">${pR.toFixed(0)}%</span>
+      </div>
+      <div style="font-size:15px;font-weight:900;color:${e.c};margin-bottom:6px">₹${fmtL(e.v)}</div>
+      ${bar(pR,e.c,6)}
+    </div>`;
+  });
+  html+='</div></div>';
 
-  // SEC 03 — PRODUCTION
-  html+=secHead('03','Production Floor Report',`${mLabel} — Stage-wise EOD performance`);
-  html+=theoryBox('<strong>EOD data = factory ki pulse.</strong> Stage-wise track karo konhi stage bottleneck hai. Wahan resource lagao. Har closed EOD = accurate data. Unclosed EOD = estimate. Production Score directly revenue capacity decide karta hai.');
-  html+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
-    ${kpiCard(prodScore+'%','Production Score',Math.round(totalUnits)+'/'+prodTarget+' pcs',sC,gbg(prodScore,85,60))}
-    ${kpiCard(closedDays+'/'+workingDays,'EOD Closed','Days this month',gc(closedDays/Math.max(workingDays,1)*100,90,70),'#f8faff')}
-    ${kpiCard(batchUnits,'Units Produced',mBatches.length+' batches',gc(batchUnits,400,200),'#f8faff')}
+  // ── 3-Month Trend ──
+  if(trendData.length>=2){
+    html+=`<div style="margin-top:14px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:14px">
+      <div style="font-size:11px;font-weight:700;color:#0d1b35;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">📈 3-Month Trend</div>`;
+    html+=tblHead(['Month','Revenue','Gross Margin','Net Margin','Net Profit','Units Sold']);
+    trendData.forEach((t,i)=>{
+      const isC=i===trendData.length-1;
+      html+=tblRow([
+        [t.label,'#0d1b35',isC],
+        ['₹'+fmtL(t.r),gc(t.r,400000,200000),isC],
+        [pct(t.gm),gc(t.gm,40,30),isC],
+        [pct(t.nm),gc(t.nm,14,8),isC],
+        ['₹'+fmtL(t.np),t.np>=0?'#16a34a':'#dc2626',isC],
+        [Math.round(t.tu)+' pcs','#6b7280',isC],
+      ],isC);
+    });
+    html+='</tbody></table></div></div>';
+  }
+
+  // ════════════════════════════════════════════════
+  // SEC 02 — COLLECTIONS & RECEIVABLES
+  // ════════════════════════════════════════════════
+  html+=sec('02','Collections & Receivables','Party-wise outstanding aur collection analysis','💰');
+
+  // Collection efficiency cards
+  html+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px">
+    ${kpi('₹'+fmtL(totalReceivable),'Total Outstanding',partyOutstanding.length+' parties',totalReceivable<50000?'#16a34a':totalReceivable<100000?'#d97706':'#dc2626',totalReceivable<50000?'#f0fdf4':totalReceivable<100000?'#fffbeb':'#fef2f2','')}
+    ${kpi('₹'+fmtL(totalInvoicedM),'Invoiced This Month',invCount+' invoices','#2563eb','#eff6ff','')}
+    ${kpi('₹'+fmtL(totalCollectedM),'Collected This Month','Cash/bank mein aaya',gc(totalCollectedM,totalInvoicedM*0.8,totalInvoicedM*0.5),gbg(totalCollectedM/Math.max(totalInvoicedM,1)*100,80,50),'')}
+    ${kpi(collectionEff+'%','Collection Efficiency','Invoiced ka kitna aaya',gc(collectionEff,80,60),gbg(collectionEff,80,60),'')}
   </div>`;
-  // Production progress bar — Daily Entry target vs Invoice units
+
+  // Aging analysis
+  html+=`<div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:12px">
+    <div style="font-size:11px;font-weight:700;color:#0d1b35;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Receivables Aging Analysis</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+      ${[{l:'0-30 Days',v:aging.d30,c:'#16a34a',s:'Current'},{l:'31-60 Days',v:aging.d60,c:'#d97706',s:'Follow up'},{l:'61-90 Days',v:aging.d90,c:'#f97316',s:'Urgent'},{l:'90+ Days',v:aging.d90plus,c:'#dc2626',s:'Critical'}].map(a=>`
+        <div style="text-align:center;padding:10px;background:${a.c}08;border:1px solid ${a.c}22;border-radius:6px">
+          <div style="font-size:16px;font-weight:900;color:${a.c}">₹${fmtL(a.v)}</div>
+          <div style="font-size:9px;font-weight:700;color:#6b7280;margin-top:4px;text-transform:uppercase">${a.l}</div>
+          <div style="font-size:9px;color:${a.c};font-weight:700">${a.s}</div>
+        </div>`).join('')}
+    </div>
+  </div>`;
+
+  // Party-wise table
+  if(partyOutstanding.length){
+    html+=`<div style="font-size:11px;font-weight:700;color:#0d1b35;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">Party-wise Outstanding</div>`;
+    html+=tblHead(['Party','Outstanding','Invoiced (This Month)','Collected (This Month)','Overdue Days','Status']);
+    partyOutstanding.slice(0,10).forEach(c=>{
+      const st=c.bal===0?'✅ Clear':c.oldestUnpaid>60?'🔴 Overdue':c.oldestUnpaid>30?'🟡 Follow up':'🟢 Recent';
+      const sc=c.bal===0?'#16a34a':c.oldestUnpaid>60?'#dc2626':c.oldestUnpaid>30?'#d97706':'#16a34a';
+      html+=tblRow([
+        [c.name,'#0d1b35',true],
+        ['₹'+fmt(c.bal),c.bal>0?'#dc2626':'#16a34a',true],
+        [c.mInvAmt>0?'₹'+fmt(c.mInvAmt):'—','#6b7280'],
+        [c.mColl>0?'₹'+fmt(c.mColl):'—',c.mColl>0?'#16a34a':'#9ca3af'],
+        [c.oldestUnpaid>0?c.oldestUnpaid+' days':'—',c.oldestUnpaid>30?'#dc2626':'#6b7280'],
+        [st,sc],
+      ]);
+    });
+    html+='</tbody></table></div>';
+  } else {
+    html+='<div style="text-align:center;padding:20px;color:#9ca3af;font-size:12px">Party ledger data nahi mila. Ledger mein entries karo.</div>';
+  }
+
+  // ════════════════════════════════════════════════
+  // SEC 03 — PRODUCTION ANALYTICS
+  // ════════════════════════════════════════════════
+  html+=sec('03','Production Analytics','Target vs Actual — floor performance','🏭');
   const prodBarPct=prodTarget>0?Math.min(Math.round(totalUnits/prodTarget*100),100):0;
-  const prodBarColor=prodBarPct>=85?'#16a34a':prodBarPct>=60?'#d97706':'#dc2626';
-  html+=`<div style="padding:14px;background:#fff;border:1px solid var(--border);border-radius:var(--r2);margin-bottom:10px">
-    <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-      <span style="font-size:12px;font-weight:800;color:var(--navy2)">&#128230; Units Sold vs Daily Target</span>
-      <span style="font-size:13px;font-weight:900;color:${prodBarColor}">${Math.round(totalUnits)} / ${prodTarget} pcs (${prodBarPct}%)</span>
+  const prodBarC=prodBarPct>=85?'#16a34a':prodBarPct>=60?'#d97706':'#dc2626';
+  html+=`<div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:13px;font-weight:800;color:#0d1b35">Units Sold vs Production Target</div>
+      <div style="font-size:22px;font-weight:900;color:${prodBarC}">${prodBarPct}%</div>
     </div>
-    <div style="background:#e5e7eb;border-radius:6px;height:12px;overflow:hidden;margin-bottom:8px">
-      <div style="width:${prodBarPct}%;height:100%;background:${prodBarColor};border-radius:6px"></div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px">
-      <div style="text-align:center;padding:8px;background:#f8faff;border-radius:var(--r2)">
-        <div style="font-size:16px;font-weight:900;color:var(--navy2)">${prodTarget}</div>
-        <div style="font-size:9px;color:var(--muted);text-transform:uppercase">Monthly Target<br>(Daily Entry sum)</div>
+    ${bar(prodBarPct,prodBarC,14)}
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px">
+      <div style="text-align:center;padding:10px;background:#f8faff;border-radius:6px">
+        <div style="font-size:20px;font-weight:900;color:#0d1b35">${prodTarget}</div>
+        <div style="font-size:9px;color:#6b7280;text-transform:uppercase;font-weight:700;margin-top:2px">Monthly Target<br>(Daily Entry Sum)</div>
       </div>
-      <div style="text-align:center;padding:8px;background:#f8faff;border-radius:var(--r2)">
-        <div style="font-size:16px;font-weight:900;color:${prodBarColor}">${Math.round(totalUnits)}</div>
-        <div style="font-size:9px;color:var(--muted);text-transform:uppercase">Actual Sold<br>(Invoice units)</div>
+      <div style="text-align:center;padding:10px;background:#f8faff;border-radius:6px">
+        <div style="font-size:20px;font-weight:900;color:${prodBarC}">${Math.round(totalUnits)}</div>
+        <div style="font-size:9px;color:#6b7280;text-transform:uppercase;font-weight:700;margin-top:2px">Actual Sold<br>(Invoice Units)</div>
       </div>
-      <div style="text-align:center;padding:8px;background:#f8faff;border-radius:var(--r2)">
-        <div style="font-size:16px;font-weight:900;color:${prodTarget>Math.round(totalUnits)?'#dc2626':'#16a34a'}">${prodTarget>Math.round(totalUnits)?'-'+(prodTarget-Math.round(totalUnits)):'+'+Math.round(Math.round(totalUnits)-prodTarget)}</div>
-        <div style="font-size:9px;color:var(--muted);text-transform:uppercase">Gap<br>(Target vs Actual)</div>
+      <div style="text-align:center;padding:10px;background:${prodTarget>Math.round(totalUnits)?'#fef2f2':'#f0fdf4'};border-radius:6px">
+        <div style="font-size:20px;font-weight:900;color:${prodTarget>Math.round(totalUnits)?'#dc2626':'#16a34a'}">${prodTarget>Math.round(totalUnits)?'-'+(prodTarget-Math.round(totalUnits)):'+'+Math.round(totalUnits-prodTarget)}</div>
+        <div style="font-size:9px;color:#6b7280;text-transform:uppercase;font-weight:700;margin-top:2px">Gap<br>${prodTarget>Math.round(totalUnits)?'Shortfall':'Surplus'}</div>
       </div>
     </div>
-    <div style="font-size:10px;color:var(--muted);margin-top:8px;padding:6px 10px;background:#f0f4ff;border-radius:4px">&#128161; Target = Daily Entry mein set kiya hua target × working days. Actual = Is mahine ke invoices mein total units.</div>
+    ${avgPrice>0?`<div style="margin-top:10px;padding:8px 12px;background:#f0f4ff;border-radius:6px;font-size:10px;color:#6b7280">💡 Avg selling price: <strong>₹${fmt(Math.round(avgPrice))}/unit</strong> | Working days: <strong>${workingDays}</strong> | Daily avg sold: <strong>${workingDays>0?Math.round(totalUnits/workingDays):0} pcs/day</strong></div>`:''}
   </div>`;
-  if(issues.length){ html+=`<div style="font-size:11px;font-weight:700;color:var(--navy2);margin:14px 0 8px;text-transform:uppercase;letter-spacing:.06em">&#9888; EOD Issues (${issues.length})</div><div style="background:#fff;border:1px solid var(--border);border-radius:var(--r2);padding:10px 14px">`; issues.forEach(iss=>html+=`<div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-size:10px;font-weight:800;color:var(--muted);white-space:nowrap;min-width:40px">${iss.date}</span><span style="font-size:11px;color:var(--text)">${esc(iss.text)}</span></div>`); html+='</div>'; }
+
+  // EOD discipline
+  html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px">
+    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:14px">
+      <div style="font-size:11px;font-weight:700;color:#0d1b35;margin-bottom:8px">EOD Discipline</div>
+      <div style="font-size:28px;font-weight:900;color:${gc(closedDays/Math.max(workingDays,1)*100,90,70)}">${closedDays}<span style="font-size:16px;color:#9ca3af">/${workingDays}</span></div>
+      <div style="font-size:10px;color:#6b7280;margin-top:4px">Days EOD closed vs planned</div>
+      ${bar(workingDays>0?closedDays/workingDays*100:0,gc(closedDays/Math.max(workingDays,1)*100,90,70),8)}
+    </div>
+    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:14px">
+      <div style="font-size:11px;font-weight:700;color:#0d1b35;margin-bottom:8px">Batch Summary</div>
+      ${(()=>{const mb=(BATCHES||[]).filter(b=>!b.deleted&&inM(b.date||b.createdAt));const done=mb.filter(b=>b.status==='done'||b.completed).length;return`<div style="font-size:28px;font-weight:900;color:#0d1b35">${done}<span style="font-size:16px;color:#9ca3af">/${mb.length}</span></div><div style="font-size:10px;color:#6b7280;margin-top:4px">Batches completed this month</div>${bar(mb.length>0?done/mb.length*100:0,'#16a34a',8)}`;})()}
+    </div>
+  </div>`;
+
+  // ════════════════════════════════════════════════
+  // SEC 04 — TEAM PERFORMANCE
+  // ════════════════════════════════════════════════
+  html+=sec('04','Team Performance','Worker-wise attendance aur reliability score','👷');
+  html+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:4px">`;
+  Object.values(workerStats).filter(ws=>ws.total>0).sort((a,b)=>(b.present+b.half*0.5)-(a.present+a.half*0.5)).forEach(ws=>{
+    const rate=ws.total>0?Math.round((ws.present+ws.half*0.5)/ws.total*100):0;
+    const rc=gc(rate,90,75);
+    html+=`<div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:12px;display:flex;align-items:center;gap:10px">
+      <div style="width:40px;height:40px;background:#0d1b35;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#fff;flex-shrink:0">${ws.name.slice(0,2).toUpperCase()}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:800;color:#0d1b35">${ws.name}</div>
+        <div style="font-size:9px;color:#9ca3af">${ws.role}</div>
+        <div style="font-size:10px;color:#6b7280;margin-top:3px">✅${ws.present} ⚡${ws.half} ❌${ws.absent}</div>
+        ${bar(rate,rc,5)}
+      </div>
+      <div style="font-size:18px;font-weight:900;color:${rc}">${rate}%</div>
+    </div>`;
+  });
+  if(!Object.values(workerStats).some(ws=>ws.total>0))html+='<div style="grid-column:1/-1;text-align:center;padding:16px;color:#9ca3af;font-size:12px">EOD worker data nahi mila is mahine</div>';
   html+='</div>';
 
-  // SEC 04 — TEAM
-  html+=secHead('04','Team Performance',`${mLabel} — Worker attendance`);
-  html+=theoryBox('<strong>Attendance = Production capacity.</strong> Ek absent worker = ek station slow. Consistent workers ko recognize karo. Absent pattern dekho — Monday/Friday typically high hota hai.');
-  html+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:12px">`;
-  Object.values(workerStats).filter(ws=>ws.total>0).sort((a,b)=>(b.present+b.half*0.5)-(a.present+a.half*0.5)).forEach(ws=>{ const rate=ws.total>0?Math.round((ws.present+ws.half*0.5)/ws.total*100):0; const rc=gc(rate,90,75); const rbg=gbg(rate,90,75); html+=`<div style="background:${rbg};border:1px solid ${rc}33;border-radius:var(--r2);padding:12px;display:flex;align-items:center;gap:10px"><div style="width:38px;height:38px;background:var(--navy2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#fff;flex-shrink:0">${ws.name.slice(0,2).toUpperCase()}</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:800;color:var(--navy2)">${esc(ws.name)}</div><div style="font-size:10px;color:var(--muted)">${esc(ws.role)}</div><div style="font-size:10px;color:var(--muted);margin-top:2px">&#10003; ${ws.present} &nbsp;&#9888; ${ws.half} &nbsp;&#10007; ${ws.absent}</div></div><div style="font-size:20px;font-weight:900;color:${rc}">${rate}%</div></div>`; });
-  if(!Object.values(workerStats).some(ws=>ws.total>0)) html+='<div style="font-size:12px;color:var(--muted);text-align:center;padding:16px">EOD worker data nahi mila</div>';
-  html+=`</div></div>`;
-
-  // SEC 05 — PROBLEMS
-  html+=secHead('05','Problems & Solutions','Data se identify — exact fix ke saath');
-  html+=theoryBox('<strong>Problem-Solution framework:</strong> B2B manufacturing mein root cause fix karo — symptom nahi. Har problem: (1) Kya hai, (2) Asli wajah, (3) Step-by-step fix, (4) Expected impact. Har hafte ek problem fix karo — compound hoga.');
+  // ════════════════════════════════════════════════
+  // SEC 05 — PROBLEMS & SOLUTIONS
+  // ════════════════════════════════════════════════
+  html+=sec('05','Problems & Solutions','Data se auto-detected — root cause aur exact fix','🔍');
   const problems=[];
-  if(netMargin<14) problems.push({ico:'&#128176;',prob:`Net Margin ${pct(netMargin)} — Target 14%+`,root:`Revenue &#8377;${fmt(rev)} se expenses &#8377;${fmt(cogs+opex+intExp)} kat ke &#8377;${fmt(netProfit)} bacha. ${intExp>rev*0.08?`Interest/EMI &#8377;${fmt(intExp)} (${pct(intExp/rev*100)} of revenue) sabse bada fixed drain hai. `:''}Manufacturing mein COGS = Raw Material + Labour + PC + Packaging. Abhi COGS ${pct(cogs/rev*100)} of revenue — ideal 50-55% hona chahiye.`,sol:[`Steel vendor se negotiate karo — "Consistently ${Math.round(totalUnits||50)}+ units/month banate hain — bulk rate do." Worst case na bolega.`,'Powder coating ke 2-3 vendors rakho — competition se rate better milega.','Packaging items (tape, box, dori) ek saath bulk mein kharido — 10-15% unit cost bachega.',intExp>20000?'Sabse high-interest loan identify karo — extra paisa aaye toh pehle yahi close karo.':''],imp:`COGS 5% reduce = &#8377;${fmt(cogs*0.05)} extra profit/month. Saal mein &#8377;${fmt(cogs*0.05*12)}.`,color:'#d97706'});
-  if(intExp>rev*0.1) problems.push({ico:'&#128179;',prob:`Interest/EMI &#8377;${fmt(intExp)} — Revenue ka ${pct(intExp/rev*100)}`,root:`B2B manufacturing mein fixed costs sabse dangerous hote hain — party se order kam aaye ya zyada, EMI toh jaayegi hi. &#8377;${fmt(intExp*12)}/year sirf byaaj mein. Jab tak interest high hai tab tak margin cap rahega — kitni bhi efficiency improve karo, yeh kha jaayega.`,sol:['Sabse high-interest loan list karo — balance, rate, EMI sab ek jagah likhao.','Har mahine extra &#8377;5-10K bacha toh sabse mehnga loan pe prepay karo — snowball method.','Vendors se 30-45 din ka credit terms negotiate karo — cash flow better hogi, loan pe rely kam.','Loan consolidation ya balance transfer explore karo — lower interest pe shift karo.'],imp:`Interest 30% reduce = &#8377;${fmt(intExp*0.3)}/month direct profit improvement. Saal mein &#8377;${fmt(intExp*0.3*12)}.`,color:'#dc2626'});
-  if(prodScore<75) problems.push({ico:'&#127981;',prob:`Production Score ${prodScore}% — Target 85%+`,root:`${Math.round(totalUnits)}/${prodTarget} units sold vs planned. Daily Entry mein target set hai — actual dispatch us ke comparison mein kam hai. Delivery slow hai ya production ke baad dispatch delay ho raha hai?`,sol:['Stage-wise data dekho — sabse low % stage identify karo aaj.','Woh stage pe physically jaao — workers se poocho: "Kya rok raha hai?" Machine? Material? Log karo.','Powder coating trip ka schedule fix karo — random trips se batch delay hoti hai.','Critical stations (welding/assembly) pe 2 trained workers rakho — ek absent ho toh production na ruke.'],imp:`Production 10% improve = ${Math.round(prodTarget*0.1)} extra units/month = &#8377;${fmt(Math.round(prodTarget*0.1)*Math.round(avgPrice||600))} revenue potential.`,color:'#d97706'});
-  if(pendingAmt>15000) problems.push({ico:'&#128148;',prob:`Party Receivables &#8377;${fmt(pendingAmt)} pending`,root:`B2B mein parties advance deti hain aur baaki dispatch pe deti hain — lekin kuch parties payment delay karti hain. Raw material kharidna padta hai agle batch ke liye, lekin pichle order ka paisa nahi aaya. Yeh working capital squeeze karta hai aur loan pe depend hona padta hai.`,sol:['Top 3 pending parties ko directly call karo aaj — "Aapka &#8377;X pending hai, kab tak transfer karoge?" Note karo.','Naye orders ke liye policy: 40-50% advance mandatory. Party agree nahi kare toh pehle chhota order karo.','Har invoice pe clearly mention karo: "Payment within 7 days."','Bade repeat parties ke liye monthly ledger statement bhejo — transparency se payment jaldi aati hai.'],imp:`&#8377;${fmt(pendingAmt)} collect = working capital free. Raw material agle batch ke liye advance buy kar sakte ho.`,color:'#d97706'});
-  if(attRate<85) problems.push({ico:'&#128119;',prob:`Attendance ${attRate}% — Target 90%+`,root:`Manufacturing mein ek worker absent = ek station slow ya band. ${Math.round(attTotal*(1-attRate/100))} worker-days absent is mahine. Agar welding ya assembly worker absent ho toh poora batch delay hota hai. B2B parties ko delivery commitment dete ho — delay pe trust toot ta hai.`,sol:['Absence pattern dekho — kaunsa worker consistently absent hai. Pattern se root cause milega.','Critical stations ke liye 2 trained workers hamesha — backup plan must hai.','Advance mein weekly schedule share karo workers ke saath — Sunday ko agle hafte ka plan batao.','Regular present workers ko monthly acknowledge karo — ek cup chai ya verbal appreciation. Retention hiring se sasta hai.'],imp:`Attendance 5% improve = ${Math.round(attTotal*0.05)} extra worker-days = consistent delivery, party trust badhega.`,color:'#2563eb'});
-  if(!problems.length) problems.push({ico:'&#10003;',prob:'Sab metrics target mein!',root:'Business healthy hai — foundation strong hai.',sol:['Volume badhao — existing parties se zyada order lo.','2-3 naye B2B parties onboard karo — Pune, Aurangabad explore karo.','Adjacent product test karo — fridge stand ya AC stand same setup mein.'],imp:'Scale karne ka sahi waqt hai.',color:'#16a34a'});
-  problems.forEach(p=>{ html+=`<div style="border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;margin-bottom:14px"><div style="background:#f8faff;padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px"><span style="font-size:18px">${p.ico}</span><span style="font-size:13px;font-weight:800;color:var(--navy2)">${p.prob}</span></div><div style="padding:10px 16px;border-bottom:1px solid var(--border);background:rgba(245,158,11,.03)"><div style="font-size:9px;font-weight:800;color:#d97706;text-transform:uppercase;margin-bottom:4px">&#128269; Root Cause</div><div style="font-size:11px;color:var(--muted);line-height:1.7">${p.root}</div></div><div style="padding:10px 16px;border-bottom:1px solid var(--border);background:rgba(22,163,74,.03)"><div style="font-size:9px;font-weight:800;color:#16a34a;text-transform:uppercase;margin-bottom:6px">&#10003; Solution</div>${p.sol.filter(Boolean).map((s,i)=>`<div style="font-size:11px;color:var(--muted);padding:3px 0;line-height:1.6"><span style="color:#16a34a;font-weight:800">${i+1}.</span> ${s}</div>`).join('')}</div><div style="padding:10px 16px;background:rgba(37,99,235,.03)"><div style="font-size:9px;font-weight:800;color:#2563eb;text-transform:uppercase;margin-bottom:3px">&#128176; Expected Impact</div><div style="font-size:12px;font-weight:700;color:#16a34a">${p.imp}</div></div></div>`; });
-  html+='</div>';
+  if(netMargin<14)problems.push({ico:'💰',prob:`Net Margin ${pct(netMargin)} — Target 14%+`,root:`Revenue ₹${fmt(rev)} mein se ₹${fmt(cogs+opex+intExp)} kharcha ho gaya — sirf ₹${fmt(netProfit)} bacha. ${intExp>rev*0.08?`Interest/EMI ₹${fmtL(intExp)} (${pct(intExp/rev*100)}) sabse bada fixed drain. `:''}COGS ${pct(cogs/rev*100)} of revenue — bulk buying se 5% reduce ho sakta hai.`,sol:[`Steel vendor: "Consistently ${Math.round(totalUnits||50)}+ units/month — 5% bulk discount do."`,`PC ke 2-3 vendors rakho — competition se rate better milega.`,'Packaging bulk order — tape, boxes ek saath.',intExp>20000?'High-interest loan list karo — extra paisa milne pe seedha prepay karo.':''],imp:`COGS 5% reduce = ₹${fmtL(cogs*0.05)}/month extra. Saal mein ₹${fmtL(cogs*0.05*12)}.`,color:'#d97706'});
+  if(intExp>rev*0.12)problems.push({ico:'🏦',prob:`Interest/EMI ₹${fmtL(intExp)} — Revenue ka ${pct(intExp/rev*100)}`,root:`₹${fmtL(intExp*12)}/year sirf byaaj. Fixed cost hai — orders kam ho ya zyada, jaata hai. Margin permanently cap ho jaati hai jab tak yeh high hai.`,sol:['Sabse high-rate loan identify karo — balance, rate, EMI ek table mein likho.','Har month extra ₹5K-10K wahan prepay karo — snowball method.','Vendors se 30-45 day credit negotiate karo — cash flow better hogi.'],imp:`Interest 25% reduce = ₹${fmtL(intExp*0.25)}/month direct profit improvement.`,color:'#dc2626'});
+  if(aging.d90plus>20000||aging.d60>30000)problems.push({ico:'📋',prob:`Overdue Receivables — ₹${fmtL(aging.d60+aging.d90plus)} (60+ days)`,root:`${partyOutstanding.filter(c=>c.oldestUnpaid>60).length} parties 60+ din se pending hain. Working capital stuck hai — raw material ke liye cash nahi milta. Advance policy nahi hai toh yeh aage bhi hoga.`,sol:['Top overdue parties ko aaj call karo — direct, polite: "Payment kab tak?"','Naye orders pe 40-50% advance mandatory karo — no advance, no production.','Har invoice pe "Payment within 7 days" clearly likhao.','Monthly ledger statement parties ko bhejo — transparency se payment jaldi aati hai.'],imp:`₹${fmtL(aging.d60+aging.d90plus)} collect = working capital free + interest burden kam.`,color:'#dc2626'});
+  if(prodScore<75)problems.push({ico:'🏭',prob:`Production Score ${prodScore}% — ${Math.round(totalUnits)}/${prodTarget} units`,root:`${prodTarget-Math.round(totalUnits)} units shortfall vs daily entry targets. Ya toh production slow hai ya dispatch delay hai.`,sol:['Daily Entry ka target aur actual invoice qty har hafte compare karo.','Delivery pending kyun? Material nahi? PC delay? Worker absent?','Critical process (welding/assembly) ke liye 2 trained workers hamesha.'],imp:`10% improve = ${Math.round(prodTarget*0.1)} extra units = ₹${fmtL(Math.round(prodTarget*0.1)*Math.round(avgPrice||600))}/month.`,color:'#d97706'});
+  if(attRate<85)problems.push({ico:'👥',prob:`Attendance ${attRate}% — ${Math.round(attTotal*(1-attRate/100))} worker-days absent`,root:`Manufacturing mein ek absent worker = ek station slow ya band. B2B delivery commitment miss hoti hai — party trust toot ta hai.`,sol:['Absence pattern dekho — kaunsa worker consistently absent.','Critical stations pe backup worker trained rakho.','Weekly schedule advance mein share karo.'],imp:`5% improve = ${Math.round(attTotal*0.05)} extra worker-days = consistent delivery.`,color:'#2563eb'});
+  if(!problems.length)problems.push({ico:'✅',prob:'Sab metrics healthy!',root:'Business strong position mein hai.',sol:['Volume badhao — naye B2B parties onboard karo.','Adjacent product test karo — fridge stand, AC stand.','Festive season August se inventory build karo.'],imp:'Scale karne ka sahi waqt.',color:'#16a34a'});
+  problems.forEach(p=>{
+    html+=`<div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:12px">
+      <div style="background:#f8faff;padding:10px 16px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:8px">
+        <span style="font-size:18px">${p.ico}</span><span style="font-size:13px;font-weight:800;color:#0d1b35">${p.prob}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+        <div style="padding:10px 16px;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb">
+          <div style="font-size:9px;font-weight:800;color:#d97706;text-transform:uppercase;margin-bottom:4px">Root Cause</div>
+          <div style="font-size:11px;color:#374151;line-height:1.7">${p.root}</div>
+        </div>
+        <div style="padding:10px 16px;border-bottom:1px solid #e5e7eb">
+          <div style="font-size:9px;font-weight:800;color:#16a34a;text-transform:uppercase;margin-bottom:4px">Action Steps</div>
+          ${p.sol.filter(Boolean).map((s,i)=>`<div style="font-size:11px;color:#374151;padding:2px 0;line-height:1.6"><span style="color:#16a34a;font-weight:800">${i+1}.</span> ${s}</div>`).join('')}
+        </div>
+      </div>
+      <div style="padding:8px 16px;background:#f0fdf4">
+        <span style="font-size:9px;font-weight:800;color:#16a34a;text-transform:uppercase">Expected Impact: </span>
+        <span style="font-size:11px;font-weight:700;color:#16a34a">${p.imp}</span>
+      </div>
+    </div>`;
+  });
 
+  // ════════════════════════════════════════════════
   // SEC 06 — SWOT
-  html+=secHead('06','SWOT Analysis','B2B Manufacturing — strategic position');
-  html+=theoryBox('<strong>SWOT:</strong> Strengths (kya sahi hai), Weaknesses (kya fix karo), Opportunities (capture karo), Threats (bachna hai). BeyondFurni ek pure B2B manufacturing business hai — parties ko bulk production supply karta hai. Venux bhi ek party hai, D2C kuch nahi.');
+  // ════════════════════════════════════════════════
+  html+=sec('06','SWOT Analysis','B2B Manufacturing — strategic position','⚡');
   const swot={
-    S:{ico:'&#128170;',lbl:'Strengths',c:'#16a34a',bg:'rgba(22,163,74,.06)',items:[
-      {p:'In-house manufacturing',d:'Khud factory mein banate ho — cost control mein hai. Baaki competitors jo bahar se kharid ke bechte hain unke comparison mein tera COGS controllable hai.'},
-      {p:'Multiple B2B parties',d:'Kolkata, Dhule, Nashik area mein parties hain. Single party pe depend nahi — ek order late ho toh doosra cover karta hai.'},
-      {p:'Complete production chain',d:'Cutting se assembly tak khud karte ho. Sirf PC aur fabrication outsource hai — woh bhi multiple vendors se. Control tera haath mein hai.'},
-      {p:'ERP + data visibility',d:'Real-time P&L, EOD, invoices, attendance — sab track hota hai. Competitors typically blind hote hain apne numbers pe.'},
+    S:{ico:'💪',lbl:'Strengths',c:'#16a34a',bg:'rgba(22,163,74,.06)',items:[
+      {p:'In-house manufacturing',d:'Khud factory mein banate ho — COGS control mein hai. Middleman nahi.'},
+      {p:'Multiple B2B parties',d:'Nashik, Kolkata, Dhule — single party dependent nahi. Ek slow ho toh doosra cover karta hai.'},
+      {p:'Complete production chain',d:'Cutting se assembly tak khud. Sirf PC aur fabrication outsource — control tera haath mein.'},
+      {p:'ERP + Real-time visibility',d:'P&L, EOD, invoices, attendance — sab track hota hai. Competitors blind hote hain.'},
     ]},
-    W:{ico:'&#9888;',lbl:'Weaknesses',c:'#dc2626',bg:'rgba(220,38,38,.06)',items:[
-      {p:`Net Margin ${pct(netMargin)} — target 14%+`,d:'Interest load + raw material cost margin dabaa raha hai. Pehle yeh fix karo, tab scale karo.'},
-      {p:`Interest/EMI &#8377;${fmtL(intExp)}/month — fixed drain`,d:'Revenue kam ho ya zyada — EMI toh jaayegi. Manufacturing mein yeh sabse risky fixed cost hai.'},
-      {p:'Single product — WM stand mainly',d:'Agar washing machine stand demand slow ho ya competitor better price de — risk hai. Adjacent products add karo.'},
-      {p:'PC aur fabrication outsource dependency',d:'Agar PC vendor delay kare toh poori production ruk jaati hai. 2-3 vendors develop karo.'},
+    W:{ico:'⚠️',lbl:'Weaknesses',c:'#dc2626',bg:'rgba(220,38,38,.06)',items:[
+      {p:`Net Margin ${pct(netMargin)}`,d:'Interest load + COGS margin dabaa raha hai.'},
+      {p:`Interest ₹${fmtL(intExp)}/month`,d:'Fixed cost — revenue kam ho ya zyada, EMI jaayegi.'},
+      {p:'Single product mainly',d:'WM stand demand slow ho toh risk. Adjacent products add karo.'},
+      {p:'PC vendor dependency',d:'Ek vendor delay kare toh production ruke. 2-3 alternates develop karo.'},
     ]},
-    O:{ico:'&#128640;',lbl:'Opportunities',c:'#2563eb',bg:'rgba(37,99,235,.06)',items:[
-      {p:'New B2B parties — Pune, Aurangabad, Nagpur',d:'Maharashtra ke tier-2 cities mein appliance retailers aur distributors hain. Ek sales trip = multiple new parties.'},
-      {p:'Adjacent products — fridge stand, AC stand',d:'Same machinery, same workers, same raw material type. Naya SKU = naya revenue stream bina factory cost badhaye.'},
-      {p:'Festive season — Oct-Nov bulk orders',d:'Retailers is season mein 2-3x stock karte hain. August mein hi parties se advance order confirm karo.'},
-      {p:'Institutional buyers — builders, housing societies',d:'Builders ke projects mein bulk WM stands chahiye hote hain. Ek builder = 50-200 units ek order mein.'},
+    O:{ico:'🚀',lbl:'Opportunities',c:'#2563eb',bg:'rgba(37,99,235,.06)',items:[
+      {p:'New markets — Pune, Aurangabad, Nagpur',d:'Maharashtra tier-2 cities mein retailers hain. Ek trip = multiple parties.'},
+      {p:'Adjacent products — fridge, AC stand',d:'Same machinery, same workers. New SKU = new revenue stream.'},
+      {p:'Festive Oct-Nov — bulk orders',d:'Retailers 2-3x stock karte hain. August se advance orders confirm karo.'},
+      {p:'Institutional buyers — builders',d:'Ek builder = 50-200 units ek order. High value, low effort.'},
     ]},
-    T:{ico:'&#9889;',lbl:'Threats',c:'#d97706',bg:'rgba(217,119,6,.06)',items:[
-      {p:'Steel price fluctuation',d:`Raw material &#8377;${fmtL(rawmat)}/month. 10% steel price badhe toh &#8377;${fmtL(rawmat*0.1)} extra cost per month. Advance bulk buying aur vendor rate lock se protect karo.`},
-      {p:'PC vendor single point of failure',d:'Agar Shree Balaji ya koi ek PC vendor na kare toh production ruk jaayegi. 2-3 alternate vendors ready rakho hamesha.'},
-      {p:'Party payment delay — working capital squeeze',d:`&#8377;${fmtL(pendingAmt)} pending. Jab parties late pay karti hain toh raw material ke liye cash nahi hota. Advance policy strict karo.`},
-      {p:'Local competitor undercutting',d:'Manufacturing entry barrier low hai. Koi naya player same product sasta bech sakta hai. Quality + reliability + delivery se differentiate karo.'},
+    T:{ico:'🛡️',lbl:'Threats',c:'#d97706',bg:'rgba(217,119,6,.06)',items:[
+      {p:'Steel price fluctuation',d:`₹${fmtL(rawmat)}/month raw material. 10% hike = ₹${fmtL(rawmat*0.1)} extra cost. Advance bulk buying protect karta hai.`},
+      {p:'Single PC vendor risk',d:'Backup vendors develop karo — 2-3 hamesha ready.'},
+      {p:'Party payment delays',d:`₹${fmtL(totalReceivable)} outstanding. Advance policy strict karo.`},
+      {p:'Local competitor undercutting',d:'Quality + reliable delivery se differentiate karo. Price war se bachna.'},
     ]},
   };
-  html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">`;
-  ['S','W','O','T'].forEach(k=>{ const s=swot[k]; html+=`<div style="border:1px solid var(--border);border-radius:var(--r2);overflow:hidden"><div style="background:${s.bg};padding:10px 14px;border-bottom:1px solid var(--border)"><span style="font-size:14px">${s.ico}</span><span style="font-size:12px;font-weight:800;color:${s.c};margin-left:6px">${s.lbl}</span></div><div style="padding:10px 14px">${s.items.map((item,i)=>`<div style="${i>0?'border-top:1px solid var(--border);padding-top:8px;margin-top:8px':''}"><div style="font-size:11px;font-weight:700;color:${s.c};margin-bottom:2px">${item.p}</div><div style="font-size:10px;color:var(--muted);line-height:1.6">${item.d}</div></div>`).join('')}</div></div>`; });
-  html+=`</div></div>`;
-
-  // SEC 07 — KAIZEN
-  html+=secHead('07','Kaizen Tracker','1% weekly improvement → 67% annual growth');
-  html+=theoryBox('Kaizen = har hafte ek chota improvement. 1.01^52 = 1.67. Har Monday yeh table dekho.');
-  html+=tblHead(['Area','Abhi','Target','Is Hafte Action','Status','Impact']);
-  [{a:'Net Margin',cur:pct(netMargin),t:'14%+',act:'Top cost item pe vendor call karo',s:netMargin>=14?'&#128994;':netMargin>=8?'&#128993;':'&#128308;',imp:`1% = &#8377;${fmt(rev*0.01)}/month`},{a:'Production Score',cur:prodScore+'%',t:'85%+',act:'Low stage bottleneck fix karo',s:prodScore>=85?'&#128994;':prodScore>=65?'&#128993;':'&#128308;',imp:`10% = ${Math.round(prodTarget*0.1)} units`},{a:'Attendance',cur:attRate+'%',t:'90%+',act:'Absent pattern identify karo',s:attRate>=90?'&#128994;':attRate>=75?'&#128993;':'&#128308;',imp:'Better output'},{a:'EOD Discipline',cur:closedDays+'/'+workingDays,t:'100%',act:'Har din EOD close karo',s:closedDays>=workingDays*0.9?'&#128994;':closedDays>=workingDays*0.7?'&#128993;':'&#128308;',imp:'Accurate data'},{a:'Receivables',cur:'&#8377;'+fmtL(pendingAmt),t:'< &#8377;10K',act:'Top 3 parties ko call karo',s:pendingAmt<=10000?'&#128994;':pendingAmt<=30000?'&#128993;':'&#128308;',imp:'Cash flow'},{a:'Interest Load',cur:'&#8377;'+fmtL(intExp),t:'< &#8377;20K',act:'High-interest loan identify karo',s:intExp<=20000?'&#128994;':intExp<=40000?'&#128993;':'&#128308;',imp:'Margin improve'},{a:'Raw Material %',cur:rev>0?pct(rawmat/rev*100):'—',t:'45% of rev',act:'Bulk order plan karo',s:(rev>0&&rawmat/rev<=0.45)?'&#128994;':(rev>0&&rawmat/rev<=0.55)?'&#128993;':'&#128308;',imp:`5% = &#8377;${fmt(rawmat*0.05)}`}].forEach(k=>html+=tblRow([[k.a,'var(--navy2)',true],[k.cur,'var(--muted)'],[k.t,'#16a34a',true],[k.act,'var(--muted)'],[k.s,'var(--text)'],[k.imp,'var(--muted)']]));
-  html+='</tbody></table></div>';
-  html+=`<div style="display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;margin-top:12px">`;
-  [{p:'P — PLAN',c:'#2563eb',bg:'rgba(37,99,235,.05)',items:['3 metrics chunno','Action steps decide karo','Resource allocate karo']},{p:'D — DO',c:'#16a34a',bg:'rgba(22,163,74,.05)',items:['Vendor call karo','Attendance follow karo','EOD close karo']},{p:'C — CHECK',c:'#d97706',bg:'rgba(217,119,6,.05)',items:['7 din baad dekho','Margin change hua?','Score improve hua?']},{p:'A — ACT',c:'#7c3aed',bg:'rgba(124,58,237,.05)',items:['Jo kaam kiya standardize','Jo nahi — root cause','Next plan adjust']}].forEach(p=>{ html+=`<div style="background:${p.bg};padding:12px;border-right:1px solid var(--border)"><div style="font-size:10px;font-weight:800;color:${p.c};text-transform:uppercase;margin-bottom:6px">${p.p}</div>${p.items.map(i=>`<div style="font-size:10px;color:var(--muted);padding:3px 0;line-height:1.5">• ${i}</div>`).join('')}</div>`; });
-  html+=`</div></div>`;
-
-  // SEC 08 — KPI SCORECARD
-  html+=secHead('08','KPI Scorecard — Traffic Light','Har hafte yeh 8 numbers dekho');
-  html+=theoryBox('&#128994; Green = scale karo. &#128993; Amber = is hafte fix karo. &#128308; Red = aaj action lo. B2B manufacturing mein Red KPIs pehle fix karo — warna ek domino dusre ko giraaega.');
-  const kpis=[
-    {kpi:'Revenue (B2B Sales)',val:'&#8377;'+fmtL(rev),r:'<&#8377;2L',a:'&#8377;2-4L',g:'>&#8377;4L',s:rev>=400000?'green':rev>=200000?'amber':'red',trend:momRev!==null?(momRev>0?'&#8593; '+momRev.toFixed(1)+'%':'&#8595; '+Math.abs(momRev).toFixed(1)+'%'):'--',why:'Party invoices se total revenue. &#8377;4L+ = strong scale.'},
-    {kpi:'Net Margin',val:pct(netMargin),r:'<8%',a:'8-14%',g:'>14%',s:netMargin>=14?'green':netMargin>=8?'amber':'red',trend:prevM?(netMargin>pNetMargin?'&#8593; from '+pct(pNetMargin):'&#8595; from '+pct(pNetMargin)):'--',why:'Asli health indicator. Interest + COGS dono ka effect yahaan dikhta hai.'},
-    {kpi:'Gross Margin',val:pct(grossMargin),r:'<30%',a:'30-40%',g:'>40%',s:grossMargin>=40?'green':grossMargin>=30?'amber':'red',trend:'Manufacturing target 40%+',why:'Revenue minus COGS. Factory efficiency ka measure.'},
-    {kpi:'Production Score',val:prodScore+'%',r:'<60%',a:'60-85%',g:'>85%',s:prodScore>=85?'green':prodScore>=60?'amber':'red',trend:'Target 85%+ consistently',why:'Floor efficiency. Party orders time pe deliver ho ya nahi — yahi decide karta hai.'},
-    {kpi:'Attendance Rate',val:attRate+'%',r:'<75%',a:'75-90%',g:'>90%',s:attRate>=90?'green':attRate>=75?'amber':'red',trend:'Target 90%+',why:'Worker absent = station slow. B2B delivery commitment miss hoti hai.'},
-    {kpi:'Interest/EMI Load',val:'&#8377;'+fmtL(intExp),r:'>&#8377;50K',a:'&#8377;20-50K',g:'<&#8377;20K',s:intExp<20000?'green':intExp<50000?'amber':'red',trend:'Revenue ka '+pct(intExp/Math.max(rev,1)*100),why:'Fixed drain — sabse dangerous cost. Pehle yeh khatam karo.'},
-    {kpi:'Party Receivables',val:'&#8377;'+fmtL(pendingAmt),r:'>&#8377;50K',a:'&#8377;15-50K',g:'<&#8377;15K',s:pendingAmt<15000?'green':pendingAmt<50000?'amber':'red',trend:'Collection follow up karo',why:'Pending payment = working capital stuck. Raw material nahi kharid sakte.'},
-    {kpi:'EOD Discipline',val:closedDays+'/'+workingDays,r:'<60%',a:'60-90%',g:'>90%',s:closedDays/Math.max(workingDays,1)>=0.9?'green':closedDays/Math.max(workingDays,1)>=0.6?'amber':'red',trend:'Har din close karo',why:'Data accuracy = sahi decisions. EOD band nahi kiya = data missing.'},
-  ];
-  let gCnt=0,aCnt=0,rCnt=0; kpis.forEach(k=>{ if(k.s==='green')gCnt++; else if(k.s==='amber')aCnt++; else rCnt++; });
-  html+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
-    ${kpiCard(gCnt+'','&#128994; Green','On target','#16a34a','rgba(22,163,74,.06)')}
-    ${kpiCard(aCnt+'','&#128993; Amber','Watch karo','#d97706','rgba(217,119,6,.06)')}
-    ${kpiCard(rCnt+'','&#128308; Red','Aaj fix karo','#dc2626','rgba(220,38,38,.06)')}
-  </div>`;
-  html+=tblHead(['KPI','Value','&#128308; Red','&#128993; Amber','&#128994; Green','Status','Trend','Kyun?']);
-  kpis.forEach(k=>{ const c=k.s==='green'?'#16a34a':k.s==='amber'?'#d97706':'#dc2626'; const badge=k.s==='green'?'&#128994; Good':k.s==='amber'?'&#128993; Watch':'&#128308; Fix'; html+=tblRow([[k.kpi,'var(--navy2)',true],[k.val,c,true],[k.r,'#dc2626'],[k.a,'#d97706'],[k.g,'#16a34a'],[badge,c],[k.trend,'var(--muted)'],[k.why,'var(--muted)']]); });
-  html+='</tbody></table></div></div>';
-
-  // SEC 09 — DAYBOOK
-  html+=secHead('09','Cash Flow — Daybook',`${mLabel} — Actual cash movement`);
-  html+=theoryBox('<strong>Cash Flow vs Profit alag hai.</strong> Invoice = theoretical revenue. Daybook = actual cash. Party ne pay tab kiya — tab cash aaya. Dono track karo toh real picture milti hai.');
-  html+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px">
-    ${kpiCard('&#8377;'+fmtL(dbIncAll),'Total Income (DB)',dbM.filter(e=>e.type==='income').length+' entries',gc(dbIncAll,400000,200000),'#f0fdf4')}
-    ${kpiCard('&#8377;'+fmtL(rawmat+labour+pc+pack+trans+rent+admn+mktg),'Business Expenses','Operations',gc(100,100,60),'#fef2f2')}
-    ${kpiCard('&#8377;'+fmtL(perExp),'Personal Expenses','Tracked',perExp>20000?'#d97706':'#9ca3af','#fffbeb')}
-    ${kpiCard('&#8377;'+fmtL(intExp),'Interest / EMI','Fixed drain','#dc2626','#fef2f2')}
-  </div>`;
-  const catMapD={};
-  dbM.filter(e=>e.type==='expense').forEach(e=>{ const c=e.category||'other'; if(!catMapD[c]) catMapD[c]={v:0,n:0}; catMapD[c].v+=(e.amount||0); catMapD[c].n++; });
-  const catArrD=Object.entries(catMapD).map(([c,d])=>({c,v:d.v,n:d.n})).sort((a,b)=>b.v-a.v);
-  const totCatExpD=catArrD.reduce((s,c)=>s+c.v,0);
-  if(catArrD.length){
-    html+=`<div style="font-size:11px;font-weight:700;color:var(--navy2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">${mLabel} — Category-wise Expenses</div>`;
-    html+=tblHead(['Category','Entries','Amount','% of Expenses','Type']);
-    catArrD.slice(0,12).forEach(c=>{ const pE=totCatExpD>0?(c.v/totCatExpD*100):0; const isBiz=bizExpCats.some(b=>c.c.includes(b)); html+=tblRow([[c.c.replace(/_/g,' '),'var(--navy2)',true],[c.n,'var(--muted)'],['&#8377;'+fmt(c.v),'#dc2626',true],[pE.toFixed(0)+'%','var(--muted)'],[isBiz?'&#127981; Business':'&#128100; Personal','var(--muted)']]); });
-    html+=tblRow([['TOTAL','var(--navy2)',true],[''],['&#8377;'+fmt(totCatExpD),'#dc2626',true],['100%',''],['']],true);
-    html+='</tbody></table></div>';
-  }
+  html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px">`;
+  ['S','W','O','T'].forEach(k=>{
+    const s=swot[k];
+    html+=`<div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+      <div style="background:${s.bg};padding:10px 14px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:6px">
+        <span style="font-size:14px">${s.ico}</span><span style="font-size:12px;font-weight:800;color:${s.c}">${s.lbl}</span>
+      </div>
+      <div style="padding:10px 14px;background:#fff">
+        ${s.items.map((item,i)=>`<div style="${i>0?'border-top:1px solid #f3f4f6;padding-top:7px;margin-top:7px':''}"><div style="font-size:11px;font-weight:700;color:${s.c};margin-bottom:2px">${item.p}</div><div style="font-size:10px;color:#6b7280;line-height:1.6">${item.d}</div></div>`).join('')}
+      </div>
+    </div>`;
+  });
   html+='</div>';
 
-  // SEC 10 — ACTION PLAN
-  html+=secHead('10','Weekly Action Plan','Aaj se shuru — no excuses');
-  html+=theoryBox('Specific action + time define karne wale 3x zyada chances hain karne ke. Har hafte yeh dekho, execute karo, Monday review karo.');
-  html+=tblHead(['Din','Kya Karna Hai','Exactly Kaise','Time','Result']);
-  const wacts=[];
-  if(netMargin<14) wacts.push(['Aaj &#128308;','Vendor call karo — bulk discount',`"100+ units monthly deta hoon — 5% discount do." 30 min call.`,'30 min','COGS 3-5% reduce']);
-  if(intExp>30000) wacts.push(['Aaj &#128308;','Loan list banao — interest rate wise','Har loan: rate, balance, EMI. Highest interest = pehle target.','1 hr','Prepayment strategy clear']);
-  if(pendingAmt>15000) wacts.push(['Kal &#128993;','Top 3 pending parties ko call karo',`"&#8377;${fmt(pendingAmt)} pending. Payment kab tak?" Direct, polite.`,'30 min','Cash flow tight nahi hogi']);
-  if(prodScore<80) wacts.push(['Is Hafte &#128993;','Bottleneck stage root cause dhundho','Sabse low % stage pe jaao — workers se baat karo — kya rok raha hai?','1 hr','Production score 10% badhega']);
-  wacts.push(['Is Hafte &#10003;','Raw material advance order karo','Next month ka plan dekho — bulk order karo vendor pe.','1 hr','COGS predictable, no stock-out']);
-  wacts.push(['Weekend &#10003;','CEO Report 10 min review karo','Metrics check karo — action liya tha kaam aaya? Next hafte 1 priority.','10 min','Weekly accountability']);
-  wacts.push(['Next Monday &#10003;','Numbers phir check karo','Kya change hua? Pattern dhundho.','15 min','Data-driven growth']);
-  wacts.forEach(a=>html+=tblRow([[a[0],'#16a34a',true],[a[1],'var(--navy2)',true],[a[2],'var(--muted)'],[a[3],'var(--muted)'],[a[4],'#16a34a']]));
-  html+='</tbody></table></div></div>';
-
-  // SEC 11 — ROADMAP
-  html+=secHead('11','2-Year Roadmap — &#8377;5 Crore Journey','BeyondFurni B2B Manufacturing growth plan');
-  html+=theoryBox('Roadmap clarity deta hai: "Abhi Stage 1 mein hoon, Stage 2 ke liye yeh karna hai." BeyondFurni ek pure B2B manufacturing business hai — growth ka matlab hai zyada parties, zyada units, better margins. &#8377;5 Crore annual = manufacturing revenue target.');
-  const stage=rev<300000?1:rev<600000?2:3;
-  const stageLabel=stage===1?'Stage 1 — Foundation (&#8377;0-3L/month)':stage===2?'Stage 2 — Scaling (&#8377;3-6L/month)':'Stage 3 — Growth (&#8377;6L+/month)';
-  const stageColor2=stage===1?'#d97706':stage===2?'#2563eb':'#16a34a';
-  const progPct=stage===1?15:stage===2?45:70;
-  html+=`<div style="background:#f8faff;border:1px solid var(--border);border-radius:var(--r2);padding:16px;margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><div><div style="font-size:13px;font-weight:800;color:${stageColor2}">${stageLabel}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Monthly revenue: &#8377;${fmtL(rev)} | Next milestone: &#8377;${stage===1?'3L':stage===2?'6L':'15L'}/month</div></div><div style="font-size:11px;color:var(--muted)">&#8377;5 Crore journey mein ${progPct}% progress</div></div><div style="height:8px;background:var(--border);border-radius:4px"><div style="height:8px;width:${progPct}%;background:${stageColor2};border-radius:4px"></div></div><div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:4px"><span>Start</span><span>&#8377;3L/mo</span><span>&#8377;6L/mo</span><span>&#8377;15L/mo</span><span>&#8377;5Cr/yr</span></div></div>`;
-  [{n:'01',p:'Month 1-3',t:'Foundation Fix karo',rev:'&#8377;3L/month',done:stage>1,now:stage===1,
-    why:'Leaky bucket mein paani daalna bekar hai. Interest load kam karo, margin 14%+ karo, party receivables tight karo — yeh sab pehle. Tab scale karo.',
-    goals:['High-interest loan identify karo — extra payment start karo','Vendor se 5% bulk discount negotiate karo — consistent volume ka leverage','Party advance policy implement karo — 40-50% advance mandatory','EOD har din close karo — accurate data hi sahi decisions deta hai','Net margin 14%+ consistently achieve karo'],
-    metrics:['Net Margin > 14%','Production > 80%','Attendance > 88%','Receivables < &#8377;15K']
-  },{n:'02',p:'Month 3-6',t:'Volume Scale karo',rev:'&#8377;5L/month',done:stage>2,now:stage===2,
-    why:'Foundation strong hone ke baad same overhead pe zyada units banao. Fixed costs same rahenge — extra units pe margin bahut better hoga.',
-    goals:['400+ units/month consistently achieve karo','2-3 naye B2B parties onboard karo — Pune/Aurangabad area','Delivery turnaround 7 days se kam karo — parties ke saath trust build hoga','Production SOP likho — har stage ka standard process','Accountant ko system pe fully onboard karo'],
-    metrics:['Revenue > &#8377;5L/month','400+ units/month','2+ naye parties','Margin > 18%']
-  },{n:'03',p:'Month 6-12',t:'New Products + New Markets',rev:'&#8377;8-10L/month',done:false,now:stage===3,
-    why:'Single product pe depend rehna risky hai. Same factory mein adjacent products banana same investment pe double revenue opportunity hai.',
-    goals:['Fridge stand ya AC stand — prototype banao, 2-3 parties ko test order do','Nagpur, Kolkata area mein naye distributors identify karo','600+ units/month production capacity achieve karo','1 floor supervisor hire karo — tum management pe focus karo','Institutional buyers explore karo — builders, housing societies'],
-    metrics:['Revenue > &#8377;8L','2+ products selling','3+ new cities','Margin > 20%']
-  },{n:'04',p:'Month 12-18',t:'Systems + Team',rev:'&#8377;15L/month',done:false,now:false,
-    why:'Jab volume badh jaaye toh systems fail hote hain. Processes pehle strong banao — phir volume daalo. Manager hire karo taki tum CEO role pe focus kar sako.',
-    goals:['Production SOP complete karo — zero verbal dependency','Quality checklist — dispatch se pehle standard check mandatory','Operations manager hire karo — daily floor management handle kare','Vendor contracts formalize karo — rate lock 6 months advance','Institutional buyer pipeline develop karo — builders market'],
-    metrics:['Revenue > &#8377;15L','Ops manager hired','Zero delivery defaults','4+ parties consistent']
-  },{n:'05',p:'Month 18-24',t:'&#8377;5 Crore — Market Leader',rev:'&#8377;25-30L/month',done:false,now:false,
-    why:'Maharashtra ka sabse reliable WM stand manufacturer banna hai. Brand quality + delivery reliability + competitive pricing — yeh teen cheezein market leader banati hain B2B mein.',
-    goals:['500+ units/month consistently','5+ SKU catalog — WM stand, fridge stand, AC stand, etc.','Sales person hire karo — active party acquisition','Pan-Maharashtra distribution — 10+ active parties','Export market explore karo — UAE/GCC mein Indian manufacturing ka demand high hai'],
-    metrics:['Revenue > &#8377;25L','5+ SKUs','10+ active parties','Margin > 22%']
-  }].forEach(r=>{
-    const c=r.done?'#16a34a':r.now?stageColor2:'var(--muted)';
-    html+=`<div style="display:flex;gap:14px;margin-bottom:14px"><div style="flex-shrink:0;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:${c};border:2px solid ${c};background:${r.now?'rgba(37,99,235,.06)':'#fff'}">${r.n}</div><div style="flex:1;background:${r.now?'#f0f4ff':'#fff'};border:1px solid ${r.now?stageColor2:'var(--border)'};border-radius:var(--r2);padding:14px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;flex-wrap:wrap;gap:6px"><div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">${r.p}</div><div style="font-size:14px;font-weight:800;color:var(--navy2);margin-top:2px">${r.t}</div></div><div style="text-align:right"><div style="font-size:12px;font-weight:800;color:${c}">${r.rev}</div><div style="font-size:10px;color:${c};margin-top:2px">${r.done?'&#10003; Done':r.now?'&#9654; Abhi yahan':'Upcoming'}</div></div></div><div style="font-size:10px;color:#2563eb;background:rgba(37,99,235,.05);border-radius:4px;padding:6px 8px;margin-bottom:8px;line-height:1.5"><strong>Why:</strong> ${r.why}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:8px">${r.goals.map(g=>`<div style="font-size:10px;color:var(--muted);padding:2px 0">&#8594; ${g}</div>`).join('')}</div><div style="display:flex;flex-wrap:wrap;gap:6px">${r.metrics.map(m=>`<span style="font-size:9px;padding:2px 8px;border-radius:20px;background:rgba(22,163,74,.08);color:#16a34a;border:1px solid rgba(22,163,74,.2)">&#10003; ${m}</span>`).join('')}</div></div></div>`;
+  // ════════════════════════════════════════════════
+  // SEC 07 — KPI SCORECARD
+  // ════════════════════════════════════════════════
+  html+=sec('07','KPI Scorecard','Traffic Light — 8 numbers har hafte dekho','📋');
+  const kpis=[
+    {kpi:'Revenue',val:'₹'+fmtL(rev),r:'<₹2L',a:'₹2-4L',g:'>₹4L',s:rev>=400000?'green':rev>=200000?'amber':'red',trend:momRev!==null?(momRev>0?'▲'+momRev.toFixed(1)+'%':'▼'+Math.abs(momRev).toFixed(1)+'%'):'—',why:'B2B sales total. ₹4L+ = strong.'},
+    {kpi:'Net Margin',val:pct(netMargin),r:'<8%',a:'8-14%',g:'>14%',s:netMargin>=14?'green':netMargin>=8?'amber':'red',trend:prevM?(netMargin>pNetMargin?'▲ Improved':'▼ Declined'):'—',why:'Asli health indicator.'},
+    {kpi:'Gross Margin',val:pct(grossMargin),r:'<30%',a:'30-40%',g:'>40%',s:grossMargin>=40?'green':grossMargin>=30?'amber':'red',trend:'Target 40%+',why:'Manufacturing efficiency.'},
+    {kpi:'Production Score',val:prodScore+'%',r:'<60%',a:'60-85%',g:'>85%',s:prodScore>=85?'green':prodScore>=60?'amber':'red',trend:Math.round(totalUnits)+'/'+prodTarget+' units',why:'Target vs actual units.'},
+    {kpi:'Attendance',val:attRate+'%',r:'<75%',a:'75-90%',g:'>90%',s:attRate>=90?'green':attRate>=75?'amber':'red',trend:'Target 90%+',why:'Capacity indicator.'},
+    {kpi:'Collection Eff.',val:collectionEff+'%',r:'<50%',a:'50-80%',g:'>80%',s:collectionEff>=80?'green':collectionEff>=50?'amber':'red',trend:'₹'+fmtL(totalCollectedM)+' collected',why:'Cash flow health.'},
+    {kpi:'Interest Load',val:'₹'+fmtL(intExp),r:'>₹50K',a:'₹20-50K',g:'<₹20K',s:intExp<20000?'green':intExp<50000?'amber':'red',trend:pct(intExp/Math.max(rev,1)*100)+' of rev',why:'Fixed drain — reduce karo.'},
+    {kpi:'Receivables',val:'₹'+fmtL(totalReceivable),r:'>₹1L',a:'₹50K-1L',g:'<₹50K',s:totalReceivable<50000?'green':totalReceivable<100000?'amber':'red',trend:partyOutstanding.length+' parties',why:'Working capital stuck.'},
+  ];
+  let gCnt=0,aCnt=0,rCnt=0;kpis.forEach(k=>{if(k.s==='green')gCnt++;else if(k.s==='amber')aCnt++;else rCnt++;});
+  html+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+    <div style="text-align:center;padding:14px;background:#f0fdf4;border:1px solid #16a34a33;border-radius:8px"><div style="font-size:32px;font-weight:900;color:#16a34a">${gCnt}</div><div style="font-size:11px;color:#6b7280;margin-top:4px">🟢 On Target</div></div>
+    <div style="text-align:center;padding:14px;background:#fffbeb;border:1px solid #d97706 33;border-radius:8px"><div style="font-size:32px;font-weight:900;color:#d97706">${aCnt}</div><div style="font-size:11px;color:#6b7280;margin-top:4px">🟡 Watch Karo</div></div>
+    <div style="text-align:center;padding:14px;background:#fef2f2;border:1px solid #dc262633;border-radius:8px"><div style="font-size:32px;font-weight:900;color:#dc2626">${rCnt}</div><div style="font-size:11px;color:#6b7280;margin-top:4px">🔴 Fix Karo</div></div>
+  </div>`;
+  html+=tblHead(['KPI','Value','🔴 Red','🟡 Amber','🟢 Green','Status','Trend','Kyun?']);
+  kpis.forEach(k=>{
+    const c=k.s==='green'?'#16a34a':k.s==='amber'?'#d97706':'#dc2626';
+    const badge=k.s==='green'?'🟢 Good':k.s==='amber'?'🟡 Watch':'🔴 Fix';
+    html+=tblRow([[k.kpi,'#0d1b35',true],[k.val,c,true],[k.r,'#dc2626'],[k.a,'#d97706'],[k.g,'#16a34a'],[badge,c],[k.trend,'#6b7280'],[k.why,'#9ca3af']]);
   });
-  html+=`<div style="background:linear-gradient(135deg,#f0f4ff,#e8f5ff);border:1.5px solid var(--navy2);border-radius:var(--r2);padding:22px;text-align:center;margin-top:16px"><div style="font-size:20px;font-weight:900;color:var(--navy2);margin-bottom:10px;line-height:1.3">Tu kar sakta hai. Data yahi bol raha hai. &#127981;</div><div style="font-size:11px;color:var(--muted);line-height:2;margin-bottom:14px">Revenue &#8377;${fmtL(rev)}/month — B2B manufacturing foundation build ho raha hai.<br>${netProfit>0?`Net Profit &#8377;${fmtL(netProfit)} — profitable manufacturing business hai.`:'Losses hain — lekin data track ho raha hai. Yahi step 1 hai.'}<br>Interest fix karo, margin 14%+ karo, naye parties laao — tab scale karo.<br>Har hafte CEO Report padho. Ek metric improve karo. Compound karo.</div><div style="color:var(--navy2);font-size:11px;font-weight:800">— Prashant, BeyondFurni Founder</div><div style="color:var(--muted);font-size:10px;margin-top:4px">BeyondFurni (S.R. Enterprises) | Nashik, Maharashtra | ${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'})}</div></div></div>`;
+  html+='</tbody></table></div>';
+
+  // ════════════════════════════════════════════════
+  // SEC 08 — KAIZEN + ACTION PLAN
+  // ════════════════════════════════════════════════
+  html+=sec('08','Kaizen + Weekly Action Plan','1% improvement har hafte → 67% annual growth','⚡');
+  html+=`<div style="background:#f0f4ff;border:1px solid #2563eb22;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:11px;color:#1e3a8a;line-height:1.7">
+    <strong>Kaizen Rule:</strong> Har hafte sirf ek metric improve karo — compound hoga. 1.01^52 = 1.67x improvement in 1 year. Har Monday yeh table dekho, ek action lo.
+  </div>`;
+  html+=tblHead(['Area','Abhi','Target','Is Hafte Action','Status','Impact']);
+  [{a:'Net Margin',cur:pct(netMargin),t:'14%+',act:'Vendor call — bulk discount negotiate karo',s:netMargin>=14?'🟢':netMargin>=8?'🟡':'🔴',imp:`1% = ₹${fmtL(rev*0.01)}/month`},
+   {a:'Collection',cur:collectionEff+'%',t:'80%+',act:'Top 3 overdue parties ko call karo aaj',s:collectionEff>=80?'🟢':collectionEff>=60?'🟡':'🔴',imp:`₹${fmtL(totalReceivable)} collect karo`},
+   {a:'Production',cur:prodScore+'%',t:'85%+',act:'Delivery gap ka root cause identify karo',s:prodScore>=85?'🟢':prodScore>=65?'🟡':'🔴',imp:`₹${fmtL(Math.round(prodTarget*0.1)*Math.round(avgPrice||600))}/month`},
+   {a:'Attendance',cur:attRate+'%',t:'90%+',act:'Absent workers ka pattern dekho',s:attRate>=90?'🟢':attRate>=75?'🟡':'🔴',imp:'Consistent delivery'},
+   {a:'Interest',cur:'₹'+fmtL(intExp),t:'<₹20K',act:'High-rate loan identify — extra payment karo',s:intExp<=20000?'🟢':intExp<=40000?'🟡':'🔴',imp:`₹${fmtL(intExp*0.25)}/month`},
+   {a:'EOD',cur:closedDays+'/'+workingDays,t:'100%',act:'Har din EOD close karo — habit banao',s:closedDays>=workingDays*0.9?'🟢':closedDays>=workingDays*0.7?'🟡':'🔴',imp:'Data accuracy'},
+   {a:'Raw Material',cur:rev>0?pct(rawmat/rev*100):'—',t:'<45% rev',act:'Advance bulk order plan karo',s:(rev>0&&rawmat/rev<=0.45)?'🟢':(rev>0&&rawmat/rev<=0.55)?'🟡':'🔴',imp:`₹${fmtL(rawmat*0.05)}/month`},
+  ].forEach(k=>html+=tblRow([[k.a,'#0d1b35',true],[k.cur,'#6b7280'],[k.t,'#16a34a',true],[k.act,'#374151'],[k.s,'#111'],[k.imp,'#6b7280']]));
+  html+='</tbody></table></div>';
+
+  // Action Plan
+  html+=`<div style="margin-top:12px;font-size:11px;font-weight:700;color:#0d1b35;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">This Week Action Plan</div>`;
+  html+=tblHead(['Din','Action','Exactly Kaise','Time','Expected Result']);
+  const wacts=[];
+  if(netMargin<14)wacts.push(['Aaj 🔴','Vendor call — bulk rate maango',`"${Math.round(totalUnits||50)}+ units/month deta hoon — 5% rate do." Record karo response.`,'30 min','COGS 3-5% reduce']);
+  if(aging.d60>20000||aging.d90plus>10000)wacts.push(['Aaj 🔴','Overdue parties call karo','Top 3 parties jinka 60+ din pending hai — "Payment kab tak?" Note karo date.','30 min','₹'+fmtL(aging.d60+aging.d90plus)+' collect start']);
+  if(intExp>30000)wacts.push(['Kal 🔴','Loan list banao','Har loan: outstanding, rate, EMI. Highest rate = pehle close karo.','1 hr','Prepayment strategy clear']);
+  if(collectionEff<70)wacts.push(['Is Hafte 🟡','Advance policy implement karo','Naye orders pe 40% advance mandatory — party ko clearly batao.','30 min','Future receivables control']);
+  wacts.push(['Is Hafte 🟡','Raw material advance order','Next month ka estimate banao — bulk order karo vendor pe.','1 hr','COGS predictable + no stock-out']);
+  wacts.push(['Weekend ✅','CEO Report 10 min review','Metrics check karo — action liya tha kaam aaya? Next 1 priority decide.','10 min','Weekly accountability loop']);
+  wacts.push(['Next Monday ✅','Numbers dobara check karo','Kya change hua? Pattern identify karo. Compound karo.','15 min','Data-driven growth']);
+  wacts.forEach(a=>html+=tblRow([[a[0],'#16a34a',true],[a[1],'#0d1b35',true],[a[2],'#6b7280'],[a[3],'#9ca3af'],[a[4],'#16a34a']]));
+  html+='</tbody></table></div>';
+
+  // ════════════════════════════════════════════════
+  // SEC 09 — 2-YEAR ROADMAP
+  // ════════════════════════════════════════════════
+  html+=sec('09','2-Year Growth Roadmap','BeyondFurni B2B Manufacturing — ₹5 Crore target','🗺️');
+  const stage=rev<300000?1:rev<600000?2:3;
+  const stageLabel=stage===1?'Stage 1 — Foundation (₹0-3L/month)':stage===2?'Stage 2 — Scaling (₹3-6L/month)':'Stage 3 — Growth (₹6L+/month)';
+  const stageC=stage===1?'#d97706':stage===2?'#2563eb':'#16a34a';
+  const progPct=stage===1?15:stage===2?45:70;
+  html+=`<div style="background:#f8faff;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+      <div><div style="font-size:13px;font-weight:800;color:${stageC}">${stageLabel}</div>
+      <div style="font-size:11px;color:#6b7280;margin-top:2px">Revenue: ₹${fmtL(rev)}/month | Next: ₹${stage===1?'3L':stage===2?'6L':'15L'}/month</div></div>
+      <div style="font-size:11px;color:#6b7280">₹5 Crore journey: ${progPct}% complete</div>
+    </div>
+    ${bar(progPct,stageC,10)}
+    <div style="display:flex;justify-content:space-between;font-size:9px;color:#9ca3af;margin-top:6px"><span>Start</span><span>₹3L/mo</span><span>₹6L/mo</span><span>₹15L/mo</span><span>₹5Cr/yr</span></div>
+  </div>`;
+
+  [{n:'01',p:'Month 1-3',t:'Foundation Fix',rev:'₹3L/month',done:stage>1,now:stage===1,
+    why:'Leaky bucket mein paani daalna bekar. Interest, margin, receivables — yeh teen fix karo pehle.',
+    goals:['High-interest loan prepayment start karo','Vendor 5% bulk discount negotiate karo','Advance policy — 40-50% mandatory','EOD discipline — 90%+ close rate','Margin 14%+ consistently'],
+    metrics:['Margin > 14%','Production > 80%','Collection > 75%','Receivables < ₹50K']},
+   {n:'02',p:'Month 3-6',t:'Volume Scale',rev:'₹5L/month',done:stage>2,now:stage===2,
+    why:'Foundation strong hone ke baad volume badhao. Fixed costs same — extra units pe margin bahut better.',
+    goals:['400+ units/month consistently','2-3 naye B2B parties onboard','Delivery turnaround 7 days se kam','Production SOP document karo','Accountant fully onboard'],
+    metrics:['Revenue > ₹5L','400+ units/mo','Margin > 18%','2+ new parties']},
+   {n:'03',p:'Month 6-12',t:'New Products + Markets',rev:'₹8-10L/month',done:false,now:stage===3,
+    why:'Single product risky hai. Same factory mein adjacent products = same investment pe double revenue.',
+    goals:['Fridge/AC stand prototype + test orders','Nagpur, Kolkata distributors onboard','600+ units/month capacity','Floor supervisor hire karo','Institutional buyers pipeline develop karo'],
+    metrics:['Revenue > ₹8L','2+ SKUs selling','3+ cities','Margin > 20%']},
+   {n:'04',p:'Month 12-18',t:'Systems + Team',rev:'₹15L/month',done:false,now:false,
+    why:'Scale hone pe systems fail hote hain. Processes strong banao — phir volume daalo.',
+    goals:['Production SOP complete','Quality checklist — zero dispatch defects','Operations manager hire karo','Vendor contracts formalize — 6-month rate lock','Institutional buyer pipeline active'],
+    metrics:['Revenue > ₹15L','Ops manager hired','Zero delivery defaults']},
+   {n:'05',p:'Month 18-24',t:'₹5 Crore — Market Leader',rev:'₹25-30L/month',done:false,now:false,
+    why:'Maharashtra ka sabse reliable WM stand manufacturer. Quality + delivery + pricing = market leader.',
+    goals:['500+ units/month consistently','5+ SKU catalog','Sales + Ops manager hire','10+ active B2B parties','Export market explore — UAE/GCC'],
+    metrics:['Revenue > ₹25L','5+ SKUs','10+ parties','Margin > 22%']},
+  ].forEach(r=>{
+    const c=r.done?'#16a34a':r.now?stageC:'#9ca3af';
+    html+=`<div style="display:flex;gap:12px;margin-bottom:12px">
+      <div style="flex-shrink:0;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:${c};border:2px solid ${c};background:${r.now?stageC+'15':'#fff'}">${r.n}</div>
+      <div style="flex:1;background:${r.now?'#f0f4ff':'#fff'};border:1px solid ${r.now?stageC:'#e5e7eb'};border-radius:8px;padding:12px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:4px">
+          <div><div style="font-size:9px;color:#9ca3af;text-transform:uppercase">${r.p}</div><div style="font-size:13px;font-weight:800;color:#0d1b35">${r.t}</div></div>
+          <div style="text-align:right"><div style="font-size:12px;font-weight:800;color:${c}">${r.rev}</div><div style="font-size:9px;color:${c}">${r.done?'✓ Done':r.now?'▶ Current':'Upcoming'}</div></div>
+        </div>
+        <div style="font-size:10px;color:#1e40af;background:#eff6ff;border-radius:4px;padding:5px 8px;margin-bottom:7px">${r.why}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:7px">${r.goals.map(g=>`<div style="font-size:10px;color:#374151;padding:1px 0">→ ${g}</div>`).join('')}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">${r.metrics.map(m=>`<span style="font-size:9px;padding:2px 7px;border-radius:20px;background:#f0fdf4;color:#16a34a;border:1px solid #16a34a33">✓ ${m}</span>`).join('')}</div>
+      </div>
+    </div>`;
+  });
+
+  // ── Closing Card ──
+  html+=`<div style="background:linear-gradient(135deg,#0d1b35 0%,#1a3260 100%);border-radius:10px;padding:22px;text-align:center;margin-top:16px;color:#fff">
+    <div style="font-size:18px;font-weight:900;margin-bottom:10px">Tu kar sakta hai. Data yahi bol raha hai. 🏭</div>
+    <div style="font-size:11px;color:#aabbcc;line-height:2;margin-bottom:14px">
+      Revenue ₹${fmtL(rev)}/month | ${netProfit>0?`Net Profit ₹${fmtL(netProfit)} — profitable manufacturing`:'Data track ho raha hai — yahi step 1 hai'}<br>
+      ${totalReceivable>0?`₹${fmtL(totalReceivable)} collect karo — working capital free hogi. `:''}${intExp>0?`Interest ₹${fmtL(intExp)} — pehle yeh fix karo. `:''}Scale karo.<br>
+      Har hafte CEO Report padho. Ek metric improve karo. Compound karo.
+    </div>
+    <div style="font-size:10px;color:#7a9bcc">— Prashant, BeyondFurni Founder | S.R. Enterprises | Nashik | ${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'})}</div>
+  </div>`;
 
   document.getElementById('ceo-report-body').innerHTML=html;
 }
