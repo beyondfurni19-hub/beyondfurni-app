@@ -3933,8 +3933,8 @@ const GD_KEYS = [
   // Inventory module
   'bf9_inv_mats','bf9_inv_bom','bf9_inv_bom','bf9_inv_conv','bf9_inv_purlog','bf9_inv_prodlog',
   'bf9_inv_products','bf9_inv_all_boms','bf9_inv_pack_bom',
-  // Daybook
-  'bf9_daybook','bf9_cat_labels',
+  // Daybook & Discipline
+  'bf9_daybook','bf9_cat_labels','bf9_disc_settings',
   // Attendance & Salary
   'bf9_att','bf9_sal_rates','bf9_sal_rules','bf9_advances',
   // CFO module
@@ -4049,7 +4049,36 @@ async function _gdSmartSync(){
     }
 
     // Case 3: Local is NEWER than cloud → push local to cloud
+    // BUT first verify local actually has meaningful data — agar local empty hai toh cloud se pull karo
     if(localTime >= cloudUpdatedAt){
+      const localDaybook = load('bf9_daybook');
+      const localBatches = load('bf9_batches');
+      const localInvoices = load('bf9_invoices');
+      const localHasData = (localDaybook && localDaybook.length > 0) ||
+                           (localBatches && localBatches.length > 0) ||
+                           (localInvoices && localInvoices.length > 0);
+
+      // Agar cloud mein data hai par local empty hai — cloud jeet-ta hai (data loss prevention)
+      const cloudDaybook = cloud['bf9_daybook'] ? JSON.parse(cloud['bf9_daybook']) : [];
+      const cloudHasData = cloudDaybook && cloudDaybook.length > 0;
+
+      if(!localHasData && cloudHasData){
+        // Local empty, cloud mein data hai — cloud se restore karo
+        console.warn('⚠️ Local data empty but cloud has data — pulling from cloud to prevent data loss');
+        let restored = 0;
+        GD_KEYS.forEach(k=>{
+          if(cloud[k] !== undefined && cloud[k] !== '' && cloud[k] !== 'null'){
+            localStorage.setItem(k, cloud[k]);
+            restored++;
+          }
+        });
+        localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
+        _gdLoaded = true;
+        gdSetDot('ok');
+        if(restored > 0){ localStorage.setItem('bf9_gd_reloaded','1'); location.reload(); }
+        return;
+      }
+
       _gdLoaded = true;
       gdSetDot('ok');
       gdPush(); // local data cloud pe bhejo
@@ -4208,6 +4237,20 @@ function gdSetDot(state){
         lbl.textContent = 'Saved '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
       } else lbl.textContent='Synced ✓';
     }
+  }
+
+  // Floating warning banner — sync fail pe dikhao
+  let banner = document.getElementById('_sync_warn_banner');
+  if(state === 'err'){
+    if(!banner){
+      banner = document.createElement('div');
+      banner.id = '_sync_warn_banner';
+      banner.style.cssText = 'position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#b91c1c;color:#fff;padding:10px 16px;border-radius:12px;font-family:Nunito,sans-serif;font-size:12px;font-weight:800;z-index:999;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,.3);max-width:90vw;text-align:center';
+      banner.innerHTML = '⚠️ Cloud sync fail hua! Internet check karo — data sirf is device pe hai, safe nahi hai!';
+      document.body.appendChild(banner);
+    }
+  } else {
+    if(banner) banner.remove();
   }
 }
 
@@ -13014,8 +13057,8 @@ function renderDaybook(){
       <div style="font-size:10px;color:var(--muted)">${filterDate?filterDate:filterMonth?filterMonth:'All time'}</div>
     </div>`;
 
-  // Category breakdown (expenses only)
-  _dbRenderCatBreakdown(entries.filter(e=>e.type==='expense'), filterMonth||filterDate);
+  // Category breakdown (expense + income)
+  _dbRenderCatBreakdown(entries, filterMonth||filterDate);
 
   // Entries list
   _dbRenderEntries(entries);
@@ -13039,57 +13082,76 @@ function _dbPopulateMonthFilter(){
   if(cur) sel.value=cur;
 }
 
-function _dbRenderCatBreakdown(expEntries, period){
+function _dbRenderCatBreakdown(allEntries, period){
   const wrap = document.getElementById('db-cat-breakdown');
   if(!wrap) return;
-  if(!expEntries.length){ wrap.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">Is period mein koi kharcha nahi</div>'; return; }
+  if(!allEntries.length){ wrap.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">Is period mein koi entry nahi</div>'; return; }
 
-  // Group by category
-  const bycat = {};
-  expEntries.forEach(e=>{
-    if(!bycat[e.category]) bycat[e.category]=0;
-    bycat[e.category]+=e.amount;
-  });
-  const total = Object.values(bycat).reduce((s,v)=>s+v,0);
-  const sorted = Object.entries(bycat).sort((a,b)=>b[1]-a[1]);
   const allCats = [...DB_CATS.expense, ...DB_CATS.income];
 
-  wrap.innerHTML = sorted.map(([catId, amt])=>{
-    const cat = allCats.find(c=>c.id===catId) || {label:catId,icon:'💸',color:'#9ca3af',cfo:null};
-    const pct = total>0?(amt/total*100):0;
-    // Supplier-wise breakdown for this category
-    const catEntries = expEntries.filter(e=>e.category===catId && e.supplier);
-    const bySupplier = {};
-    catEntries.forEach(e=>{ bySupplier[e.supplier]=(bySupplier[e.supplier]||0)+e.amount; });
-    const supRows = Object.entries(bySupplier).sort((a,b)=>b[1]-a[1]);
-    return `
-      <div style="padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s" onclick="openDbCatDrill('${catId}','${period||''}')" onmouseover="this.style.background='#f5f8ff'" onmouseout="this.style.background=''">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-          <div style="font-size:18px;flex-shrink:0">${cat.icon}</div>
-          <div style="flex:1;min-width:0">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-              <div style="font-size:12px;font-weight:800;color:var(--text)">${cat.label}</div>
-              <div style="font-size:12px;font-weight:900;color:var(--red)">₹${_fmtAmt(amt)}</div>
-            </div>
-            <div style="height:6px;background:#f0f4fb;border-radius:3px;overflow:hidden">
-              <div style="height:100%;width:${pct.toFixed(1)}%;background:${cat.color};border-radius:3px"></div>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-top:2px">
-              <div style="font-size:9px;color:var(--muted)">${pct.toFixed(1)}% of total · <span style="color:#3b82f6">tap to see entries →</span></div>
-              ${cat.cfo?`<div style="font-size:9px;background:#e8f4ff;color:#1a5f9a;padding:1px 6px;border-radius:8px;font-weight:800">→ CFO: ${cat.cfo}</div>`:''}
+  function renderSection(entries, type){
+    if(!entries.length) return '';
+    const isExp = type==='expense';
+    const amtColor = isExp ? 'var(--red)' : 'var(--green-dark)';
+
+    const bycat = {};
+    entries.forEach(e=>{ bycat[e.category]=(bycat[e.category]||0)+e.amount; });
+    const total = Object.values(bycat).reduce((s,v)=>s+v,0);
+    const sorted = Object.entries(bycat).sort((a,b)=>b[1]-a[1]);
+
+    const rows = sorted.map(([catId, amt])=>{
+      const cat = allCats.find(c=>c.id===catId) || {label:catId, icon: isExp?'💸':'💰', color: isExp?'#9ca3af':'#10b981', cfo:null};
+      const pct = total>0?(amt/total*100):0;
+      const catEntries = entries.filter(e=>e.category===catId && e.supplier);
+      const bySupplier = {};
+      catEntries.forEach(e=>{ bySupplier[e.supplier]=(bySupplier[e.supplier]||0)+e.amount; });
+      const supRows = Object.entries(bySupplier).sort((a,b)=>b[1]-a[1]);
+      return `
+        <div style="padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s" onclick="openDbCatDrill('${catId}','${period||''}')" onmouseover="this.style.background='#f5f8ff'" onmouseout="this.style.background=''">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+            <div style="font-size:18px;flex-shrink:0">${cat.icon}</div>
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                <div style="font-size:12px;font-weight:800;color:var(--text)">${cat.label}</div>
+                <div style="font-size:12px;font-weight:900;color:${amtColor}">\u20B9${_fmtAmt(amt)}</div>
+              </div>
+              <div style="height:6px;background:#f0f4fb;border-radius:3px;overflow:hidden">
+                <div style="height:100%;width:${pct.toFixed(1)}%;background:${cat.color};border-radius:3px"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-top:2px">
+                <div style="font-size:9px;color:var(--muted)">${pct.toFixed(1)}% of total \u00B7 <span style="color:#3b82f6">tap to see entries \u2192</span></div>
+                ${cat.cfo?`<div style="font-size:9px;background:#e8f4ff;color:#1a5f9a;padding:1px 6px;border-radius:8px;font-weight:800">\u2192 CFO: ${cat.cfo}</div>`:''}
+              </div>
             </div>
           </div>
-        </div>
-        ${supRows.length?`
-          <div style="margin-left:28px;display:flex;flex-wrap:wrap;gap:5px" onclick="event.stopPropagation()">
-            ${supRows.map(([sup,a])=>`
-              <div style="padding:3px 9px;background:#f0f4ff;border:1px solid #dde5f8;border-radius:20px;font-size:10px;font-weight:800;color:var(--navy2)">
-                🏭 ${esc(sup)} <span style="color:var(--red)">₹${_fmtAmt(a)}</span>
-              </div>`).join('')}
-          </div>`:''}
-      </div>`;
-  }).join('');
+          ${supRows.length?`
+            <div style="margin-left:28px;display:flex;flex-wrap:wrap;gap:5px" onclick="event.stopPropagation()">
+              ${supRows.map(([sup,a])=>`
+                <div style="padding:3px 9px;background:#f0f4ff;border:1px solid #dde5f8;border-radius:20px;font-size:10px;font-weight:800;color:var(--navy2)">
+                  \uD83C\uDFED ${esc(sup)} <span style="color:${amtColor}">\u20B9${_fmtAmt(a)}</span>
+                </div>`).join('')}
+            </div>`:''
+          }
+        </div>`;
+    }).join('');
+
+    const totalLine = `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;margin-bottom:4px">
+      <div style="font-size:10px;font-weight:900;color:${isExp?'var(--red-dark)':'var(--green-dark)'};text-transform:uppercase;letter-spacing:.4px">${isExp?'\uD83D\uDCB8 Kharcha':'\uD83D\uDCB0 Aaya'}</div>
+      <div style="font-size:13px;font-weight:900;color:${amtColor}">\u20B9${_fmtAmt(total)}</div>
+    </div>`;
+
+    return totalLine + rows;
+  }
+
+  const expEntries = allEntries.filter(e=>e.type==='expense');
+  const incEntries = allEntries.filter(e=>e.type==='income');
+
+  wrap.innerHTML =
+    renderSection(expEntries,'expense') +
+    (incEntries.length && expEntries.length ? '<div style="height:1px;background:var(--border);margin:10px 0"></div>' : '') +
+    renderSection(incEntries,'income');
 }
+
 
 function _dbRenderEntries(entries){
   const wrap = document.getElementById('db-entries-list');
@@ -16713,3 +16775,4 @@ init();
 
 </body>
 </html>
+        
