@@ -2659,6 +2659,26 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   </div>
 </div>
 
+<!-- Category Drill Modal -->
+<div id="db-drill-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:700;align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeDbDrill()">
+  <div style="background:#fff;border-radius:var(--r) var(--r) 0 0;width:100%;max-width:520px;max-height:88vh;display:flex;flex-direction:column">
+    <!-- Header sticky -->
+    <div style="position:sticky;top:0;background:#fff;padding:14px 16px 10px;border-bottom:1px solid var(--border);z-index:1;flex-shrink:0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div>
+          <div id="db-drill-title" style="font-size:15px;font-weight:900;color:var(--navy2)"></div>
+          <div id="db-drill-sub" style="font-size:10px;color:var(--muted);margin-top:2px"></div>
+        </div>
+        <button onclick="closeDbDrill()" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:#f0f4ff;cursor:pointer;font-size:16px">✕</button>
+      </div>
+      <!-- Summary bar -->
+      <div id="db-drill-summary" style="display:flex;gap:8px"></div>
+    </div>
+    <!-- Entries list -->
+    <div id="db-drill-list" style="overflow-y:auto;padding:10px 14px;flex:1"></div>
+  </div>
+</div>
+
 <!-- ════ CFO DASHBOARD ════ -->
 <div class="sc" id="s-cfo">
   <div style="margin-bottom:14px">
@@ -12965,7 +12985,7 @@ function _dbRenderCatBreakdown(expEntries, period){
     catEntries.forEach(e=>{ bySupplier[e.supplier]=(bySupplier[e.supplier]||0)+e.amount; });
     const supRows = Object.entries(bySupplier).sort((a,b)=>b[1]-a[1]);
     return `
-      <div style="padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s" onclick="openDbCatDrill('${catId}','${period||''}')" onmouseover="this.style.background='#f5f8ff'" onmouseout="this.style.background=''">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
           <div style="font-size:18px;flex-shrink:0">${cat.icon}</div>
           <div style="flex:1;min-width:0">
@@ -12977,13 +12997,13 @@ function _dbRenderCatBreakdown(expEntries, period){
               <div style="height:100%;width:${pct.toFixed(1)}%;background:${cat.color};border-radius:3px"></div>
             </div>
             <div style="display:flex;justify-content:space-between;margin-top:2px">
-              <div style="font-size:9px;color:var(--muted)">${pct.toFixed(1)}% of total</div>
+              <div style="font-size:9px;color:var(--muted)">${pct.toFixed(1)}% of total · <span style="color:#3b82f6">tap to see entries →</span></div>
               ${cat.cfo?`<div style="font-size:9px;background:#e8f4ff;color:#1a5f9a;padding:1px 6px;border-radius:8px;font-weight:800">→ CFO: ${cat.cfo}</div>`:''}
             </div>
           </div>
         </div>
         ${supRows.length?`
-          <div style="margin-left:28px;display:flex;flex-wrap:wrap;gap:5px">
+          <div style="margin-left:28px;display:flex;flex-wrap:wrap;gap:5px" onclick="event.stopPropagation()">
             ${supRows.map(([sup,a])=>`
               <div style="padding:3px 9px;background:#f0f4ff;border:1px solid #dde5f8;border-radius:20px;font-size:10px;font-weight:800;color:var(--navy2)">
                 🏭 ${esc(sup)} <span style="color:var(--red)">₹${_fmtAmt(a)}</span>
@@ -13076,6 +13096,83 @@ function _dbOpenAdd(){
   const modal = document.getElementById('db-modal');
   modal.style.display='flex';
   setTimeout(()=>document.getElementById('db-amount').focus(),100);
+}
+
+function openDbCatDrill(catId, period){
+  const allCats = [...DB_CATS.expense, ...DB_CATS.income];
+  const cat = allCats.find(c=>c.id===catId) || {label:catId, icon:'💸', color:'#9ca3af'};
+
+  // Filter entries
+  let entries = [...DAYBOOK].filter(e=>e.category===catId);
+  if(period && period.length===10) entries = entries.filter(e=>e.date===period);       // date
+  else if(period && period.length===7) entries = entries.filter(e=>e.date?.startsWith(period)); // month
+  entries.sort((a,b)=>new Date(b.date)-new Date(a.date));
+
+  const total = entries.reduce((s,e)=>s+e.amount,0);
+  const modeIco={cash:'💵',upi:'📱',bank:'🏦',cheque:'📄'};
+
+  // Title
+  document.getElementById('db-drill-title').textContent = cat.icon+' '+cat.label;
+  document.getElementById('db-drill-sub').textContent = `${entries.length} entries · ${period||'All time'}`;
+
+  // Summary bar
+  document.getElementById('db-drill-summary').innerHTML = `
+    <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:var(--r2);padding:8px 12px;flex:1;text-align:center">
+      <div style="font-size:9px;font-weight:800;color:var(--red-dark)">TOTAL</div>
+      <div style="font-family:'Bebas Neue';font-size:22px;color:var(--red);line-height:1">₹${_fmtAmt(total)}</div>
+    </div>
+    <div style="background:#f0f4ff;border:1px solid #c7d4f5;border-radius:var(--r2);padding:8px 12px;flex:1;text-align:center">
+      <div style="font-size:9px;font-weight:800;color:var(--navy2)">ENTRIES</div>
+      <div style="font-family:'Bebas Neue';font-size:22px;color:var(--navy2);line-height:1">${entries.length}</div>
+    </div>
+    <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:var(--r2);padding:8px 12px;flex:1;text-align:center">
+      <div style="font-size:9px;font-weight:800;color:#166534">AVG/ENTRY</div>
+      <div style="font-family:'Bebas Neue';font-size:22px;color:#166534;line-height:1">₹${entries.length?_fmtAmt(Math.round(total/entries.length)):0}</div>
+    </div>`;
+
+  // Entries list
+  const listEl = document.getElementById('db-drill-list');
+  if(!entries.length){
+    listEl.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px;font-weight:700">Is period mein koi entry nahi</div>';
+  } else {
+    // Group by date
+    const byDate={};
+    entries.forEach(e=>{ if(!byDate[e.date]) byDate[e.date]=[]; byDate[e.date].push(e); });
+    listEl.innerHTML = Object.entries(byDate).map(([date, dayEntries])=>{
+      const dayTotal = dayEntries.reduce((s,e)=>s+e.amount,0);
+      const d = new Date(date+'T00:00:00');
+      const dayLabel = d.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
+      return `
+        <div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:2px solid ${cat.color}33;margin-bottom:6px">
+            <div style="font-size:10px;font-weight:900;color:var(--navy2)">${dayLabel}</div>
+            <div style="font-size:11px;font-weight:900;color:var(--red)">₹${_fmtAmt(dayTotal)}</div>
+          </div>
+          ${dayEntries.map(e=>`
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 10px;background:#fafbff;border-radius:var(--r2);margin-bottom:5px;border:1px solid var(--border)">
+              <div style="flex:1;min-width:0">
+                <div style="font-size:12px;font-weight:800;color:var(--text)">${esc(e.desc||'—')}</div>
+                <div style="display:flex;gap:6px;margin-top:3px;flex-wrap:wrap;align-items:center">
+                  <span style="font-size:10px;color:var(--muted)">${modeIco[e.mode]||'💵'} ${e.mode||'cash'}</span>
+                  ${e.supplier?`<span style="font-size:10px;font-weight:800;background:#e8f4ff;color:#1a5f9a;padding:1px 7px;border-radius:10px">🏭 ${esc(e.supplier)}</span>`:''}
+                  ${e.note?`<span style="font-size:10px;color:var(--muted)">• ${esc(e.note)}</span>`:''}
+                </div>
+              </div>
+              <div style="font-size:15px;font-weight:900;color:${e.type==='expense'?'var(--red)':'var(--green)'};margin-left:10px;flex-shrink:0">
+                ${e.type==='expense'?'−':'+'}₹${_fmtAmt(e.amount)}
+              </div>
+            </div>`).join('')}
+        </div>`;
+    }).join('');
+  }
+
+  const modal = document.getElementById('db-drill-modal');
+  modal.style.display='flex';
+  setTimeout(()=>modal.style.opacity='1',10);
+}
+
+function closeDbDrill(){
+  document.getElementById('db-drill-modal').style.display='none';
 }
 
 function _dbOpenEdit(id){
