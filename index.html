@@ -832,6 +832,8 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .snv{font-family:'Bebas Neue',sans-serif;font-size:22px;}
 .snl{font-size:9px;color:var(--muted);text-transform:uppercase;margin-top:1px;font-weight:700;}
 .stock-acts{display:flex;gap:7px;}
+.stk-mfg-slider-on{background:#3b82f6!important;}
+
 .btn-sin{flex:1;padding:10px;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;background:#dbeafe;color:#1e3a8a;}
 .btn-sout{flex:1;padding:10px;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;background:var(--red-bg);color:var(--red-dark);}
 .btn-sin:active,.btn-sout:active{opacity:.8;}
@@ -1799,7 +1801,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <select id="stk-cat-filter" class="finp" onchange="renderStock()" style="width:120px;padding:8px 10px;font-size:11px">
       <option value="">All Categories</option>
       <option>Raw Material</option><option>Hardware</option>
-      <option>Packaging</option><option>Chemical</option><option>Other</option>
+      <option>Semi-Finished</option><option>Packaging</option><option>Chemical</option><option>Other</option>
     </select>
   </div>
 
@@ -3586,6 +3588,41 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   </div>
 </div>
 
+<!-- Manufacture Modal -->
+<div class="modal-bg" id="stk-mfg-modal">
+  <div class="modal" style="max-height:85vh;overflow-y:auto">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div>
+        <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">🏭 Production Entry</div>
+        <div id="stk-mfg-title" style="font-size:16px;font-weight:900;color:var(--navy2);margin-top:2px"></div>
+      </div>
+      <button onclick="closeMfgModal()" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:#f0f4ff;font-size:14px;cursor:pointer">✕</button>
+    </div>
+    <!-- Qty -->
+    <div class="fg">
+      <label>Kitne units banaye? *</label>
+      <input class="finp" type="number" id="stk-mfg-qty" min="1" placeholder="e.g. 50" oninput="stkMfgPreview()" style="font-size:20px;font-weight:900;text-align:center">
+    </div>
+    <!-- Ingredients preview -->
+    <div id="stk-mfg-preview" style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:var(--r2);padding:11px 13px;margin-bottom:12px;display:none">
+      <div style="font-size:10px;font-weight:800;color:#166534;margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px">📋 Ingredients jo deduct honge:</div>
+      <div id="stk-mfg-preview-list"></div>
+    </div>
+    <!-- Warning -->
+    <div id="stk-mfg-warn" style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:var(--r2);padding:10px 13px;margin-bottom:12px;display:none;font-size:11px;font-weight:800;color:#b91c1c"></div>
+    <!-- Note -->
+    <div class="fg">
+      <label>Note (optional)</label>
+      <input class="finp" id="stk-mfg-note" placeholder="e.g. Morning shift production">
+    </div>
+    <div class="modal-btns">
+      <button class="mbtn-primary" style="background:#1d4ed8" onclick="confirmMfg()">✅ Production Confirm Karo</button>
+      <button class="mbtn-cancel" onclick="closeMfgModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- Stock Edit Modal -->
 <div class="modal-bg" id="stk-edit-modal">
   <div class="modal" style="max-height:90vh;overflow-y:auto;border-radius:var(--r) var(--r) 0 0">
@@ -3667,6 +3704,26 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <div class="g2">
       <div class="fg" style="margin:0"><label>Description</label><textarea class="finp" id="stk-em-desc" rows="2" placeholder="Item description..." style="resize:none"></textarea></div>
       <div class="fg" style="margin:0"><label>Internal Notes</label><textarea class="finp" id="stk-em-notes" rows="2" placeholder="Internal notes..." style="resize:none"></textarea></div>
+    </div>
+
+    <!-- Internally Manufactured -->
+    <div style="background:#eef6ff;border:1.5px solid #93c5fd;border-radius:var(--r2);padding:11px 13px;margin-bottom:10px;margin-top:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div>
+          <div style="font-size:11px;font-weight:800;color:#1d4ed8">🏭 Internally Manufactured?</div>
+          <div style="font-size:10px;color:#6b7a99;font-weight:600">Agar yeh item factory mein banate ho toh yes karo</div>
+        </div>
+        <label style="position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0">
+          <input type="checkbox" id="stk-em-ismfg" onchange="stkToggleMfgSection()" style="opacity:0;width:0;height:0">
+          <span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#cbd5e1;border-radius:22px;transition:.3s" id="stk-em-ismfg-slider"></span>
+        </label>
+      </div>
+      <!-- Ingredients Section -->
+      <div id="stk-em-mfg-section" style="display:none">
+        <div style="font-size:10px;font-weight:800;color:#1d4ed8;margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px">📋 1 unit banane ke liye ingredients:</div>
+        <div id="stk-em-ingredients-list"></div>
+        <button onclick="stkAddIngredient()" style="width:100%;padding:7px;background:#dbeafe;border:1.5px dashed #93c5fd;border-radius:var(--r2);font-family:Nunito,sans-serif;font-size:11px;font-weight:800;color:#1d4ed8;cursor:pointer;margin-top:6px">＋ Ingredient Add Karo</button>
+      </div>
     </div>
 
     <!-- Buttons -->
@@ -5368,6 +5425,7 @@ function renderStock(){
       <div style="display:flex;gap:3px;justify-content:flex-end" onclick="event.stopPropagation()">
         <button onclick="openStk('${it.id}','in')" title="Aaya" style="width:24px;height:24px;background:var(--green-bg);border:1px solid #6ee7b7;border-radius:6px;cursor:pointer;font-size:11px">+</button>
         <button onclick="openStk('${it.id}','out')" title="Gaya" style="width:24px;height:24px;background:var(--red-bg);border:1px solid #fca5a5;border-radius:6px;cursor:pointer;font-size:11px">−</button>
+        ${it.isMfg?`<button onclick="openMfgModal('${it.id}')" title="Manufacture" style="width:24px;height:24px;background:#dbeafe;border:1px solid #93c5fd;border-radius:6px;cursor:pointer;font-size:11px">🏭</button>`:''}
       </div>
     </div>`;
   }).join('');
@@ -5467,7 +5525,7 @@ function openStkEditModal(id){
   const it=STK.find(i=>i.id===id); if(!it) return;
   const purUnit=it.purUnit||it.unit;
   const units=['pcs','nos','kg','meter','liter','box','roll','set'];
-  const cats=['Raw Material','Hardware','Packaging','Chemical','Other'];
+  const cats=['Raw Material','Hardware','Semi-Finished','Packaging','Chemical','Other'];
   document.getElementById('stk-em-id').value=id;
   document.getElementById('stk-em-title').textContent=(it.ico||'📦')+' '+it.name;
   document.getElementById('stk-em-name').value=it.name;
@@ -5491,6 +5549,11 @@ function openStkEditModal(id){
   document.getElementById('stk-em-convratio').value=it.convRatio||1;
   document.getElementById('stk-em-desc').value=it.desc||'';
   document.getElementById('stk-em-notes').value=it.notes||'';
+  // Manufactured item setup
+  const ismfgCb=document.getElementById('stk-em-ismfg');
+  ismfgCb.checked=!!it.isMfg;
+  stkToggleMfgSection();
+  if(it.isMfg) stkLoadIngredientRows(it.ingredients||[]);
   stkUpdateConvLabel();
   document.getElementById('stk-edit-modal').classList.add('show');
 }
@@ -5524,6 +5587,8 @@ function saveStkEditModal(){
   STK[idx].convRatio=parseFloat(document.getElementById('stk-em-convratio').value)||1;
   STK[idx].desc=document.getElementById('stk-em-desc').value.trim();
   STK[idx].notes=document.getElementById('stk-em-notes').value.trim();
+  STK[idx].isMfg=document.getElementById('stk-em-ismfg').checked;
+  STK[idx].ingredients=STK[idx].isMfg?stkGetIngredientRows():[];
   save('bf9_stk',STK); closeStkEditModal(); renderStock(); toast('✅ Updated!');
 }
 function deleteStkItem(){
@@ -5531,6 +5596,161 @@ function deleteStkItem(){
   if(!confirm('Delete karna hai?')) return;
   STK=STK.filter(i=>i.id!==id);
   save('bf9_stk',STK); closeStkEditModal(); renderStock(); toast('Deleted');
+}
+
+// ── Semi-Finished / Manufacturing Functions ────────────────────────────────
+
+function stkToggleMfgSection(){
+  const cb=document.getElementById('stk-em-ismfg');
+  const sec=document.getElementById('stk-em-mfg-section');
+  const slider=document.getElementById('stk-em-ismfg-slider');
+  if(cb.checked){
+    sec.style.display='block';
+    slider.style.background='#3b82f6';
+    slider.style.borderRadius='22px';
+  } else {
+    sec.style.display='none';
+    slider.style.background='#cbd5e1';
+  }
+}
+
+function stkRenderIngredients(){
+  const list=document.getElementById('stk-em-ingredients-list');
+  if(!list) return;
+  const rows=list.querySelectorAll('.ingr-row');
+  // just re-render from existing rows — no-op, rows manage themselves
+}
+
+function stkAddIngredient(){
+  const list=document.getElementById('stk-em-ingredients-list');
+  const opts=STK.filter(i=>!i.isMfg).map(i=>`<option value="${i.id}">${esc(i.name)} (${i.unit})</option>`).join('');
+  if(!opts){ toast('Pehle raw materials add karo!'); return; }
+  const rowId='ingr_'+Date.now();
+  const div=document.createElement('div');
+  div.className='ingr-row';
+  div.id=rowId;
+  div.style.cssText='display:grid;grid-template-columns:1fr 80px 26px;gap:6px;margin-bottom:6px;align-items:center';
+  div.innerHTML=`
+    <select class="finp" style="font-size:11px;padding:5px 8px">${opts}</select>
+    <input class="finp" type="number" min="0" step="any" placeholder="Qty" style="font-size:11px;padding:5px 8px">
+    <button onclick="document.getElementById('${rowId}').remove()" style="width:26px;height:26px;border-radius:6px;border:1px solid #fca5a5;background:#fef2f2;cursor:pointer;font-size:12px;color:#b91c1c">✕</button>
+  `;
+  list.appendChild(div);
+}
+
+function stkGetIngredientRows(){
+  const list=document.getElementById('stk-em-ingredients-list');
+  if(!list) return [];
+  const rows=list.querySelectorAll('.ingr-row');
+  const result=[];
+  rows.forEach(row=>{
+    const sel=row.querySelector('select');
+    const inp=row.querySelector('input[type="number"]');
+    if(sel&&inp&&parseFloat(inp.value)>0){
+      result.push({itemId:sel.value, qty:parseFloat(inp.value)});
+    }
+  });
+  return result;
+}
+
+function stkLoadIngredientRows(ingredients){
+  const list=document.getElementById('stk-em-ingredients-list');
+  if(!list) return;
+  list.innerHTML='';
+  (ingredients||[]).forEach(ingr=>{
+    const opts=STK.filter(i=>!i.isMfg).map(i=>`<option value="${i.id}" ${i.id===ingr.itemId?'selected':''}>${esc(i.name)} (${i.unit})</option>`).join('');
+    const rowId='ingr_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+    const div=document.createElement('div');
+    div.className='ingr-row';
+    div.id=rowId;
+    div.style.cssText='display:grid;grid-template-columns:1fr 80px 26px;gap:6px;margin-bottom:6px;align-items:center';
+    div.innerHTML=`
+      <select class="finp" style="font-size:11px;padding:5px 8px">${opts}</select>
+      <input class="finp" type="number" min="0" step="any" placeholder="Qty" value="${ingr.qty}" style="font-size:11px;padding:5px 8px">
+      <button onclick="document.getElementById('${rowId}').remove()" style="width:26px;height:26px;border-radius:6px;border:1px solid #fca5a5;background:#fef2f2;cursor:pointer;font-size:12px;color:#b91c1c">✕</button>
+    `;
+    list.appendChild(div);
+  });
+}
+
+// Manufacture Modal
+let _mfgItemId=null;
+function openMfgModal(id){
+  const it=STK.find(i=>i.id===id);
+  if(!it) return;
+  _mfgItemId=id;
+  document.getElementById('stk-mfg-title').textContent=(it.ico||'🏭')+' '+it.name;
+  document.getElementById('stk-mfg-qty').value='';
+  document.getElementById('stk-mfg-note').value='';
+  document.getElementById('stk-mfg-preview').style.display='none';
+  document.getElementById('stk-mfg-warn').style.display='none';
+  document.getElementById('stk-mfg-modal').classList.add('show');
+  setTimeout(()=>document.getElementById('stk-mfg-qty').focus(),300);
+}
+function closeMfgModal(){
+  document.getElementById('stk-mfg-modal')?.classList.remove('show');
+  _mfgItemId=null;
+}
+function stkMfgPreview(){
+  const qty=parseFloat(document.getElementById('stk-mfg-qty').value)||0;
+  const prev=document.getElementById('stk-mfg-preview');
+  const warn=document.getElementById('stk-mfg-warn');
+  const list=document.getElementById('stk-mfg-preview-list');
+  warn.style.display='none';
+  if(!qty||!_mfgItemId){ prev.style.display='none'; return; }
+  const it=STK.find(i=>i.id===_mfgItemId);
+  if(!it||!it.ingredients||!it.ingredients.length){ prev.style.display='none'; return; }
+  let warnings=[];
+  const rows=it.ingredients.map(ingr=>{
+    const mat=STK.find(i=>i.id===ingr.itemId);
+    if(!mat) return '';
+    const needed=ingr.qty*qty;
+    const ok=mat.current>=needed;
+    if(!ok) warnings.push(`❌ ${mat.name}: chahiye ${needed} ${mat.unit}, hai sirf ${mat.current}`);
+    return `<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;padding:4px 0;border-bottom:1px solid #bbf7d0">
+      <span>${mat.ico||'📦'} ${esc(mat.name)}</span>
+      <span style="color:${ok?'#166534':'#b91c1c'}">${needed} ${mat.unit} ${ok?'✅':'⚠️'}</span>
+    </div>`;
+  }).join('');
+  list.innerHTML=rows;
+  prev.style.display='block';
+  if(warnings.length){
+    warn.innerHTML='⚠️ Stock Kam Hai:<br>'+warnings.join('<br>');
+    warn.style.display='block';
+  }
+}
+function confirmMfg(){
+  const qty=parseFloat(document.getElementById('stk-mfg-qty').value)||0;
+  const note=document.getElementById('stk-mfg-note').value.trim();
+  if(qty<=0||!_mfgItemId){ toast('Quantity daalo!'); return; }
+  const it=STK.find(i=>i.id===_mfgItemId);
+  if(!it) return;
+  // Check stock
+  if(it.ingredients&&it.ingredients.length){
+    for(const ingr of it.ingredients){
+      const mat=STK.find(i=>i.id===ingr.itemId);
+      if(!mat) continue;
+      const needed=ingr.qty*qty;
+      if(mat.current<needed){
+        if(!confirm(`${mat.name} ka stock kam hai (chahiye: ${needed}, hai: ${mat.current}). Phir bhi continue karein?`)) return;
+      }
+    }
+    // Deduct ingredients
+    it.ingredients.forEach(ingr=>{
+      const mat=STK.find(i=>i.id===ingr.itemId);
+      if(!mat) return;
+      const needed=ingr.qty*qty;
+      mat.current=Math.max(0, mat.current-needed);
+      STXN.push({id:Date.now()+Math.random(),itemId:mat.id,type:'out',qty:needed,note:`🏭 Mfg: ${qty} ${it.name} ke liye`,date:new Date().toISOString()});
+    });
+  }
+  // Add manufactured qty
+  it.current+=qty;
+  STXN.push({id:Date.now(),itemId:it.id,type:'in',qty,note:`🏭 Manufactured${note?' — '+note:''}`,date:new Date().toISOString()});
+  if(STXN.length>500) STXN=STXN.slice(-500);
+  save('bf9_stk',STK); save('bf9_stxn',STXN);
+  closeMfgModal(); renderStock();
+  toast(`✅ ${qty} ${it.unit} manufactured! Ingredients deduct ho gaye.`);
 }
 function openStk(id,type){
   stkItem=STK.find(i=>i.id===id); if(!stkItem) return;
