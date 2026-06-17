@@ -9190,6 +9190,7 @@ function createInvoiceFromBatch(batchId){
   setInvTab('new');
   setTimeout(()=>{
     document.getElementById('inv-party').value=b.party;
+    onInvPartyChange();
     document.getElementById('inv-num-field').value=_nextInvNum();
     _invItems=[{name:b.product||'Metal Stand (Adjustable)',hsn:'9403',qty:b.qty,rate:0}];
     document.getElementById('inv-batch-link').value=batchId;
