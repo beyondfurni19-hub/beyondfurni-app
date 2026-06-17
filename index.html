@@ -6,6 +6,7 @@
 <title>BeyondFurni — Floor Plan System</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 /* ═══════════════════ TOKENS ═══════════════════ */
 :root{
@@ -833,6 +834,17 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .snl{font-size:9px;color:var(--muted);text-transform:uppercase;margin-top:1px;font-weight:700;}
 .stock-acts{display:flex;gap:7px;}
 .stk-mfg-slider-on{background:#3b82f6!important;}
+.an-tab{padding:7px 14px;border:1.5px solid var(--border);border-radius:20px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer;background:#fff;color:var(--navy2);transition:all .2s}
+.an-tab.active{background:var(--navy2);color:#fff;border-color:var(--navy2)}
+.an-card{background:var(--card);border:1.5px solid var(--border);border-radius:var(--r2);padding:14px;margin-bottom:12px;box-shadow:var(--shadow)}
+.an-kpi-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+.an-kpi{background:#f8faff;border:1.5px solid var(--border);border-radius:var(--r2);padding:12px;text-align:center}
+.an-kpi-val{font-family:'Bebas Neue';font-size:26px;color:var(--navy2);line-height:1}
+.an-kpi-lbl{font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-top:3px}
+.an-chart-wrap{position:relative;height:200px;margin-bottom:4px}
+.an-sec-title{font-size:13px;font-weight:900;color:var(--navy2);margin-bottom:10px}
+.an-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.an-row:last-child{border:none}
 
 .btn-sin{flex:1;padding:10px;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;background:#dbeafe;color:#1e3a8a;}
 .btn-sout{flex:1;padding:10px;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;background:var(--red-bg);color:var(--red-dark);}
@@ -1393,8 +1405,8 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <button class="sbnav" data-tab="ceo-report" onclick="sw('ceo-report',this)">
       <span class="sb-ico">🏆</span><span class="sb-lbl">CEO Report</span>
     </button>
-    <button class="sbnav wip-nav">
-      <span class="sb-ico">📈</span><span class="sb-lbl">Analytics</span><span class="sb-wip">WIP</span>
+    <button class="sbnav" data-tab="analytics" onclick="sw('analytics',this)">
+      <span class="sb-ico">📈</span><span class="sb-lbl">Analytics</span>
     </button>
     <button class="sbnav wip-nav">
       <span class="sb-ico">🎯</span><span class="sb-lbl">Targets</span><span class="sb-wip">WIP</span>
@@ -3060,6 +3072,38 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 
 
 
+
+<!-- ════ ANALYTICS ════ -->
+<div class="sc" id="s-analytics">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+    <div>
+      <div style="font-size:20px;font-weight:900;color:var(--navy2)">📈 Analytics</div>
+      <div style="font-size:11px;color:var(--muted);font-weight:700">Business performance — ek nazar mein</div>
+    </div>
+    <select id="an-period" class="finp" onchange="renderAnalytics()" style="font-size:12px;padding:7px 10px;width:140px">
+      <option value="3">Last 3 Months</option>
+      <option value="6" selected>Last 6 Months</option>
+      <option value="12">Last 12 Months</option>
+      <option value="all">All Time</option>
+    </select>
+  </div>
+
+  <!-- Tab Pills -->
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+    <button class="an-tab active" onclick="anTab('production',this)">🏭 Production</button>
+    <button class="an-tab" onclick="anTab('financial',this)">💰 Financial</button>
+    <button class="an-tab" onclick="anTab('stock',this)">🧱 Stock</button>
+    <button class="an-tab" onclick="anTab('customer',this)">👥 Customer</button>
+    <button class="an-tab" onclick="anTab('dispatch',this)">🚚 Dispatch</button>
+  </div>
+
+  <!-- Sections -->
+  <div id="an-production"></div>
+  <div id="an-financial" style="display:none"></div>
+  <div id="an-stock" style="display:none"></div>
+  <div id="an-customer" style="display:none"></div>
+  <div id="an-dispatch" style="display:none"></div>
+</div>
 
 <!-- ════ WHAT'S NEW ════ -->
 <div class="sc" id="s-whats-new">
@@ -8003,6 +8047,7 @@ function setInvTab(name){
   if(name==='new')      initNewInvoice();
   if(name==='settings') { loadInvSettings(); loadDiscSettings(); }
   if(name==='whats-new') renderWhatsNew();
+  if(name==='analytics') renderAnalytics();
 }
 
 /* ── Render Invoice Tab ── */
@@ -13489,6 +13534,468 @@ function saveDiscSettings(){
   DISC_SET.emiRatio        = parseFloat(document.getElementById('disc-emi-ratio').value)||40;
   save('bf9_disc_settings', DISC_SET);
   toast('✅ Discipline settings saved!');
+}
+
+// ── ANALYTICS MODULE ──────────────────────────────────────────────────────
+
+let _anCharts = {}; // store chart instances
+
+function anTab(name, btn){
+  document.querySelectorAll('.an-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  ['production','financial','stock','customer','dispatch'].forEach(t=>{
+    document.getElementById('an-'+t).style.display = t===name?'block':'none';
+  });
+}
+
+function _anGetMonths(n){
+  const months = [];
+  const now = new Date();
+  const count = n==='all' ? 24 : parseInt(n);
+  for(let i=count-1;i>=0;i--){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    months.push(d.toISOString().slice(0,7));
+  }
+  return months;
+}
+
+function _anDestroyChart(id){
+  if(_anCharts[id]){ _anCharts[id].destroy(); delete _anCharts[id]; }
+}
+
+function _anMakeChart(id, type, labels, datasets, opts={}){
+  _anDestroyChart(id);
+  const ctx = document.getElementById(id);
+  if(!ctx) return;
+  _anCharts[id] = new Chart(ctx, {
+    type,
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: datasets.length>1, labels:{font:{family:'Nunito',size:10},boxWidth:12} } },
+      scales: type==='pie'||type==='doughnut' ? {} : {
+        x: { ticks:{font:{family:'Nunito',size:9}}, grid:{display:false} },
+        y: { ticks:{font:{family:'Nunito',size:9}, callback: v=>v>=1000?'₹'+(v/1000).toFixed(0)+'k':'₹'+v }, beginAtZero:true }
+      },
+      ...opts
+    }
+  });
+}
+
+function renderAnalytics(){
+  const period = document.getElementById('an-period')?.value || '6';
+  const months = _anGetMonths(period);
+
+  // Render all tabs
+  _anRenderProduction(months);
+  _anRenderFinancial(months);
+  _anRenderStock(months);
+  _anRenderCustomer(months);
+  _anRenderDispatch(months);
+}
+
+// ── 1. PRODUCTION ANALYTICS ───────────────────────────────────────────────
+function _anRenderProduction(months){
+  const el = document.getElementById('an-production');
+  if(!el) return;
+
+  const batches = BATCHES || [];
+
+  // Monthly units produced (closed batches)
+  const monthlyUnits = {};
+  months.forEach(m=>monthlyUnits[m]=0);
+  batches.forEach(b=>{
+    const m = (b.closedAt||b.createdAt||'').slice(0,7);
+    if(monthlyUnits[m]!==undefined) monthlyUnits[m]+=(b.qty||0);
+  });
+
+  // Product-wise breakdown
+  const byProduct = {};
+  batches.forEach(b=>{
+    const p = b.product||'Unknown';
+    byProduct[p]=(byProduct[p]||0)+(b.qty||0);
+  });
+  const topProducts = Object.entries(byProduct).sort((a,b)=>b[1]-a[1]).slice(0,6);
+
+  // Stage completion rate
+  const closedBatches = batches.filter(b=>b.closedAt||btIsDone(b));
+  const activeBatches = batches.filter(b=>!b.closedAt&&!btIsDone(b));
+  const totalQty = batches.reduce((s,b)=>s+(b.qty||0),0);
+  const avgBatchQty = batches.length ? Math.round(totalQty/batches.length) : 0;
+
+  // Batch cycle time (days)
+  const cycleTimes = closedBatches.filter(b=>b.createdAt&&b.closedAt).map(b=>{
+    return Math.round((new Date(b.closedAt)-new Date(b.createdAt))/(1000*60*60*24));
+  }).filter(d=>d>=0&&d<=60);
+  const avgCycle = cycleTimes.length ? Math.round(cycleTimes.reduce((a,b)=>a+b,0)/cycleTimes.length) : '—';
+
+  el.innerHTML = `
+    <div class="an-kpi-grid">
+      <div class="an-kpi"><div class="an-kpi-val">${batches.length}</div><div class="an-kpi-lbl">Total Batches</div></div>
+      <div class="an-kpi"><div class="an-kpi-val">${totalQty.toLocaleString('en-IN')}</div><div class="an-kpi-lbl">Total Units</div></div>
+      <div class="an-kpi"><div class="an-kpi-val">${activeBatches.length}</div><div class="an-kpi-lbl">Active Batches</div></div>
+      <div class="an-kpi"><div class="an-kpi-val">${avgCycle} din</div><div class="an-kpi-lbl">Avg Cycle Time</div></div>
+    </div>
+
+    <div class="an-card">
+      <div class="an-sec-title">📅 Monthly Production (Units)</div>
+      <div class="an-chart-wrap"><canvas id="an-ch-prod-monthly"></canvas></div>
+    </div>
+
+    <div class="an-card">
+      <div class="an-sec-title">📦 Product-wise Breakdown</div>
+      <div class="an-chart-wrap"><canvas id="an-ch-prod-product"></canvas></div>
+    </div>
+
+    <div class="an-card">
+      <div class="an-sec-title">🏆 Top Products</div>
+      ${topProducts.map(([p,q])=>`
+        <div class="an-row">
+          <div style="font-size:12px;font-weight:800;color:var(--navy2)">${esc(p)}</div>
+          <div style="font-size:12px;font-weight:900;color:var(--orange)">${q.toLocaleString('en-IN')} pcs</div>
+        </div>`).join('')}
+    </div>`;
+
+  setTimeout(()=>{
+    const mnLabels = months.map(m=>{ const [y,mo]=m.split('-'); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+mo-1]+' '+y.slice(2); });
+    _anMakeChart('an-ch-prod-monthly','bar',mnLabels,[{
+      label:'Units',data:months.map(m=>monthlyUnits[m]),
+      backgroundColor:'rgba(59,130,246,.7)',borderRadius:6
+    }]);
+    _anMakeChart('an-ch-prod-product','doughnut',topProducts.map(p=>p[0]),[ {
+      data:topProducts.map(p=>p[1]),
+      backgroundColor:['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4']
+    }],{scales:{}});
+  },100);
+}
+
+// ── 2. FINANCIAL ANALYTICS ────────────────────────────────────────────────
+function _anRenderFinancial(months){
+  const el = document.getElementById('an-financial');
+  if(!el) return;
+
+  const db = DAYBOOK || [];
+  const inv = INVOICES || [];
+
+  // Monthly income & expense from daybook
+  const monthlyInc = {}, monthlyExp = {};
+  months.forEach(m=>{ monthlyInc[m]=0; monthlyExp[m]=0; });
+  db.forEach(e=>{
+    const m = e.date?.slice(0,7);
+    if(!m || monthlyInc[m]===undefined) return;
+    if(e.type==='income' && e.category!=='inter_account_in') monthlyInc[m]+=e.amount;
+    if(e.type==='expense') monthlyExp[m]+=e.amount;
+  });
+
+  // Category-wise expense
+  const byCat = {};
+  db.filter(e=>e.type==='expense' && months.includes(e.date?.slice(0,7))).forEach(e=>{
+    byCat[e.category]=(byCat[e.category]||0)+e.amount;
+  });
+  const allCats = [...(DB_CATS?.expense||[])];
+  const topExp = Object.entries(byCat).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([id,amt])=>{
+    const cat = allCats.find(c=>c.id===id)||{label:id,icon:'💸',color:'#9ca3af'};
+    return {label:cat.label, icon:cat.icon, color:cat.color, amt};
+  });
+
+  // Invoice stats
+  const periodInv = inv.filter(i=>months.includes(i.date?.slice(0,7)));
+  const totalBilled = periodInv.reduce((s,i)=>s+i.grandTotal,0);
+  const totalPaid = periodInv.filter(i=>i.status==='paid').reduce((s,i)=>s+i.grandTotal,0);
+  const totalPending = totalBilled - totalPaid;
+
+  const totalInc = Object.values(monthlyInc).reduce((a,b)=>a+b,0);
+  const totalExp = Object.values(monthlyExp).reduce((a,b)=>a+b,0);
+  const netFlow = totalInc - totalExp;
+
+  el.innerHTML = `
+    <div class="an-kpi-grid">
+      <div class="an-kpi" style="background:#f0fdf4;border-color:#86efac"><div class="an-kpi-val" style="color:#16a34a">₹${(totalInc/1000).toFixed(0)}k</div><div class="an-kpi-lbl">Total Income</div></div>
+      <div class="an-kpi" style="background:#fef2f2;border-color:#fca5a5"><div class="an-kpi-val" style="color:#dc2626">₹${(totalExp/1000).toFixed(0)}k</div><div class="an-kpi-lbl">Total Expense</div></div>
+      <div class="an-kpi" style="background:${netFlow>=0?'#f0fdf4':'#fef2f2'};border-color:${netFlow>=0?'#86efac':'#fca5a5'}"><div class="an-kpi-val" style="color:${netFlow>=0?'#16a34a':'#dc2626'}">${netFlow>=0?'+':''}₹${(Math.abs(netFlow)/1000).toFixed(0)}k</div><div class="an-kpi-lbl">Net Cash Flow</div></div>
+      <div class="an-kpi"><div class="an-kpi-val" style="color:#f59e0b">₹${(totalPending/1000).toFixed(0)}k</div><div class="an-kpi-lbl">Pending Collection</div></div>
+    </div>
+
+    <div class="an-card">
+      <div class="an-sec-title">💹 Income vs Expense (Monthly)</div>
+      <div class="an-chart-wrap"><canvas id="an-ch-fin-monthly"></canvas></div>
+    </div>
+
+    <div class="an-card">
+      <div class="an-sec-title">💸 Expense Breakdown</div>
+      <div class="an-chart-wrap" style="height:180px"><canvas id="an-ch-fin-exp"></canvas></div>
+      <div style="margin-top:10px">
+        ${topExp.map(e=>`
+          <div class="an-row">
+            <div style="font-size:11px;font-weight:800;color:var(--navy2)">${e.icon} ${e.label}</div>
+            <div style="font-size:12px;font-weight:900;color:var(--red-dark)">₹${e.amt.toLocaleString('en-IN')}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="an-card">
+      <div class="an-sec-title">🧾 Invoice Collection Status</div>
+      <div class="an-row"><div style="font-size:12px;font-weight:700">Total Billed</div><div style="font-size:13px;font-weight:900;color:var(--navy2)">₹${totalBilled.toLocaleString('en-IN')}</div></div>
+      <div class="an-row"><div style="font-size:12px;font-weight:700">Paid</div><div style="font-size:13px;font-weight:900;color:var(--green-dark)">₹${totalPaid.toLocaleString('en-IN')}</div></div>
+      <div class="an-row"><div style="font-size:12px;font-weight:700">Pending</div><div style="font-size:13px;font-weight:900;color:var(--red)">₹${totalPending.toLocaleString('en-IN')}</div></div>
+      <div style="height:8px;background:#f0f4fb;border-radius:4px;margin-top:8px;overflow:hidden">
+        <div style="height:100%;width:${totalBilled>0?Math.round(totalPaid/totalBilled*100):0}%;background:var(--green);border-radius:4px"></div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);font-weight:700;margin-top:4px">${totalBilled>0?Math.round(totalPaid/totalBilled*100):0}% collected</div>
+    </div>`;
+
+  setTimeout(()=>{
+    const mnLabels = months.map(m=>{ const [y,mo]=m.split('-'); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+mo-1]+' '+y.slice(2); });
+    _anMakeChart('an-ch-fin-monthly','bar',mnLabels,[
+      {label:'Income',data:months.map(m=>monthlyInc[m]),backgroundColor:'rgba(16,185,129,.7)',borderRadius:4},
+      {label:'Expense',data:months.map(m=>monthlyExp[m]),backgroundColor:'rgba(239,68,68,.7)',borderRadius:4}
+    ]);
+    _anMakeChart('an-ch-fin-exp','doughnut',topExp.map(e=>e.label),[{
+      data:topExp.map(e=>e.amt),
+      backgroundColor:topExp.map(e=>e.color)
+    }],{scales:{}});
+  },100);
+}
+
+// ── 3. STOCK ANALYTICS ────────────────────────────────────────────────────
+function _anRenderStock(months){
+  const el = document.getElementById('an-stock');
+  if(!el) return;
+
+  const stxn = STXN || [];
+  const stk  = STK  || [];
+
+  // Most used materials (out transactions)
+  const byMat = {};
+  stxn.filter(t=>t.type==='out').forEach(t=>{
+    byMat[t.itemId]=(byMat[t.itemId]||0)+t.qty;
+  });
+  const topUsed = Object.entries(byMat).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([id,qty])=>{
+    const mat = stk.find(m=>m.id===id)||{name:id,unit:'',ico:'📦'};
+    return {name:mat.name, ico:mat.ico||'📦', unit:mat.unit, qty};
+  });
+
+  // Monthly in vs out
+  const monthlyIn={}, monthlyOut={};
+  months.forEach(m=>{monthlyIn[m]=0;monthlyOut[m]=0;});
+  stxn.forEach(t=>{
+    const m=t.date?.slice(0,7);
+    if(!m||monthlyIn[m]===undefined) return;
+    if(t.type==='in') monthlyIn[m]+=t.qty;
+    else monthlyOut[m]+=t.qty;
+  });
+
+  // Low stock items
+  const lowItems = stk.filter(m=>m.reorder>0&&m.current<=m.reorder).sort((a,b)=>a.current-b.current).slice(0,5);
+  // High value items
+  const highVal = [...stk].sort((a,b)=>(b.current*(b.rate||0))-(a.current*(a.rate||0))).slice(0,5);
+  const totalVal = stk.reduce((s,m)=>s+(m.current*(m.rate||0)),0);
+
+  el.innerHTML = `
+    <div class="an-kpi-grid">
+      <div class="an-kpi"><div class="an-kpi-val">${stk.length}</div><div class="an-kpi-lbl">Total Items</div></div>
+      <div class="an-kpi"><div class="an-kpi-val">₹${(totalVal/1000).toFixed(0)}k</div><div class="an-kpi-lbl">Stock Value</div></div>
+      <div class="an-kpi" style="background:#fef2f2;border-color:#fca5a5"><div class="an-kpi-val" style="color:#dc2626">${stk.filter(m=>m.current<=0).length}</div><div class="an-kpi-lbl">Out of Stock</div></div>
+      <div class="an-kpi" style="background:#fffbeb;border-color:#fde68a"><div class="an-kpi-val" style="color:#92400e">${lowItems.length}</div><div class="an-kpi-lbl">Low Stock</div></div>
+    </div>
+
+    <div class="an-card">
+      <div class="an-sec-title">📊 Stock Movement (Monthly)</div>
+      <div class="an-chart-wrap"><canvas id="an-ch-stk-move"></canvas></div>
+    </div>
+
+    <div class="an-card">
+      <div class="an-sec-title">🔥 Most Used Materials</div>
+      ${topUsed.map(m=>`
+        <div class="an-row">
+          <div style="font-size:12px;font-weight:800;color:var(--navy2)">${m.ico} ${esc(m.name)}</div>
+          <div style="font-size:12px;font-weight:900;color:var(--orange)">${m.qty.toLocaleString('en-IN')} ${m.unit}</div>
+        </div>`).join('')||'<div style="color:var(--muted);font-size:12px;text-align:center;padding:12px">Koi data nahi</div>'}
+    </div>
+
+    <div class="an-card">
+      <div class="an-sec-title">⚠️ Low Stock Alert</div>
+      ${lowItems.length ? lowItems.map(m=>`
+        <div class="an-row">
+          <div><div style="font-size:12px;font-weight:800;color:var(--navy2)">${m.ico||'📦'} ${esc(m.name)}</div>
+          <div style="font-size:10px;color:var(--muted)">Min: ${m.reorder} ${m.unit}</div></div>
+          <div style="font-size:13px;font-weight:900;color:${m.current<=0?'var(--red)':'#d97706'}">${m.current} ${m.unit}</div>
+        </div>`).join('') : '<div style="color:var(--green-dark);font-size:12px;font-weight:800;text-align:center;padding:12px">✅ Sab stock theek hai!</div>'}
+    </div>
+
+    <div class="an-card">
+      <div class="an-sec-title">💎 High Value Stock</div>
+      ${highVal.map(m=>{
+        const val=m.current*(m.rate||0);
+        return `<div class="an-row">
+          <div style="font-size:12px;font-weight:800;color:var(--navy2)">${m.ico||'📦'} ${esc(m.name)}</div>
+          <div style="font-size:12px;font-weight:900;color:var(--navy2)">₹${val.toLocaleString('en-IN',{maximumFractionDigits:0})}</div>
+        </div>`;}).join('')}
+    </div>`;
+
+  setTimeout(()=>{
+    const mnLabels = months.map(m=>{ const [y,mo]=m.split('-'); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+mo-1]+' '+y.slice(2); });
+    _anMakeChart('an-ch-stk-move','line',mnLabels,[
+      {label:'In',data:months.map(m=>monthlyIn[m]),borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.1)',tension:.3,fill:true},
+      {label:'Out',data:months.map(m=>monthlyOut[m]),borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.1)',tension:.3,fill:true}
+    ]);
+  },100);
+}
+
+// ── 4. CUSTOMER ANALYTICS ─────────────────────────────────────────────────
+function _anRenderCustomer(months){
+  const el = document.getElementById('an-customer');
+  if(!el) return;
+
+  const inv = INVOICES || [];
+  const periodInv = inv.filter(i=>months.includes(i.date?.slice(0,7)));
+
+  // Top customers by revenue
+  const byParty = {};
+  periodInv.forEach(i=>{
+    byParty[i.party]=(byParty[i.party]||0)+i.grandTotal;
+  });
+  const topParties = Object.entries(byParty).sort((a,b)=>b[1]-a[1]).slice(0,8);
+
+  // Repeat vs new customers
+  const allParties = new Set(inv.map(i=>i.party));
+  const periodParties = new Set(periodInv.map(i=>i.party));
+  const newInPeriod = [...periodParties].filter(p=>{
+    return inv.filter(i=>i.party===p&&!months.includes(i.date?.slice(0,7))).length===0;
+  });
+  const repeatInPeriod = periodParties.size - newInPeriod.length;
+
+  // Avg invoice value per party
+  const avgInvVal = periodInv.length ? Math.round(periodInv.reduce((s,i)=>s+i.grandTotal,0)/periodInv.length) : 0;
+
+  // Monthly unique customers
+  const monthlyCustomers = {};
+  months.forEach(m=>monthlyCustomers[m]=new Set());
+  periodInv.forEach(i=>{ const m=i.date?.slice(0,7); if(m&&monthlyCustomers[m]) monthlyCustomers[m].add(i.party); });
+
+  el.innerHTML = `
+    <div class="an-kpi-grid">
+      <div class="an-kpi"><div class="an-kpi-val">${allParties.size}</div><div class="an-kpi-lbl">Total Customers</div></div>
+      <div class="an-kpi"><div class="an-kpi-val">${periodParties.size}</div><div class="an-kpi-lbl">Active (Period)</div></div>
+      <div class="an-kpi" style="background:#f0fdf4;border-color:#86efac"><div class="an-kpi-val" style="color:#16a34a">${repeatInPeriod}</div><div class="an-kpi-lbl">Repeat Buyers</div></div>
+      <div class="an-kpi"><div class="an-kpi-val">₹${(avgInvVal/1000).toFixed(0)}k</div><div class="an-kpi-lbl">Avg Order Value</div></div>
+    </div>
+
+    <div class="an-card">
+      <div class="an-sec-title">📅 Monthly Active Customers</div>
+      <div class="an-chart-wrap"><canvas id="an-ch-cust-monthly"></canvas></div>
+    </div>
+
+    <div class="an-card">
+      <div class="an-sec-title">🏆 Top Customers by Revenue</div>
+      ${topParties.map(([party,amt],i)=>`
+        <div class="an-row">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:20px;height:20px;border-radius:50%;background:var(--navy2);color:#fff;font-size:9px;font-weight:900;display:flex;align-items:center;justify-content:center">${i+1}</div>
+            <div style="font-size:12px;font-weight:800;color:var(--navy2)">${esc(party)}</div>
+          </div>
+          <div style="font-size:13px;font-weight:900;color:var(--green-dark)">₹${amt.toLocaleString('en-IN')}</div>
+        </div>`).join('')||'<div style="color:var(--muted);font-size:12px;text-align:center;padding:12px">Koi invoice data nahi</div>'}
+    </div>
+
+    <div class="an-card">
+      <div class="an-sec-title">🔄 New vs Repeat</div>
+      <div class="an-chart-wrap" style="height:160px"><canvas id="an-ch-cust-type"></canvas></div>
+    </div>`;
+
+  setTimeout(()=>{
+    const mnLabels = months.map(m=>{ const [y,mo]=m.split('-'); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+mo-1]+' '+y.slice(2); });
+    _anMakeChart('an-ch-cust-monthly','bar',mnLabels,[{
+      label:'Customers',data:months.map(m=>monthlyCustomers[m]?.size||0),
+      backgroundColor:'rgba(99,102,241,.7)',borderRadius:6
+    }]);
+    _anMakeChart('an-ch-cust-type','doughnut',['Repeat','New'],[{
+      data:[repeatInPeriod, newInPeriod.length],
+      backgroundColor:['#10b981','#3b82f6']
+    }],{scales:{}});
+  },100);
+}
+
+// ── 5. DISPATCH ANALYTICS ─────────────────────────────────────────────────
+function _anRenderDispatch(months){
+  const el = document.getElementById('an-dispatch');
+  if(!el) return;
+
+  const inv = INVOICES || [];
+  const batches = BATCHES || [];
+  const periodInv = inv.filter(i=>months.includes(i.date?.slice(0,7)));
+
+  // Monthly dispatch value
+  const monthlyDisp = {};
+  months.forEach(m=>monthlyDisp[m]=0);
+  periodInv.forEach(i=>{ const m=i.date?.slice(0,7); if(m&&monthlyDisp[m]!==undefined) monthlyDisp[m]+=i.grandTotal; });
+
+  // Party-wise dispatch
+  const byParty = {};
+  periodInv.forEach(i=>{ byParty[i.party]=(byParty[i.party]||0)+i.grandTotal; });
+  const topDisp = Object.entries(byParty).sort((a,b)=>b[1]-a[1]).slice(0,6);
+
+  // On-time vs delayed (batch close vs invoice date)
+  let onTime=0, delayed=0;
+  batches.forEach(b=>{
+    if(!b.closedAt||!b.createdAt) return;
+    const days = Math.round((new Date(b.closedAt)-new Date(b.createdAt))/(1000*60*60*24));
+    if(days<=7) onTime++; else delayed++;
+  });
+
+  // Pending dispatches (active batches with no invoice)
+  const invoicedBatchIds = new Set(inv.map(i=>i.batchId).filter(Boolean));
+  const pendingDispatch = batches.filter(b=>!b.closedAt&&!invoicedBatchIds.has(b.id));
+
+  el.innerHTML = `
+    <div class="an-kpi-grid">
+      <div class="an-kpi"><div class="an-kpi-val">${periodInv.length}</div><div class="an-kpi-lbl">Total Dispatches</div></div>
+      <div class="an-kpi"><div class="an-kpi-val">₹${(Object.values(monthlyDisp).reduce((a,b)=>a+b,0)/1000).toFixed(0)}k</div><div class="an-kpi-lbl">Total Value</div></div>
+      <div class="an-kpi" style="background:#f0fdf4;border-color:#86efac"><div class="an-kpi-val" style="color:#16a34a">${onTime}</div><div class="an-kpi-lbl">On Time (≤7d)</div></div>
+      <div class="an-kpi" style="background:#fef2f2;border-color:#fca5a5"><div class="an-kpi-val" style="color:#dc2626">${pendingDispatch.length}</div><div class="an-kpi-lbl">Pending Dispatch</div></div>
+    </div>
+
+    <div class="an-card">
+      <div class="an-sec-title">📅 Monthly Dispatch Value</div>
+      <div class="an-chart-wrap"><canvas id="an-ch-disp-monthly"></canvas></div>
+    </div>
+
+    <div class="an-card">
+      <div class="an-sec-title">⏱️ On-Time vs Delayed</div>
+      <div class="an-chart-wrap" style="height:160px"><canvas id="an-ch-disp-time"></canvas></div>
+    </div>
+
+    <div class="an-card">
+      <div class="an-sec-title">🚚 Top Parties by Dispatch Value</div>
+      ${topDisp.map(([party,amt])=>`
+        <div class="an-row">
+          <div style="font-size:12px;font-weight:800;color:var(--navy2)">${esc(party)}</div>
+          <div style="font-size:13px;font-weight:900;color:var(--navy2)">₹${amt.toLocaleString('en-IN')}</div>
+        </div>`).join('')||'<div style="color:var(--muted);font-size:12px;text-align:center;padding:12px">Koi data nahi</div>'}
+    </div>
+
+    ${pendingDispatch.length?`
+    <div class="an-card" style="border-color:#fca5a5">
+      <div class="an-sec-title" style="color:var(--red-dark)">⏳ Pending Dispatches</div>
+      ${pendingDispatch.slice(0,5).map(b=>`
+        <div class="an-row">
+          <div><div style="font-size:12px;font-weight:800;color:var(--navy2)">${esc(b.party||'—')}</div>
+          <div style="font-size:10px;color:var(--muted)">${b.product||''} · ${b.qty||0} pcs</div></div>
+          <div style="font-size:10px;font-weight:800;color:var(--red-dark)">${b.createdAt?Math.round((new Date()-new Date(b.createdAt))/(1000*60*60*24))+' din':'—'}</div>
+        </div>`).join('')}
+    </div>`:''}`;
+
+  setTimeout(()=>{
+    const mnLabels = months.map(m=>{ const [y,mo]=m.split('-'); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+mo-1]+' '+y.slice(2); });
+    _anMakeChart('an-ch-disp-monthly','line',mnLabels,[{
+      label:'Value',data:months.map(m=>monthlyDisp[m]),
+      borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,.1)',tension:.3,fill:true
+    }]);
+    _anMakeChart('an-ch-disp-time','doughnut',['On Time (≤7d)','Delayed (>7d)'],[{
+      data:[onTime, delayed],
+      backgroundColor:['#10b981','#ef4444']
+    }],{scales:{}});
+  },100);
 }
 
 // ── WHAT'S NEW ────────────────────────────────────────────────────────────
