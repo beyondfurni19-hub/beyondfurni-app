@@ -1824,17 +1824,37 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   <!-- Table rows -->
   <div id="stock-list" style="border-radius:0 0 var(--r2) var(--r2);overflow:hidden;border:1px solid var(--border);border-top:none"></div>
 
-  <!-- Stock Report -->
+  <!-- Stock History -->
   <div style="margin-top:16px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-      <div style="font-size:14px;font-weight:900;color:var(--navy2)">📋 Stock Report — Batch-wise History</div>
-      <select id="stk-report-filter" onchange="renderStockReport()" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:var(--navy2);background:#fff">
-        <option value="all">Sab Batches</option>
-        <option value="deduct">Sirf Deductions (Batch Close)</option>
-        <option value="in">Sirf Purchase Entry (+)</option>
+      <div style="font-size:14px;font-weight:900;color:var(--navy2)">📋 Stock History</div>
+      <div style="font-size:11px;color:var(--muted);font-weight:700" id="stk-hist-count"></div>
+    </div>
+
+    <!-- Filters -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:10px">
+      <select id="stk-hist-item" class="finp" onchange="renderStockHistory()" style="font-size:11px;padding:7px 9px">
+        <option value="">All Items</option>
+      </select>
+      <select id="stk-hist-type" class="finp" onchange="renderStockHistory()" style="font-size:11px;padding:7px 9px">
+        <option value="">All Types</option>
+        <option value="in">📥 Stock In</option>
+        <option value="out">📤 Stock Out</option>
+      </select>
+      <select id="stk-hist-source" class="finp" onchange="renderStockHistory()" style="font-size:11px;padding:7px 9px">
+        <option value="">All Sources</option>
+        <option value="purchase">🛒 Purchase</option>
+        <option value="batch">📦 Batch</option>
+        <option value="mfg">🏭 Manufacture</option>
+        <option value="manual">✋ Manual</option>
       </select>
     </div>
-    <div id="stk-report-body"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px">
+      <input type="date" id="stk-hist-from" class="finp" onchange="renderStockHistory()" style="font-size:11px;padding:7px 9px" placeholder="From">
+      <input type="date" id="stk-hist-to" class="finp" onchange="renderStockHistory()" style="font-size:11px;padding:7px 9px" placeholder="To">
+    </div>
+
+    <div id="stk-hist-body"></div>
   </div>
 
   <!-- Google Sheets Sync (collapsed) -->
@@ -4207,7 +4227,7 @@ function sw(name,btn){
   if(sbBtn) sbBtn.classList.add('active');
   if(name==='home')     renderDashboard();
   if(name==='tracking') renderTracking();
-  if(name==='stock')    { renderStock(); renderStockReport(); loadSyncUI(); }
+  if(name==='stock')    { renderStock(); renderStockHistory(); loadSyncUI(); }
   if(name==='history')  renderHistory();
   if(name==='meeting')  renderMeeting();
   if(name==='batch')    renderBatchTab();
@@ -5484,96 +5504,119 @@ function renderStock(){
     </div>`;
   }).join('');
 }
-function renderStockReport(){
-  const el=document.getElementById('stk-report-body');
+function renderStockHistory(){
+  const el = document.getElementById('stk-hist-body');
   if(!el) return;
-  const filter=document.getElementById('stk-report-filter')?.value||'all';
 
-  // STXN mein sab transactions hain — batch deductions type='out', note mein 'Batch' hota hai
-  // Group by batch/date
-  const txns=[...STXN].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  // Populate item filter once
+  const itemSel = document.getElementById('stk-hist-item');
+  if(itemSel && itemSel.options.length<=1){
+    STK.forEach(m=>{ const o=document.createElement('option'); o.value=m.id; o.textContent=(m.ico||'📦')+' '+m.name; itemSel.appendChild(o); });
+  }
 
-  const filtered=txns.filter(t=>{
-    if(filter==='deduct') return t.type==='out';
-    if(filter==='in') return t.type==='in';
+  const filterItem   = document.getElementById('stk-hist-item')?.value||'';
+  const filterType   = document.getElementById('stk-hist-type')?.value||'';
+  const filterSource = document.getElementById('stk-hist-source')?.value||'';
+  const filterFrom   = document.getElementById('stk-hist-from')?.value||'';
+  const filterTo     = document.getElementById('stk-hist-to')?.value||'';
+
+  // Determine source from note
+  function getSource(t){
+    const n = (t.note||'').toLowerCase();
+    if(n.includes('purchase') || n.includes('inward') || n.includes('pur'))  return 'purchase';
+    if(n.includes('batch') || n.includes('dispatch'))                         return 'batch';
+    if(n.includes('mfg') || n.includes('manufactur'))                         return 'mfg';
+    return 'manual';
+  }
+
+  // Also merge purchase log entries that may not be in STXN
+  let txns = [...STXN];
+
+  // Filter
+  let filtered = txns.filter(t=>{
+    const dateStr = t.date ? t.date.slice(0,10) : '';
+    if(filterItem   && t.itemId !== filterItem)             return false;
+    if(filterType   && t.type   !== filterType)             return false;
+    if(filterSource && getSource(t) !== filterSource)       return false;
+    if(filterFrom   && dateStr < filterFrom)                return false;
+    if(filterTo     && dateStr > filterTo)                  return false;
     return true;
-  });
+  }).sort((a,b)=> new Date(b.date)-new Date(a.date));
+
+  // Count
+  const cntEl = document.getElementById('stk-hist-count');
+  if(cntEl) cntEl.textContent = filtered.length + ' entries';
 
   if(!filtered.length){
-    el.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;font-weight:700">Koi stock transaction nahi mila</div>';
+    el.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;font-weight:700">Koi transaction nahi mila — filters change karo</div>';
     return;
   }
 
-  // Group by date + batch (note se batch id nikalo)
-  const groups={};
-  filtered.forEach(t=>{
-    // Batch transactions ka note format: "Batch B-001 production"
-    const batchMatch=t.note&&t.note.match(/Batch\s+([\w-]+)/i);
-    const batchId=batchMatch?batchMatch[1]:null;
-    const dateStr=t.date?t.date.slice(0,10):'unknown';
-    const groupKey=batchId?`batch_${batchId}`:`date_${dateStr}_${t.type}`;
+  // Source labels & icons
+  const srcLabel = {purchase:'🛒 Purchase', batch:'📦 Batch', mfg:'🏭 Manufacture', manual:'✋ Manual'};
+  const srcColor = {purchase:'#0891b2', batch:'#7c3aed', mfg:'#1d4ed8', manual:'#78716c'};
+  const batchMap = {}; (BATCHES||[]).forEach(b=>batchMap[b.id]=b);
 
-    if(!groups[groupKey]) groups[groupKey]={
-      type:t.type,
-      batchId,
-      date:dateStr,
-      label:batchId?`Batch ${batchId}`:t.type==='in'?'Purchase Entry':'Manual Entry',
-      items:[],
-      isBatch:!!batchId
-    };
-    groups[groupKey].items.push(t);
+  // Group by date
+  const byDate = {};
+  filtered.forEach(t=>{
+    const d = t.date ? t.date.slice(0,10) : 'unknown';
+    if(!byDate[d]) byDate[d]=[];
+    byDate[d].push(t);
   });
 
-  // Batch info bhi fetch karo
-  const batchMap={};
-  (BATCHES||[]).forEach(b=>batchMap[b.id]=b);
+  let html = '';
+  Object.entries(byDate).forEach(([date, dayTxns])=>{
+    const d = new Date(date+'T00:00:00');
+    const dayLabel = isNaN(d)?date:d.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+    const dayIn  = dayTxns.filter(t=>t.type==='in').reduce((s,t)=>s+t.qty,0);
+    const dayOut = dayTxns.filter(t=>t.type==='out').reduce((s,t)=>s+t.qty,0);
 
-  let html='';
-  Object.values(groups).slice(0,50).forEach(g=>{
-    const batch=g.batchId?batchMap[g.batchId]:null;
-    const isDeduct=g.type==='out';
-    const borderC=isDeduct?'var(--red)':'var(--green)';
-    const bgC=isDeduct?'var(--red-bg)':'var(--green-bg)';
-    const textC=isDeduct?'var(--red-dark)':'var(--green-dark)';
-    const ico=isDeduct?'📤':'📥';
-    const totalItems=g.items.length;
-    const dateLabel=new Date(g.date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+    html += `<div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:2px solid #e8ecf5;margin-bottom:6px">
+        <div style="font-size:10px;font-weight:900;color:var(--navy2)">${dayLabel}</div>
+        <div style="display:flex;gap:8px">
+          ${dayIn>0?`<span style="font-size:10px;font-weight:800;color:var(--green-dark)">+${dayIn} in</span>`:''}
+          ${dayOut>0?`<span style="font-size:10px;font-weight:800;color:var(--red-dark)">-${dayOut} out</span>`:''}
+        </div>
+      </div>
+      ${dayTxns.map(t=>{
+        const mat     = STK.find(m=>m.id===t.itemId);
+        const matName = mat ? (mat.ico||'📦')+' '+mat.name : (t.itemId||'Unknown');
+        const unit    = mat ? mat.unit : '';
+        const isIn    = t.type==='in';
+        const src     = getSource(t);
+        const batchMatch = (t.note||'').match(/Batch\s+([\w-]+)/i);
+        const batchId = batchMatch?batchMatch[1]:null;
+        const batch   = batchId?batchMap[batchId]:null;
+        const noteDisplay = t.note ? t.note.replace(/🏭 Mfg:.*$/,'').trim() : '';
 
-    const itemRows=g.items.map(t=>{
-      const mat=STK.find(m=>m.id===t.itemId);
-      const matName=mat?mat.name:t.itemId;
-      const unit=mat?mat.unit:'';
-      return `<div style="font-size:11px;color:var(--text);padding:3px 0">${matName}</div>
-              <div style="font-size:11px;font-weight:700;color:${isDeduct?'var(--red-dark)':'var(--green-dark)'};text-align:right;padding:3px 0">${isDeduct?'-':'+'} ${t.qty}</div>
-              <div style="font-size:11px;color:var(--muted);text-align:right;padding:3px 0">${unit}</div>`;
-    }).join('');
-
-    html+=`<div style="border:1px solid var(--border);border-left:3px solid ${borderC};border-radius:0 var(--r2) var(--r2) 0;margin-bottom:8px;overflow:hidden">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:#f8faff;flex-wrap:wrap;gap:6px">
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:16px">${ico}</span>
-          <div>
-            <div style="font-size:12px;font-weight:800;color:var(--navy2)">${g.label}${batch?` — ${batch.party||''}`:''}</div>
-            <div style="font-size:10px;color:var(--muted)">${dateLabel}${batch?` · ${batch.product||''} · ${batch.qty||0} pcs`:''}</div>
+        return `<div style="display:flex;align-items:center;gap:10px;padding:9px 10px;background:${isIn?'#f0fdf4':'#fef2f2'};border:1px solid ${isIn?'#bbf7d0':'#fecaca'};border-radius:var(--r2);margin-bottom:5px">
+          <div style="font-size:18px;flex-shrink:0">${isIn?'📥':'📤'}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:800;color:var(--navy2)">${matName}</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:3px;align-items:center">
+              <span style="font-size:10px;font-weight:800;padding:1px 7px;border-radius:20px;background:${srcColor[src]}22;color:${srcColor[src]}">${srcLabel[src]}</span>
+              ${batch?`<span style="font-size:10px;color:var(--muted)">Batch ${batchId}${batch.party?' · '+batch.party:''}</span>`:''}
+              ${noteDisplay?`<span style="font-size:10px;color:var(--muted)">• ${noteDisplay}</span>`:''}
+            </div>
           </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:10px;font-weight:800;padding:3px 8px;background:${bgC};color:${textC};border-radius:20px">${isDeduct?'Stock Minus':'Stock Plus'} · ${totalItems} items</span>
-        </div>
-      </div>
-      <div style="padding:8px 14px">
-        <div style="display:grid;grid-template-columns:1fr auto auto;gap:4px 12px">
-          <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;padding-bottom:4px;border-bottom:1px solid var(--border)">Material</div>
-          <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;text-align:right;padding-bottom:4px;border-bottom:1px solid var(--border)">Qty</div>
-          <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;text-align:right;padding-bottom:4px;border-bottom:1px solid var(--border)">Unit</div>
-          ${itemRows}
-        </div>
-      </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:15px;font-weight:900;color:${isIn?'var(--green-dark)':'var(--red-dark)'}">
+              ${isIn?'+':'-'}${t.qty} <span style="font-size:10px;font-weight:700">${unit}</span>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
     </div>`;
   });
 
-  el.innerHTML=html||'<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">Koi data nahi</div>';
+  el.innerHTML = html;
 }
+
+// Keep old function name for backward compat
+function renderStockReport(){ renderStockHistory(); }
+
 
 function openStkEditModal(id){
   const it=STK.find(i=>i.id===id); if(!it) return;
@@ -15848,7 +15891,6 @@ function invRenderPurLogMini(){
     return;
   }
   el.innerHTML = log.map(l=>{
-    // Support both old single-item and new multi-item format
     const items = l.items || [{matName:l.matName, qty:l.qty, punit:l.punit, stockAdded:l.stockAdded||l.qty, stockUnit:l.stockUnit||l.punit, convRatio:l.convRatio, rate:l.rate, total:l.total}];
     const grand = l.grandTotal || l.total || 0;
     const dateStr = l.date || new Date(l.ts).toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
@@ -15856,7 +15898,10 @@ function invRenderPurLogMini(){
       <div class="inv-log-row">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
           <div style="font-size:11px;font-weight:800;color:var(--navy2)">${l.supplierName||l.supplier||'—'}</div>
-          <div style="font-family:'Bebas Neue';font-size:16px;color:var(--green-dark)">₹${grand.toLocaleString('en-IN')}</div>
+          <div style="display:flex;align-items:center;gap:7px">
+            <div style="font-family:'Bebas Neue';font-size:16px;color:var(--green-dark)">₹${grand.toLocaleString('en-IN')}</div>
+            <button onclick="invDeletePurchase('${l.id||l.ts}')" style="width:24px;height:24px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800" title="Delete">🗑</button>
+          </div>
         </div>
         <div style="font-size:10px;color:var(--muted);margin-bottom:5px">${dateStr}${l.billno?' · '+l.billno:''}${l.supplierId?' <span style="background:#e6fff3;color:var(--green-dark);padding:1px 5px;border-radius:6px;font-weight:800">✓ Ledger</span>':''}</div>
         ${items.map(i=>`
@@ -15871,6 +15916,33 @@ function invRenderPurLogMini(){
       </div>
     `;
   }).join('');
+}
+
+function invDeletePurchase(entryId){
+  if(!confirm('Yeh purchase entry delete karo?\n\n⚠️ Stock reverse nahi hoga — manually adjust karna padega.')) return;
+  let log = invGetPurLog();
+  const entry = log.find(l=>(l.id||l.ts)==entryId);
+  if(!entry){ toast('Entry nahi mili!'); return; }
+
+  // Remove from log
+  log = log.filter(l=>(l.id||l.ts)!=entryId);
+  invSetPurLog(log);
+
+  // Reverse stock
+  const items = entry.items || [{matId:entry.matId, stockAdded:entry.stockAdded||entry.qty}];
+  const allStk = load('bf9_stk')||[];
+  items.forEach(item=>{
+    if(!item.matId) return;
+    const mat = allStk.find(m=>m.id===item.matId);
+    if(!mat) return;
+    mat.current = Math.max(0, (mat.current||0) - (item.stockAdded||item.qty||0));
+  });
+  save('bf9_stk', allStk);
+  STK = allStk;
+
+  invRenderPurLogMini();
+  renderStock();
+  toast('🗑 Purchase entry delete ho gayi — stock reverse hua!');
 }
 
 /* ── PRODUCTION ── */
