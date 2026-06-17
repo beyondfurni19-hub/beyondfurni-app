@@ -1406,6 +1406,10 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <button class="sbnav" data-tab="settings" onclick="sw('settings',this)">
       <span class="sb-ico">⚙️</span><span class="sb-lbl">Settings</span>
     </button>
+    <button class="sbnav" data-tab="whats-new" onclick="sw('whats-new',this)" style="position:relative">
+      <span class="sb-ico">🆕</span><span class="sb-lbl">What's New</span>
+      <span id="wn-dot" style="position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:#f5c842;display:none"></span>
+    </button>
   </div>
 </div>
 
@@ -3056,6 +3060,18 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 
 
 
+
+<!-- ════ WHAT'S NEW ════ -->
+<div class="sc" id="s-whats-new">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <div>
+      <div style="font-size:20px;font-weight:900;color:var(--navy2)">🆕 What's New</div>
+      <div style="font-size:11px;color:var(--muted);font-weight:700">Saare latest changes aur how-to guide</div>
+    </div>
+    <div style="font-size:10px;font-weight:800;color:var(--muted);background:#f0f4ff;padding:4px 10px;border-radius:20px">v10.1</div>
+  </div>
+  <div id="wn-body"></div>
+</div>
 
 <!-- ════ INVENTORY: PURCHASE ENTRY ════ -->
 <div class="sc" id="s-inv-purchase">
@@ -7986,6 +8002,7 @@ function setInvTab(name){
   if(name==='list')     renderInvList();
   if(name==='new')      initNewInvoice();
   if(name==='settings') { loadInvSettings(); loadDiscSettings(); }
+  if(name==='whats-new') renderWhatsNew();
 }
 
 /* ── Render Invoice Tab ── */
@@ -13474,6 +13491,173 @@ function saveDiscSettings(){
   toast('✅ Discipline settings saved!');
 }
 
+// ── WHAT'S NEW ────────────────────────────────────────────────────────────
+
+const WN_CHANGES = [
+  {
+    version: 'v10.1',
+    date: 'June 2026',
+    badge: 'Latest',
+    badgeColor: '#17b86a',
+    items: [
+      {
+        icon: '🏭',
+        title: 'Semi-Finished / Sub-Assembly Stock',
+        desc: 'Ab internally manufactured items (jaise Stud) ko alag track kar sakte ho.',
+        how: [
+          'Stock module mein koi bhi item edit karo (pencil icon)',
+          '"Internally Manufactured?" toggle ON karo',
+          'Ingredients add karo — jaise TPE: 45g, M10 Bolt: 2 pcs per stud',
+          'Save karo — ab us item pe 🏭 button dikhega',
+          '🏭 button dabao → kitne units banaye daalo → ingredients automatically deduct honge'
+        ]
+      },
+      {
+        icon: '📊',
+        title: 'Daybook — Category-wise Drill Down',
+        desc: 'Category breakdown mein kisi bhi category pe tap karo — us category ki saari entries popup mein dikhegi.',
+        how: [
+          'Daybook mein jaao',
+          'Neeche "Category Breakdown" card mein koi bhi category pe tap karo',
+          'Popup mein date-wise saari entries, total, average dikhega',
+          'Income aur Expense dono alag sections mein dikhte hain'
+        ]
+      },
+      {
+        icon: '🎯',
+        title: 'Daybook — 30 Discipline Rules',
+        desc: 'Entry save karte waqt smart warnings aati hain jo company ko financially strong rakhti hain.',
+        how: [
+          'Entry save karo normally',
+          'Agar koi rule trigger hua toh "Discipline Check" popup aayega',
+          '🔴 Red rules — fix karne zaroori hain (e.g. supplier naam missing)',
+          '🟡 Yellow rules — warning hai, "Phir Bhi Save" option hai',
+          'Settings → Discipline Rules mein thresholds apne hisaab se set karo (backup %, EMI limit, etc.)'
+        ]
+      },
+      {
+        icon: '💰',
+        title: 'Daybook — Income Categories bhi dikhti hain',
+        desc: 'Pehle sirf expense categories dikhti thi, ab income categories bhi breakdown mein aati hain.',
+        how: [
+          'Daybook → Category Breakdown scroll karo',
+          'Upar "💸 Kharcha" section, neeche "💰 Aaya" section',
+          'Dono pe tap karke drill down kar sakte ho'
+        ]
+      },
+      {
+        icon: '📋',
+        title: 'Stock — Full History Tab',
+        desc: 'Stock module mein ab complete transaction history hai — purchase, batch, manufacture, manual — sab ek jagah.',
+        how: [
+          'Stock module mein scroll karo neeche',
+          '"Stock History" section mein jaao',
+          'Item filter se specific material ki history dekho',
+          'Source filter se Purchase / Batch / Manufacture / Manual alag karo',
+          'Date range bhi set kar sakte ho'
+        ]
+      },
+      {
+        icon: '🛒',
+        title: 'Purchase Entry — Delete Option',
+        desc: 'Galat purchase entry ab delete kar sakte ho — stock bhi automatically reverse hoga.',
+        how: [
+          'Purchase Entry module mein jaao',
+          'Neeche recent entries list mein 🗑 button dikhega',
+          'Delete karo — confirm popup aayega',
+          'Stock automatically reverse ho jayega'
+        ]
+      },
+      {
+        icon: '🧾',
+        title: 'Batch se Invoice — Party Details Auto-Fill',
+        desc: 'Batch close karte waqt invoice banao toh party ka address, phone, GSTIN automatically fill hoga.',
+        how: [
+          'Batch close karo → "Invoice Banao" select karo',
+          'Party naam automatically aayega',
+          'Agar us party ki details Customers mein save hain toh address, phone, GSTIN bhi fill hoga',
+          'Party Ledger mein customer details update rakho — invoice fast banegi'
+        ]
+      },
+      {
+        icon: '☁️',
+        title: 'Data Loss Protection — Cloud Sync Fix',
+        desc: 'Ek critical bug fix — agar localStorage clear ho jata tha toh empty data cloud pe push ho jaata tha. Ab cloud ka data safe rahega.',
+        how: [
+          'Koi action nahi karna — automatic hai',
+          'Upar sync dot dekho: 🟢 Green = safe, 🟡 Yellow = syncing, 🔴 Red = internet issue',
+          'Agar Red dikhao toh internet check karo — kaam band karne se pehle Green hona chahiye',
+          'Sync fail hone pe neeche warning banner bhi aata hai'
+        ]
+      }
+    ]
+  }
+];
+
+function renderWhatsNew(){
+  const el = document.getElementById('wn-body');
+  if(!el) return;
+
+  // Mark as seen
+  localStorage.setItem('bf9_wn_seen', WN_CHANGES[0].version);
+  const dot = document.getElementById('wn-dot');
+  if(dot) dot.style.display = 'none';
+
+  el.innerHTML = WN_CHANGES.map(ver=>`
+    <div style="margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:900;color:var(--navy2)">${ver.version}</div>
+        <div style="font-size:10px;font-weight:800;padding:2px 9px;background:${ver.badgeColor}22;color:${ver.badgeColor};border-radius:20px">${ver.badge}</div>
+        <div style="font-size:10px;color:var(--muted);font-weight:700">${ver.date}</div>
+      </div>
+      ${ver.items.map((item,i)=>`
+        <div style="border:1.5px solid var(--border);border-radius:var(--r2);margin-bottom:10px;overflow:hidden">
+          <!-- Header -->
+          <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#f8faff;cursor:pointer"
+               onclick="wnToggle('wn_${ver.version}_${i}')">
+            <div style="font-size:22px;flex-shrink:0">${item.icon}</div>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:800;color:var(--navy2)">${item.title}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">${item.desc}</div>
+            </div>
+            <div id="wn_arr_${ver.version}_${i}" style="font-size:14px;color:var(--muted);transition:transform .2s">▼</div>
+          </div>
+          <!-- Tutorial -->
+          <div id="wn_${ver.version}_${i}" style="display:none;padding:12px 14px;border-top:1px solid var(--border);background:#fff">
+            <div style="font-size:10px;font-weight:900;color:#3b82f6;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">📖 Kaise Use Karein:</div>
+            ${item.how.map((step,si)=>`
+              <div style="display:flex;gap:10px;margin-bottom:7px;align-items:flex-start">
+                <div style="width:20px;height:20px;border-radius:50%;background:#3b82f6;color:#fff;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">${si+1}</div>
+                <div style="font-size:12px;font-weight:700;color:var(--text);line-height:1.5">${step}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+function wnToggle(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  // Arrow rotate
+  const arrId = id.replace('wn_','wn_arr_');
+  const arr = document.getElementById(arrId);
+  if(arr) arr.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+// Show yellow dot if new version not seen
+(function(){
+  const seen = localStorage.getItem('bf9_wn_seen');
+  if(seen !== WN_CHANGES[0].version){
+    const dot = document.getElementById('wn-dot');
+    if(dot) dot.style.display = 'block';
+  }
+})();
+
 function loadDiscSettings(){
   const d = DISC_SET;
   const s = (id,v)=>{ const el=document.getElementById(id); if(el) el.value=v; };
@@ -16775,4 +16959,3 @@ init();
 
 </body>
 </html>
-        
