@@ -2927,6 +2927,40 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 <!-- ════ SETTINGS ════ -->
 <div class="sc" id="s-settings">
 
+  <div class="card" style="border:2px solid #3b82f6;background:linear-gradient(135deg,#f0f7ff,#fff)">
+    <div class="card-hdr">
+      <div class="card-title">🎯 Discipline Rules — Settings</div>
+      <div style="font-size:10px;color:#3b82f6;font-weight:800">Financial safety thresholds set karo</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <div class="fg" style="margin:0">
+        <label>Backup Fund % <span style="color:var(--muted);font-size:9px">(monthly income ka)</span></label>
+        <input class="finp" type="number" id="disc-backup-pct" min="0" max="50" placeholder="10" style="font-size:14px;font-weight:800">
+      </div>
+      <div class="fg" style="margin:0">
+        <label>Emergency Fund <span style="color:var(--muted);font-size:9px">(months of expenses)</span></label>
+        <input class="finp" type="number" id="disc-emergency-months" min="1" max="12" placeholder="2" style="font-size:14px;font-weight:800">
+      </div>
+      <div class="fg" style="margin:0">
+        <label>Personal Limit ₹ <span style="color:var(--muted);font-size:9px">(per month max)</span></label>
+        <input class="finp" type="number" id="disc-personal-limit" min="0" placeholder="15000" style="font-size:14px;font-weight:800">
+      </div>
+      <div class="fg" style="margin:0">
+        <label>Raw Mat Ratio % <span style="color:var(--muted);font-size:9px">(of revenue max)</span></label>
+        <input class="finp" type="number" id="disc-rawmat-ratio" min="0" max="100" placeholder="45" style="font-size:14px;font-weight:800">
+      </div>
+      <div class="fg" style="margin:0">
+        <label>Labour Ratio % <span style="color:var(--muted);font-size:9px">(of revenue max)</span></label>
+        <input class="finp" type="number" id="disc-labour-ratio" min="0" max="100" placeholder="30" style="font-size:14px;font-weight:800">
+      </div>
+      <div class="fg" style="margin:0">
+        <label>EMI Burden % <span style="color:var(--muted);font-size:9px">(of income max)</span></label>
+        <input class="finp" type="number" id="disc-emi-ratio" min="0" max="100" placeholder="40" style="font-size:14px;font-weight:800">
+      </div>
+    </div>
+    <button onclick="saveDiscSettings()" style="width:100%;padding:11px;background:#3b82f6;color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">💾 Settings Save Karo</button>
+  </div>
+
   <!-- DATA BACKUP / RESTORE -->
   <div class="card" style="border:2px solid var(--orange);background:linear-gradient(135deg,#fff9f5,#fff)">
     <div class="card-hdr">
@@ -7865,7 +7899,7 @@ function setInvTab(name){
   });
   if(name==='list')     renderInvList();
   if(name==='new')      initNewInvoice();
-  if(name==='settings') loadInvSettings();
+  if(name==='settings') { loadInvSettings(); loadDiscSettings(); }
 }
 
 /* ── Render Invoice Tab ── */
@@ -13313,6 +13347,323 @@ function _dbCatSelect(catId){
   }
 }
 
+// ── DISCIPLINE SETTINGS ───────────────────────────────────────────────────
+let DISC_SET = Object.assign({
+  backupPct:      10,   // % of monthly income
+  emergencyMonths: 2,   // months of expenses buffer
+  personalLimit:  15000,
+  rawmatRatio:    45,   // % of revenue
+  labourRatio:    30,
+  emiRatio:       40,
+}, load('bf9_disc_settings')||{});
+
+function saveDiscSettings(){
+  DISC_SET.backupPct       = parseFloat(document.getElementById('disc-backup-pct').value)||10;
+  DISC_SET.emergencyMonths = parseFloat(document.getElementById('disc-emergency-months').value)||2;
+  DISC_SET.personalLimit   = parseFloat(document.getElementById('disc-personal-limit').value)||15000;
+  DISC_SET.rawmatRatio     = parseFloat(document.getElementById('disc-rawmat-ratio').value)||45;
+  DISC_SET.labourRatio     = parseFloat(document.getElementById('disc-labour-ratio').value)||30;
+  DISC_SET.emiRatio        = parseFloat(document.getElementById('disc-emi-ratio').value)||40;
+  save('bf9_disc_settings', DISC_SET);
+  toast('✅ Discipline settings saved!');
+}
+
+function loadDiscSettings(){
+  const d = DISC_SET;
+  const s = (id,v)=>{ const el=document.getElementById(id); if(el) el.value=v; };
+  s('disc-backup-pct',      d.backupPct);
+  s('disc-emergency-months',d.emergencyMonths);
+  s('disc-personal-limit',  d.personalLimit);
+  s('disc-rawmat-ratio',    d.rawmatRatio);
+  s('disc-labour-ratio',    d.labourRatio);
+  s('disc-emi-ratio',       d.emiRatio);
+}
+
+// ── DISCIPLINE ENGINE ─────────────────────────────────────────────────────
+
+function _dbRunDiscipline(amount, date, category, note, supplier, mode){
+  const warnings = [];
+  const blocks   = [];
+  const today    = new Date().toISOString().split('T')[0];
+  const thisMonth= date?.slice(0,7);
+
+  // 1. Cash expense limit ₹5,000
+  if(_dbType==='expense' && mode==='cash' && amount>=5000)
+    warnings.push({icon:'💵',rule:'Cash Limit',msg:`₹${amount.toLocaleString('en-IN')} cash mein de rahe ho — UPI/Bank prefer karo. Cash tracking mushkil hoti hai.`});
+
+  // 2. Large payment → supplier mandatory
+  if(_dbType==='expense' && amount>=10000 && !supplier?.trim())
+    blocks.push({icon:'🏭',rule:'Supplier Missing',msg:`₹${amount.toLocaleString('en-IN')}+ ki entry mein Supplier/Party naam zaroori hai.`});
+
+  // 3. Raw material → supplier mandatory
+  if(category==='raw_material' && !supplier?.trim())
+    blocks.push({icon:'🧱',rule:'Raw Material Supplier',msg:`Raw material entry mein supplier naam blank nahi hona chahiye.`});
+
+  // 4. Transport → party mandatory
+  if(category==='transport' && !supplier?.trim())
+    blocks.push({icon:'🚚',rule:'Transport Party',msg:`Transport entry mein party/driver naam daalo — baad mein track karna mushkil hoga.`});
+
+  // 5. Admin/misc → description mandatory
+  if(category==='admin_misc' && !note)
+    blocks.push({icon:'📂',rule:'Admin Description',msg:`Admin/Misc entry mein description zaroori hai — kya kharcha hua exactly?`});
+
+  // 6. Entry gap 3+ din
+  if(DAYBOOK.length>0){
+    const lastDate = new Date([...DAYBOOK].sort((a,b)=>new Date(b.date)-new Date(a.date))[0].date+'T00:00:00');
+    const gap = Math.round((new Date(date+'T00:00:00')-lastDate)/(1000*60*60*24));
+    if(gap>=3) warnings.push({icon:'📅',rule:'Entry Gap',msg:`${gap} din baad entry ho rahi hai — beech ke din ki entries miss to nahi hui?`});
+  }
+
+  // 7. Duplicate check
+  if(!_dbEditId && DAYBOOK.filter(e=>e.date===date&&e.category===category&&e.amount===amount&&e.type===_dbType).length>0)
+    warnings.push({icon:'⚠️',rule:'Duplicate Entry',msg:`Aaj already ₹${amount.toLocaleString('en-IN')} ki is category mein entry hai — duplicate to nahi?`});
+
+  // 8. Round figure
+  if(_dbType==='expense' && amount>=1000 && amount%500===0)
+    warnings.push({icon:'🔢',rule:'Round Amount',msg:`₹${amount.toLocaleString('en-IN')} — exact amount hai? Round figures kabhi kabhi estimate hote hain.`});
+
+  // 9. Income ₹5000+ → payment mode
+  if(_dbType==='income' && mode==='cash' && amount>=5000)
+    warnings.push({icon:'✅',rule:'Payment Mode',msg:`₹${amount.toLocaleString('en-IN')} income — UPI/Bank se aaya toh mode update karo. Bank reconciliation easy rahegi.`});
+
+  // 10. Petty cash hint
+  if(_dbType==='expense' && amount>0 && amount<500)
+    warnings.push({icon:'🪙',rule:'Petty Cash',msg:`₹${amount} — chhoti rakam hai. Petty cash register mein track karo to better rahega.`});
+
+  // 11. Personal overspend + saving alert
+  if(category==='personal_prashant'||category==='personal_sanket'){
+    const monthPersonal = DAYBOOK.filter(e=>e.date?.startsWith(thisMonth)&&(e.category==='personal_prashant'||e.category==='personal_sanket')).reduce((s,e)=>s+e.amount,0)+amount;
+    if(monthPersonal>15000) warnings.push({icon:'💸',rule:'Personal Overspend',msg:`Is mahine personal kharcha ₹${monthPersonal.toLocaleString('en-IN')} ho jayega — business cash flow affect ho sakta hai.`});
+    const monthIncome = DAYBOOK.filter(e=>e.date?.startsWith(thisMonth)&&e.type==='income'&&e.category!=='inter_account_in'&&e.category!=='personal_in').reduce((s,e)=>s+e.amount,0);
+    if(monthIncome>0 && monthPersonal/monthIncome>0.3)
+      warnings.push({icon:'🏦',rule:'Saving Alert',msg:`Personal kharcha income ka ${Math.round(monthPersonal/monthIncome*100)}% ho gaya — 20-30% saving target rakho future ke liye!`});
+  }
+
+  // 12. EMI → note mandatory
+  if(category==='interest_emi' && !note)
+    blocks.push({icon:'🏦',rule:'EMI Detail',msg:`Loan EMI entry mein bank naam aur loan detail note mein daalo.`});
+
+  // 13. 7 din se koi customer payment nahi aur bade kharche ho rahe hain
+  if(_dbType==='expense' && amount>=5000){
+    const last7 = new Date(); last7.setDate(last7.getDate()-7);
+    const recentPay = DAYBOOK.filter(e=>e.type==='income'&&(e.category==='customer_payment'||e.category==='payment_recv')&&new Date(e.date)>=last7);
+    if(recentPay.length===0) warnings.push({icon:'📬',rule:'Recovery Check',msg:`7 din mein koi customer payment nahi aaya — outstanding follow up karo pehle!`});
+  }
+
+  // 14. Future date block
+  if(date>today)
+    blocks.push({icon:'📆',rule:'Future Date',msg:`Future date entry nahi ho sakti — aaj ya pehle ki date daalo.`});
+
+  // 15. Electricity spike vs avg
+  if(category==='electricity'){
+    const prev = DAYBOOK.filter(e=>e.category==='electricity'&&e.date?.slice(0,7)!==thisMonth);
+    if(prev.length>0){
+      const avg = prev.reduce((s,e)=>s+e.amount,0)/prev.length;
+      if(avg>0 && amount>avg*1.4) warnings.push({icon:'⚡',rule:'Electricity Spike',msg:`Bijli bill ₹${amount.toLocaleString('en-IN')} — avg se ${Math.round(amount/avg*100-100)}% zyada hai. Meter check karo.`});
+    }
+  }
+
+  // ── FINANCIAL SAFETY RULES (16-30) ───────────────────────────────────
+
+  // 16. Backup Fund check — income entry pe trigger
+  if(_dbType==='income'){
+    const pct = DISC_SET.backupPct||10;
+    const monthInc = DAYBOOK.filter(e=>e.date?.startsWith(thisMonth)&&e.type==='income'&&e.category!=='inter_account_in'&&e.category!=='personal_in').reduce((s,e)=>s+e.amount,0)+amount;
+    const backupDone = DAYBOOK.filter(e=>e.date?.startsWith(thisMonth)&&e.category==='inter_account'&&e.note?.toLowerCase().includes('backup')).reduce((s,e)=>s+e.amount,0);
+    const required = Math.round(monthInc*pct/100);
+    if(monthInc>10000 && backupDone<required)
+      warnings.push({icon:'🏦',rule:'Backup Fund',msg:`Is mahine income ₹${monthInc.toLocaleString('en-IN')} — backup fund mein ₹${required.toLocaleString('en-IN')} (${pct}%) transfer karo! Abhi sirf ₹${backupDone.toLocaleString('en-IN')} gaya hai.`});
+  }
+
+  // 17. Cash Negative Week — bade expense pe
+  if(_dbType==='expense' && amount>=3000){
+    const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate()-7);
+    const weekStr = weekAgo.toISOString().split('T')[0];
+    const weekExp = DAYBOOK.filter(e=>e.type==='expense'&&e.date>=weekStr).reduce((s,e)=>s+e.amount,0)+amount;
+    const weekInc = DAYBOOK.filter(e=>e.type==='income'&&e.date>=weekStr&&e.category!=='inter_account_in').reduce((s,e)=>s+e.amount,0);
+    if(weekExp>weekInc && weekExp-weekInc>5000)
+      warnings.push({icon:'🚨',rule:'Cash Flow Danger',msg:`Is hafte expenses ₹${weekExp.toLocaleString('en-IN')} > income ₹${weekInc.toLocaleString('en-IN')} — cash negative ho raha hai! Collections tez karo.`});
+  }
+
+  // 18. Creditor Aging — same supplier ko 2nd payment
+  if(_dbType==='expense' && supplier?.trim() && amount>0){
+    const prev = DAYBOOK.filter(e=>e.type==='expense'&&e.supplier?.trim()===supplier.trim()&&e.date!==date);
+    if(prev.length>0){
+      const last = [...prev].sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
+      const daysSince = Math.round((new Date(date)-new Date(last.date+'T00:00:00'))/(1000*60*60*24));
+      if(daysSince<=30 && daysSince>0)
+        warnings.push({icon:'🏭',rule:'Creditor Aging',msg:`${supplier} ko ${daysSince} din mein 2nd payment — pehli wali (₹${last.amount.toLocaleString('en-IN')}) clear hua? Outstanding list check karo.`});
+    }
+  }
+
+  // 19. Customer advance pending > 60 days
+  if(_dbType==='expense' && amount>=5000){
+    const oldAdvance = DAYBOOK.filter(e=>{
+      if(e.category!=='advance_recv') return false;
+      const days = Math.round((new Date()-new Date(e.date+'T00:00:00'))/(1000*60*60*24));
+      return days>60;
+    });
+    if(oldAdvance.length>0){
+      const total = oldAdvance.reduce((s,e)=>s+e.amount,0);
+      warnings.push({icon:'📦',rule:'Advance Pending',msg:`${oldAdvance.length} customer advance(s) 60+ din se pending — ₹${total.toLocaleString('en-IN')} outstanding. Delivery ya refund karo!`});
+    }
+  }
+
+  // 20. Revenue drop vs last month
+  if(_dbType==='income' && (category==='customer_payment'||category==='payment_recv'||category==='sale_cash')){
+    const prevMonth = new Date(thisMonth+'-01'); prevMonth.setMonth(prevMonth.getMonth()-1);
+    const prevStr = prevMonth.toISOString().slice(0,7);
+    const prevInc = DAYBOOK.filter(e=>e.date?.startsWith(prevStr)&&e.type==='income'&&e.category!=='inter_account_in'&&e.category!=='personal_in').reduce((s,e)=>s+e.amount,0);
+    const curInc = DAYBOOK.filter(e=>e.date?.startsWith(thisMonth)&&e.type==='income'&&e.category!=='inter_account_in'&&e.category!=='personal_in').reduce((s,e)=>s+e.amount,0)+amount;
+    if(prevInc>0 && curInc<prevInc*0.8 && new Date().getDate()>15)
+      warnings.push({icon:'📉',rule:'Revenue Drop',msg:`Is mahine income ₹${curInc.toLocaleString('en-IN')} — pichle mahine se ${Math.round((1-curInc/prevInc)*100)}% kam. Kya hua? Orders check karo.`});
+  }
+
+  // 21. Raw Material ratio vs revenue
+  if(category==='raw_material'){
+    const maxRatio = DISC_SET.rawmatRatio||45;
+    const monthRawmat = DAYBOOK.filter(e=>e.date?.startsWith(thisMonth)&&e.category==='raw_material').reduce((s,e)=>s+e.amount,0)+amount;
+    const monthInc = DAYBOOK.filter(e=>e.date?.startsWith(thisMonth)&&e.type==='income'&&e.category!=='inter_account_in'&&e.category!=='personal_in').reduce((s,e)=>s+e.amount,0);
+    if(monthInc>0 && monthRawmat/monthInc*100>maxRatio)
+      warnings.push({icon:'🧱',rule:'Raw Mat Ratio',msg:`Raw material is mahine ₹${monthRawmat.toLocaleString('en-IN')} — revenue ka ${Math.round(monthRawmat/monthInc*100)}% (limit: ${maxRatio}%). Bulk order ya waste check karo.`});
+  }
+
+  // 22. Labour cost ratio
+  if(category==='labour'){
+    const maxRatio = DISC_SET.labourRatio||30;
+    const monthLabour = DAYBOOK.filter(e=>e.date?.startsWith(thisMonth)&&e.category==='labour').reduce((s,e)=>s+e.amount,0)+amount;
+    const monthInc = DAYBOOK.filter(e=>e.date?.startsWith(thisMonth)&&e.type==='income'&&e.category!=='inter_account_in'&&e.category!=='personal_in').reduce((s,e)=>s+e.amount,0);
+    if(monthInc>0 && monthLabour/monthInc*100>maxRatio)
+      warnings.push({icon:'👷',rule:'Labour Ratio',msg:`Labour cost ₹${monthLabour.toLocaleString('en-IN')} — revenue ka ${Math.round(monthLabour/monthInc*100)}% (limit: ${maxRatio}%). Productivity check karo.`});
+  }
+
+  // 23. Repair spike — double vs avg
+  if(category==='repair_maint'){
+    const prev = DAYBOOK.filter(e=>e.category==='repair_maint'&&e.date?.slice(0,7)!==thisMonth);
+    if(prev.length>=2){
+      const avg = prev.reduce((s,e)=>s+e.amount,0)/prev.length;
+      if(avg>0 && amount>avg*2)
+        warnings.push({icon:'🔧',rule:'Repair Spike',msg:`Repair ₹${amount.toLocaleString('en-IN')} — avg se ${Math.round(amount/avg*100-100)}% zyada! Machine breakdown ya koi badi repair? Record karo.`});
+    }
+  }
+
+  // 24. Marketing spend but revenue low
+  if(category==='marketing'){
+    const monthMkt = DAYBOOK.filter(e=>e.date?.startsWith(thisMonth)&&e.category==='marketing').reduce((s,e)=>s+e.amount,0)+amount;
+    const monthInc = DAYBOOK.filter(e=>e.date?.startsWith(thisMonth)&&e.type==='income'&&e.category!=='inter_account_in'&&e.category!=='personal_in').reduce((s,e)=>s+e.amount,0);
+    if(monthMkt>5000 && monthInc>0 && monthMkt/monthInc>0.15)
+      warnings.push({icon:'📣',rule:'Marketing ROI',msg:`Marketing ₹${monthMkt.toLocaleString('en-IN')} — income ka ${Math.round(monthMkt/monthInc*100)}% jaa raha hai. ROI track karo, orders badhe?`});
+  }
+
+  // 25. Personal vs business ratio
+  if(category==='personal_prashant'||category==='personal_sanket'){
+    const monthPersonal = DAYBOOK.filter(e=>e.date?.startsWith(thisMonth)&&(e.category==='personal_prashant'||e.category==='personal_sanket')).reduce((s,e)=>s+e.amount,0)+amount;
+    const monthInc = DAYBOOK.filter(e=>e.date?.startsWith(thisMonth)&&e.type==='income'&&e.category!=='inter_account_in'&&e.category!=='personal_in').reduce((s,e)=>s+e.amount,0);
+    if(monthInc>0 && monthPersonal/monthInc>0.25)
+      warnings.push({icon:'👤',rule:'Personal vs Business',msg:`Personal withdrawal ₹${monthPersonal.toLocaleString('en-IN')} — income ka ${Math.round(monthPersonal/monthInc*100)}% (limit: 25%). Business growth ke liye reinvest karo!`});
+  }
+
+  // 26. EMI burden check
+  if(category==='interest_emi'){
+    const maxRatio = DISC_SET.emiRatio||40;
+    const monthEmi = DAYBOOK.filter(e=>e.date?.startsWith(thisMonth)&&e.category==='interest_emi').reduce((s,e)=>s+e.amount,0)+amount;
+    const monthInc = DAYBOOK.filter(e=>e.date?.startsWith(thisMonth)&&e.type==='income'&&e.category!=='inter_account_in'&&e.category!=='personal_in').reduce((s,e)=>s+e.amount,0);
+    if(monthInc>0 && monthEmi/monthInc*100>maxRatio)
+      warnings.push({icon:'🏦',rule:'EMI Burden',msg:`EMI ₹${monthEmi.toLocaleString('en-IN')} — income ka ${Math.round(monthEmi/monthInc*100)}% (limit: ${maxRatio}%). Loan restructure sochna padega.`});
+  }
+
+  // 27. Saving Streak — 3 mahine se backup nahi gaya
+  if(_dbType==='expense' && amount>=1000){
+    let noSavingMonths = 0;
+    for(let i=1;i<=3;i++){
+      const d = new Date(thisMonth+'-01'); d.setMonth(d.getMonth()-i);
+      const m = d.toISOString().slice(0,7);
+      const saved = DAYBOOK.filter(e=>e.date?.startsWith(m)&&e.category==='inter_account'&&e.note?.toLowerCase().includes('backup')).length;
+      if(saved===0) noSavingMonths++;
+    }
+    if(noSavingMonths>=3)
+      warnings.push({icon:'😰',rule:'Saving Streak Broken',msg:`Lagatar ${noSavingMonths} mahine se backup/saving nahi hui! Emergency ke liye future dark ho raha hai — aaj hi transfer karo.`});
+  }
+
+  // 28. GST Buffer check — tax entry nahi aayi yet
+  if(_dbType==='income' && (category==='customer_payment'||category==='sale_cash'||category==='payment_recv')){
+    const monthInc = DAYBOOK.filter(e=>e.date?.startsWith(thisMonth)&&e.type==='income'&&(e.category==='customer_payment'||e.category==='sale_cash'||e.category==='payment_recv')).reduce((s,e)=>s+e.amount,0)+amount;
+    const gstProvision = DAYBOOK.filter(e=>e.date?.startsWith(thisMonth)&&e.category==='tax_govt').reduce((s,e)=>s+e.amount,0);
+    const gstRequired = Math.round(monthInc*0.18/1.18); // extract GST from inclusive amount
+    if(monthInc>20000 && gstProvision===0 && new Date().getDate()>10)
+      warnings.push({icon:'🏛️',rule:'GST Buffer',msg:`Sales ₹${monthInc.toLocaleString('en-IN')} — GST provision ~₹${gstRequired.toLocaleString('en-IN')} side mein rakhna na bhoolo! Abhi tax entry nahi hai.`});
+  }
+
+  // 29. Emergency Fund level check
+  if(_dbType==='expense' && amount>=5000){
+    const months = DISC_SET.emergencyMonths||2;
+    const last3MonthsExp = DAYBOOK.filter(e=>{
+      const d = new Date(thisMonth+'-01'); d.setMonth(d.getMonth()-3);
+      return e.type==='expense' && e.date>=d.toISOString().slice(0,7);
+    }).reduce((s,e)=>s+e.amount,0);
+    const avgMonthlyExp = last3MonthsExp/3;
+    const required = avgMonthlyExp*months;
+    const backupTotal = DAYBOOK.filter(e=>e.category==='inter_account'&&e.note?.toLowerCase().includes('backup')).reduce((s,e)=>s+e.amount,0);
+    if(required>0 && backupTotal<required*0.5)
+      warnings.push({icon:'🆘',rule:'Emergency Fund Low',msg:`Emergency fund mein sirf ₹${backupTotal.toLocaleString('en-IN')} — target ₹${required.toLocaleString('en-IN')} (${months} months buffer). Risky position!`});
+  }
+
+  // 30. Electricity vs Production — high bill, low output
+  if(category==='electricity' && amount>0){
+    const monthBatches = (load('bf9_batches')||[]).filter(b=>b.date?.startsWith(thisMonth)||b.createdAt?.startsWith(thisMonth));
+    const prevElec = DAYBOOK.filter(e=>e.category==='electricity'&&e.date?.slice(0,7)!==thisMonth);
+    if(prevElec.length>0 && monthBatches.length<3){
+      const avgBill = prevElec.reduce((s,e)=>s+e.amount,0)/prevElec.length;
+      if(amount>=avgBill*0.9)
+        warnings.push({icon:'⚡',rule:'Electricity vs Output',msg:`Bijli bill normal hai par is mahine sirf ${monthBatches.length} batch entries hain — production slow hai, bijli waste ho rahi hai?`});
+    }
+  }
+
+  return {warnings, blocks};
+}
+
+function _dbShowDisciplineModal(warnings, blocks, doSave){
+  document.getElementById('_bf_disc_modal')?.remove();
+  const hasBlocks = blocks.length>0;
+  const div = document.createElement('div');
+  div.id = '_bf_disc_modal';
+  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900;display:flex;align-items:flex-end;justify-content:center';
+
+  const blockHTML = blocks.map(b=>`
+    <div style="display:flex;gap:10px;padding:10px 12px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:var(--r2);margin-bottom:7px">
+      <div style="font-size:18px;flex-shrink:0">${b.icon}</div>
+      <div><div style="font-size:10px;font-weight:900;color:#b91c1c;text-transform:uppercase;letter-spacing:.4px">${b.rule} — Fix Karo</div>
+      <div style="font-size:12px;font-weight:700;color:#7f1d1d;margin-top:2px">${b.msg}</div></div>
+    </div>`).join('');
+
+  const warnHTML = warnings.map(w=>`
+    <div style="display:flex;gap:10px;padding:10px 12px;background:#fffbeb;border:1.5px solid #fde68a;border-radius:var(--r2);margin-bottom:7px">
+      <div style="font-size:18px;flex-shrink:0">${w.icon}</div>
+      <div><div style="font-size:10px;font-weight:900;color:#92400e;text-transform:uppercase;letter-spacing:.4px">${w.rule}</div>
+      <div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px">${w.msg}</div></div>
+    </div>`).join('');
+
+  div.innerHTML = `
+    <div style="background:#fff;border-radius:var(--r) var(--r) 0 0;width:100%;max-width:520px;max-height:85vh;overflow-y:auto">
+      <div style="padding:14px 16px 10px;border-bottom:1px solid var(--border)">
+        <div style="font-size:15px;font-weight:900;color:var(--navy2)">🎯 Discipline Check</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${hasBlocks?'Kuch issues fix karne honge pehle':'Warnings hain — review karo'}</div>
+      </div>
+      <div style="padding:14px 16px">${blockHTML}${warnHTML}</div>
+      <div style="padding:0 16px 20px;display:flex;flex-direction:column;gap:8px">
+        ${hasBlocks
+          ? `<button onclick="document.getElementById('_bf_disc_modal').remove()" style="width:100%;padding:13px;background:var(--orange);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">↩️ Wapas Jao — Fix Karo</button>`
+          : `<button onclick="document.getElementById('_bf_disc_modal').remove();doSave_bf()" style="width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">✅ Samajh Gaya — Phir Bhi Save Karo</button>
+             <button onclick="document.getElementById('_bf_disc_modal').remove()" style="width:100%;padding:11px;background:#f0f4ff;color:var(--navy2);border:1px solid var(--border);border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">↩️ Wapas Jao</button>`
+        }
+      </div>
+    </div>`;
+
+  // Attach doSave to window temporarily
+  window.doSave_bf = doSave;
+  document.body.appendChild(div);
+}
+
 function _dbSaveEntry(){
   const amount   = parseFloat(document.getElementById('db-amount').value)||0;
   const date     = document.getElementById('db-date').value;
@@ -13324,29 +13675,26 @@ function _dbSaveEntry(){
   if(!date)        { toast('⚠️ Date daalo!'); return; }
   if(!category)    { toast('⚠️ Category chunno!'); return; }
 
-  if(_dbEditId){
-    const idx = DAYBOOK.findIndex(e=>e.id===_dbEditId);
-    if(idx>=0){
-      DAYBOOK[idx] = {...DAYBOOK[idx], type:_dbType, category, supplier, amount, date, mode:_dbMode, note};
+  const doSave = function(){
+    if(_dbEditId){
+      const idx = DAYBOOK.findIndex(e=>e.id===_dbEditId);
+      if(idx>=0) DAYBOOK[idx] = {...DAYBOOK[idx], type:_dbType, category, supplier, amount, date, mode:_dbMode, note};
+      toast('✅ Entry update ho gayi!');
+    } else {
+      DAYBOOK.push({id:'db_'+Date.now(), date, type:_dbType, category, supplier, amount, mode:_dbMode, note, createdAt:new Date().toISOString()});
+      toast('✅ Entry save ho gayi!');
     }
-    toast('✅ Entry update ho gayi!');
+    save('bf9_daybook', DAYBOOK);
+    _dbCloseModal();
+    renderDaybook();
+  };
+
+  const {warnings, blocks} = _dbRunDiscipline(amount, date, category, note, supplier, _dbMode);
+  if(blocks.length>0 || warnings.length>0){
+    _dbShowDisciplineModal(warnings, blocks, doSave);
   } else {
-    DAYBOOK.push({
-      id:         'db_'+Date.now(),
-      date,
-      type:       _dbType,
-      category,
-      supplier,
-      amount,
-      mode:       _dbMode,
-      note,
-      createdAt:  new Date().toISOString(),
-    });
-    toast('✅ Entry save ho gayi!');
+    doSave();
   }
-  save('bf9_daybook', DAYBOOK);
-  _dbCloseModal();
-  renderDaybook();
 }
 
 function _dbDelete(id){
