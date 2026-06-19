@@ -2572,6 +2572,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
       <button onclick="_dbImportExcel()" style="padding:9px 14px;background:var(--navy);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">📥 CSV Import</button>
       <button onclick="_dbOpenCatManager()" style="padding:9px 14px;background:#f0f4ff;color:var(--navy2);border:1px solid var(--border2);border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🏷️ Categories</button>
       <button onclick="_dbDownloadReport()" style="padding:9px 14px;background:var(--green);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">⬇️ Report</button>
+      <button onclick="openDbStatement()" style="padding:9px 14px;background:#1d4ed8;color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🏦 Statement</button>
     </div>
   </div>
 
@@ -2712,6 +2713,60 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     </div>
     <!-- Entries list -->
     <div id="db-drill-list" style="overflow-y:auto;padding:10px 14px;flex:1"></div>
+  </div>
+</div>
+
+<!-- Detailed Statement Modal (Bank-style) -->
+<div id="db-stmt-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:750;align-items:center;justify-content:center;padding:10px">
+  <div style="background:#fff;border-radius:var(--r);width:100%;max-width:680px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden">
+    <!-- Header -->
+    <div style="background:var(--navy2);padding:14px 16px;flex-shrink:0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div>
+          <div style="font-size:15px;font-weight:900;color:#fff">🏦 Detailed Statement</div>
+          <div style="font-size:10px;color:#7a9bcc;margin-top:1px">Bank passbook jaisa — Date, Narration, Dr/Cr, Balance</div>
+        </div>
+        <button onclick="closeDbStatement()" style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;cursor:pointer;font-size:16px">✕</button>
+      </div>
+      <!-- Filters -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+        <input type="date" id="stmt-from" class="finp" style="font-size:11px;padding:7px 8px" onchange="renderDbStatement()">
+        <input type="date" id="stmt-to" class="finp" style="font-size:11px;padding:7px 8px" onchange="renderDbStatement()">
+        <select id="stmt-mode" class="finp" style="font-size:11px;padding:7px 8px" onchange="renderDbStatement()">
+          <option value="">All Modes</option>
+          <option value="cash">💵 Cash</option>
+          <option value="upi">📱 UPI</option>
+          <option value="bank">🏦 Bank</option>
+          <option value="cheque">📄 Cheque</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Opening Balance Bar -->
+    <div style="background:#f0f4ff;padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);flex-shrink:0">
+      <div style="font-size:10px;font-weight:800;color:var(--muted)">OPENING BALANCE</div>
+      <div style="font-size:13px;font-weight:900;color:var(--navy2)" id="stmt-opening"></div>
+    </div>
+
+    <!-- Table Header -->
+    <div style="display:grid;grid-template-columns:62px 1fr 75px 75px 85px;gap:4px;padding:8px 12px;background:#1e293b;color:#fff;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.3px;flex-shrink:0">
+      <div>Date</div><div>Narration</div><div style="text-align:right">Deposit</div><div style="text-align:right">Withdraw</div><div style="text-align:right">Balance</div>
+    </div>
+
+    <!-- Statement Rows -->
+    <div id="stmt-body" style="overflow-y:auto;flex:1"></div>
+
+    <!-- Closing Balance Bar -->
+    <div style="background:var(--navy2);padding:10px 16px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+      <div style="font-size:10px;font-weight:800;color:#7a9bcc">CLOSING BALANCE</div>
+      <div style="font-size:16px;font-weight:900;color:#fff" id="stmt-closing"></div>
+    </div>
+
+    <!-- Footer actions -->
+    <div style="padding:10px 16px;display:flex;gap:8px;border-top:1px solid var(--border);flex-shrink:0">
+      <button onclick="_dbStatementExportExcel()" style="flex:1;padding:10px;background:var(--green);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">⬇️ Excel Download</button>
+      <button onclick="closeDbStatement()" style="flex:1;padding:10px;background:#f0f4ff;color:var(--navy2);border:1px solid var(--border);border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">Band Karo</button>
+    </div>
   </div>
 </div>
 
@@ -13497,6 +13552,133 @@ function closeDbDrill(){
   document.getElementById('db-drill-modal').style.display='none';
 }
 
+// ── DETAILED STATEMENT (Bank-style) ────────────────────────────────────────
+
+function openDbStatement(){
+  // Default to current month
+  const today = new Date();
+  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0,10);
+  const lastDay = new Date(today.getFullYear(), today.getMonth()+1, 0).toISOString().slice(0,10);
+  const fromEl = document.getElementById('stmt-from');
+  const toEl = document.getElementById('stmt-to');
+  if(fromEl && !fromEl.value) fromEl.value = firstDay;
+  if(toEl && !toEl.value) toEl.value = lastDay;
+
+  document.getElementById('db-stmt-modal').style.display='flex';
+  renderDbStatement();
+}
+
+function closeDbStatement(){
+  document.getElementById('db-stmt-modal').style.display='none';
+}
+
+function _dbStatementGetRows(){
+  const from = document.getElementById('stmt-from')?.value || '';
+  const to   = document.getElementById('stmt-to')?.value || '';
+  const mode = document.getElementById('stmt-mode')?.value || '';
+
+  const allCats = [...(DB_CATS?.expense||[]), ...(DB_CATS?.income||[])];
+  const modeIco = {cash:'💵',upi:'📱',bank:'🏦',cheque:'📄'};
+
+  // Opening balance = sum of all entries BEFORE 'from' date
+  let opening = 0;
+  if(from){
+    DAYBOOK.forEach(e=>{
+      if(e.date && e.date < from){
+        opening += e.type==='income' ? e.amount : -e.amount;
+      }
+    });
+  }
+
+  // Filtered entries in range, sorted chronologically (oldest first — like a passbook)
+  let rows = DAYBOOK.filter(e=>{
+    if(from && e.date < from) return false;
+    if(to   && e.date > to)   return false;
+    if(mode && e.mode !== mode) return false;
+    return true;
+  }).sort((a,b)=> new Date(a.date) - new Date(b.date) || (a.createdAt||'').localeCompare(b.createdAt||''));
+
+  // Build narration + running balance
+  let bal = opening;
+  const built = rows.map(e=>{
+    const cat = allCats.find(c=>c.id===e.category) || {label:e.category, icon:'💸'};
+    const narration = (e.supplier ? e.supplier+' — ' : '') + (e.note || cat.label);
+    bal += e.type==='income' ? e.amount : -e.amount;
+    return {
+      date: e.date,
+      narration,
+      catIcon: cat.icon,
+      catLabel: cat.label,
+      mode: e.mode,
+      deposit: e.type==='income' ? e.amount : 0,
+      withdraw: e.type==='expense' ? e.amount : 0,
+      balance: bal
+    };
+  });
+
+  return { opening, rows: built, closing: bal };
+}
+
+function renderDbStatement(){
+  const { opening, rows, closing } = _dbStatementGetRows();
+  const body = document.getElementById('stmt-body');
+  const openEl = document.getElementById('stmt-opening');
+  const closeEl = document.getElementById('stmt-closing');
+  if(!body) return;
+
+  openEl.textContent = '₹'+opening.toLocaleString('en-IN',{maximumFractionDigits:0}) + (opening<0?' (Dr)':' (Cr)');
+  closeEl.textContent = '₹'+closing.toLocaleString('en-IN',{maximumFractionDigits:0}) + (closing<0?' (Dr)':' (Cr)');
+  closeEl.style.color = closing<0 ? '#f87171' : '#4ade80';
+
+  if(!rows.length){
+    body.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px;font-weight:700">Is range mein koi entry nahi</div>';
+    return;
+  }
+
+  const modeIco = {cash:'💵',upi:'📱',bank:'🏦',cheque:'📄'};
+
+  body.innerHTML = rows.map((r,i)=>{
+    const d = new Date(r.date+'T00:00:00');
+    const dateStr = isNaN(d) ? r.date : d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
+    const rowBg = i%2===0 ? '#fff' : '#fafbff';
+    return `<div style="display:grid;grid-template-columns:62px 1fr 75px 75px 85px;gap:4px;padding:8px 12px;background:${rowBg};border-bottom:1px solid #eef1f8;font-size:11px;align-items:center">
+      <div style="font-weight:800;color:var(--navy2);font-size:10px">${dateStr}</div>
+      <div style="min-width:0">
+        <div style="font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.narration)}</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:1px">${r.catIcon} ${esc(r.catLabel)} · ${modeIco[r.mode]||'💵'}</div>
+      </div>
+      <div style="text-align:right;font-weight:800;color:${r.deposit?'var(--green-dark)':'#cbd5e1'}">${r.deposit?'+'+r.deposit.toLocaleString('en-IN',{maximumFractionDigits:0}):'—'}</div>
+      <div style="text-align:right;font-weight:800;color:${r.withdraw?'var(--red-dark)':'#cbd5e1'}">${r.withdraw?'−'+r.withdraw.toLocaleString('en-IN',{maximumFractionDigits:0}):'—'}</div>
+      <div style="text-align:right;font-weight:900;color:${r.balance<0?'#dc2626':'var(--navy2)'}">${r.balance.toLocaleString('en-IN',{maximumFractionDigits:0})}</div>
+    </div>`;
+  }).join('');
+}
+
+function _dbStatementExportExcel(){
+  const { opening, rows, closing } = _dbStatementGetRows();
+  const from = document.getElementById('stmt-from')?.value || '';
+  const to   = document.getElementById('stmt-to')?.value || '';
+
+  const data = [
+    ['BeyondFurni — Detailed Statement'],
+    [`Period: ${from} to ${to}`],
+    [],
+    ['Date','Narration','Category','Mode','Deposit (Cr)','Withdrawal (Dr)','Balance'],
+    ['','Opening Balance','','','','', opening]
+  ];
+  rows.forEach(r=>{
+    data.push([r.date, r.narration, r.catLabel, r.mode, r.deposit||'', r.withdraw||'', r.balance]);
+  });
+  data.push(['','Closing Balance','','','','', closing]);
+
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{wch:12},{wch:35},{wch:18},{wch:10},{wch:14},{wch:14},{wch:14}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Statement');
+  XLSX.writeFile(wb, `BeyondFurni_Statement_${from}_to_${to}.xlsx`);
+  toast('✅ Statement Excel download ho gayi!');
+}
+
 function _dbOpenEdit(id){
   const e = DAYBOOK.find(x=>x.id===id);
   if(!e) return;
@@ -15174,7 +15356,7 @@ function renderCEOReport(){
     const lb=db.filter(e=>e.type==='expense'&&e.category==='labour').reduce((s,e)=>s+(e.amount||0),0);
     const pc=db.filter(e=>e.type==='expense'&&(e.category==='powder_coating'||e.category==='outsource')).reduce((s,e)=>s+(e.amount||0),0);
     const pk=db.filter(e=>e.type==='expense'&&e.category==='packaging').reduce((s,e)=>s+(e.amount||0),0);
-    const op=db.filter(e=>e.type==='expense'&&['transport','rent','admin_misc','repair_maint','marketing'].some(c=>e.category===c)).reduce((s,e)=>s+(e.amount||0),0);
+    const op=db.filter(e=>e.type==='expense'&&['transport','rent','electricity','admin_misc','repair_maint','marketing','other_prod','other_expense','tax_govt'].some(c=>e.category===c)).reduce((s,e)=>s+(e.amount||0),0);
     const it=db.filter(e=>e.type==='expense'&&e.category==='interest_emi').reduce((s,e)=>s+(e.amount||0),0);
     const cg=rm+lb+pc+pk;
     const np=r-cg-op-it;
@@ -15197,20 +15379,22 @@ function renderCEOReport(){
 
   const dbM=(DAYBOOK||[]).filter(e=>inM(e.date));
   const dbP=(DAYBOOK||[]).filter(e=>inPrev(e.date));
-  const bizExpCats=['raw_material','labour','powder_coating','outsource','packaging','transport','rent','electric','admin_misc','repair_maint','marketing','tax_govt'];
+  const bizExpCats=['raw_material','labour','powder_coating','packaging','transport','rent','electricity','admin_misc','repair_maint','marketing','tax_govt'];
   const rawmat=dbM.filter(e=>e.type==='expense'&&e.category==='raw_material').reduce((s,e)=>s+(e.amount||0),0);
   const labour=dbM.filter(e=>e.type==='expense'&&e.category==='labour').reduce((s,e)=>s+(e.amount||0),0);
   const pc=dbM.filter(e=>e.type==='expense'&&(e.category==='powder_coating'||e.category==='outsource')).reduce((s,e)=>s+(e.amount||0),0);
   const pack=dbM.filter(e=>e.type==='expense'&&e.category==='packaging').reduce((s,e)=>s+(e.amount||0),0);
   const trans=dbM.filter(e=>e.type==='expense'&&e.category==='transport').reduce((s,e)=>s+(e.amount||0),0);
   const rent=dbM.filter(e=>e.type==='expense'&&e.category==='rent').reduce((s,e)=>s+(e.amount||0),0);
-  const admn=dbM.filter(e=>e.type==='expense'&&(e.category==='admin_misc'||e.category==='repair_maint')).reduce((s,e)=>s+(e.amount||0),0);
+  const elec=dbM.filter(e=>e.type==='expense'&&e.category==='electricity').reduce((s,e)=>s+(e.amount||0),0);
+  const tax=dbM.filter(e=>e.type==='expense'&&e.category==='tax_govt').reduce((s,e)=>s+(e.amount||0),0);
+  const admn=dbM.filter(e=>e.type==='expense'&&['admin_misc','repair_maint','other_prod','other_expense'].includes(e.category)).reduce((s,e)=>s+(e.amount||0),0);
   const mktg=dbM.filter(e=>e.type==='expense'&&e.category==='marketing').reduce((s,e)=>s+(e.amount||0),0);
   const intExp=dbM.filter(e=>e.type==='expense'&&e.category==='interest_emi').reduce((s,e)=>s+(e.amount||0),0);
   const perExp=dbM.filter(e=>e.type==='expense'&&(e.category||'').includes('personal')).reduce((s,e)=>s+(e.amount||0),0);
   const dbIncAll=dbM.filter(e=>e.type==='income').reduce((s,e)=>s+(e.amount||0),0);
   const cogs=rawmat+labour+pc+pack;
-  const opex=trans+rent+admn+mktg;
+  const opex=trans+rent+elec+admn+mktg+tax;
   const grossProfit=rev-cogs;
   const grossMargin=rev>0?(grossProfit/rev*100):0;
   const ebitda=grossProfit-opex;
@@ -15221,7 +15405,7 @@ function renderCEOReport(){
   const pPc=dbP.filter(e=>e.type==='expense'&&(e.category==='powder_coating'||e.category==='outsource')).reduce((s,e)=>s+(e.amount||0),0);
   const pPack=dbP.filter(e=>e.type==='expense'&&e.category==='packaging').reduce((s,e)=>s+(e.amount||0),0);
   const pCogs=pRawmat+pLabour+pPc+pPack;
-  const pOpex=dbP.filter(e=>e.type==='expense'&&['transport','rent','admin_misc','repair_maint','marketing'].some(c=>e.category===c)).reduce((s,e)=>s+(e.amount||0),0);
+  const pOpex=dbP.filter(e=>e.type==='expense'&&['transport','rent','electricity','admin_misc','repair_maint','marketing','other_prod','other_expense','tax_govt'].some(c=>e.category===c)).reduce((s,e)=>s+(e.amount||0),0);
   const pInt=dbP.filter(e=>e.type==='expense'&&e.category==='interest_emi').reduce((s,e)=>s+(e.amount||0),0);
   const pNetProfit=pRev-pCogs-pOpex-pInt;
   const pNetMargin=pRev>0?(pNetProfit/pRev*100):0;
@@ -15373,9 +15557,10 @@ function renderCEOReport(){
     {n:'= COGS',v:cogs,pv:pCogs,c:'#7c3aed',plus:false,bold:true,sep:true},
     {n:'= GROSS PROFIT',v:grossProfit,pv:pRev-pCogs,c:grossProfit>=0?'#16a34a':'#dc2626',plus:true,bold:true,sep:true},
     {n:'(-) Transport',v:trans,pv:0,c:'#d97706',plus:false},
-    {n:'(-) Rent + Electricity',v:rent,pv:0,c:'#d97706',plus:false},
-    {n:'(-) Admin + Repair',v:admn,pv:0,c:'#9ca3af',plus:false},
+    {n:'(-) Rent + Electricity',v:rent+elec,pv:0,c:'#d97706',plus:false},
+    {n:'(-) Admin + Repair + Other',v:admn,pv:0,c:'#9ca3af',plus:false},
     {n:'(-) Marketing',v:mktg,pv:0,c:'#f59e0b',plus:false},
+    {n:'(-) Tax / GST',v:tax,pv:0,c:'#7c3aed',plus:false},
     {n:'= EBITDA',v:ebitda,pv:0,c:ebitda>=0?'#16a34a':'#dc2626',plus:true,bold:true,sep:true},
     {n:'(-) Interest / EMI',v:intExp,pv:pInt,c:'#dc2626',plus:false},
     {n:'= NET PROFIT',v:netProfit,pv:pNetProfit,c:netProfit>=0?'#16a34a':'#dc2626',plus:true,bold:true,sep:true},
