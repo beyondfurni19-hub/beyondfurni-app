@@ -14310,8 +14310,9 @@ function _dbRunDiscipline(amount, date, category, note, supplier, mode){
   if(_dbType==='expense' && mode==='cash' && amount>=5000)
     warnings.push({icon:'💵',rule:'Cash Limit',msg:`₹${amount.toLocaleString('en-IN')} cash mein de rahe ho — UPI/Bank prefer karo. Cash tracking mushkil hoti hai.`});
 
-  // 2. Large payment → supplier mandatory
-  if(_dbType==='expense' && amount>=10000 && !supplier?.trim())
+  // 2. Large payment → supplier mandatory (sirf supplier-relevant categories ke liye)
+  const supplierRelevantCats = ['raw_material','transport','packaging','powder_coating','marketing','repair_maint','other_prod'];
+  if(_dbType==='expense' && amount>=10000 && supplierRelevantCats.includes(category) && !supplier?.trim())
     blocks.push({icon:'🏭',rule:'Supplier Missing',msg:`₹${amount.toLocaleString('en-IN')}+ ki entry mein Supplier/Party naam zaroori hai.`});
 
   // 3. Raw material → supplier mandatory
