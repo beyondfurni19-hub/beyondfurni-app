@@ -13667,7 +13667,7 @@ function _dbStatementExportExcel(){
     ['','Opening Balance','','','','', opening]   // row 5
   ];
   rows.forEach(r=>{
-    data.push([r.date, r.narration, r.catLabel, r.mode, r.deposit||'', r.withdraw||'', '']); // balance filled by formula below
+    data.push([r.date, r.narration, r.catLabel, r.mode, r.deposit||0, r.withdraw||0, '']); // balance filled by formula below
   });
   data.push(['','Closing Balance','','','','', '']); // formula too
 
@@ -13687,6 +13687,17 @@ function _dbStatementExportExcel(){
   const closingRow = firstDataRow + rows.length;
   const lastDataRow = closingRow - 1;
   ws['G'+closingRow] = { t:'n', f:`G${lastDataRow}` };
+
+  // Number format: zeros show as blank, negatives in parens
+  const numFmt = '#,##0;(#,##0);""';
+  for(let i=0;i<rows.length;i++){
+    const excelRow = firstDataRow + i;
+    if(ws['E'+excelRow]) ws['E'+excelRow].z = numFmt;
+    if(ws['F'+excelRow]) ws['F'+excelRow].z = numFmt;
+    if(ws['G'+excelRow]) ws['G'+excelRow].z = '#,##0;(#,##0)';
+  }
+  if(ws['G5']) ws['G5'].z = '#,##0;(#,##0)';
+  if(ws['G'+closingRow]) ws['G'+closingRow].z = '#,##0;(#,##0)';
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Statement');
@@ -17789,4 +17800,3 @@ init();
 
 </body>
 </html>
-      
