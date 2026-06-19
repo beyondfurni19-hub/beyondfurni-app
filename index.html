@@ -13664,19 +13664,34 @@ function _dbStatementExportExcel(){
     [`Period: ${from} to ${to}`],
     [],
     ['Date','Narration','Category','Mode','Deposit (Cr)','Withdrawal (Dr)','Balance'],
-    ['','Opening Balance','','','','', opening]
+    ['','Opening Balance','','','','', opening]   // row 5
   ];
   rows.forEach(r=>{
-    data.push([r.date, r.narration, r.catLabel, r.mode, r.deposit||'', r.withdraw||'', r.balance]);
+    data.push([r.date, r.narration, r.catLabel, r.mode, r.deposit||'', r.withdraw||'', '']); // balance filled by formula below
   });
-  data.push(['','Closing Balance','','','','', closing]);
+  data.push(['','Closing Balance','','','','', '']); // formula too
 
   const ws = XLSX.utils.aoa_to_sheet(data);
   ws['!cols'] = [{wch:12},{wch:35},{wch:18},{wch:10},{wch:14},{wch:14},{wch:14}];
+
+  // Excel formulas for running balance (Balance = prev Balance + Deposit - Withdrawal)
+  // Row 5 = opening (hardcoded). Rows 6..6+rows.length-1 = entries. Last row = closing.
+  const firstDataRow = 6; // Excel is 1-indexed; row 5 = opening
+  for(let i=0;i<rows.length;i++){
+    const excelRow = firstDataRow + i;
+    const prevRow = excelRow - 1;
+    const cellRef = 'G'+excelRow;
+    ws[cellRef] = { t:'n', f:`G${prevRow}+E${excelRow}-F${excelRow}` };
+  }
+  // Closing balance row = same as last data row's balance
+  const closingRow = firstDataRow + rows.length;
+  const lastDataRow = closingRow - 1;
+  ws['G'+closingRow] = { t:'n', f:`G${lastDataRow}` };
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Statement');
   XLSX.writeFile(wb, `BeyondFurni_Statement_${from}_to_${to}.xlsx`);
-  toast('✅ Statement Excel download ho gayi!');
+  toast('✅ Statement Excel download ho gayi — Balance formula ke saath!');
 }
 
 function _dbOpenEdit(id){
@@ -17774,3 +17789,4 @@ init();
 
 </body>
 </html>
+      
