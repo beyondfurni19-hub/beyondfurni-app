@@ -14201,7 +14201,45 @@ function _anRenderCustomer(months){
   months.forEach(m=>monthlyCustomers[m]=new Set());
   periodInv.forEach(i=>{ const m=i.date?.slice(0,7); if(m&&monthlyCustomers[m]) monthlyCustomers[m].add(i.party); });
 
+  // ── Client Concentration Risk (Porter: Buyer Power) ──
+  const concEntries = Object.entries(byParty).map(([p,v])=>[p, v||0]).sort((a,b)=>b[1]-a[1]);
+  const totalRev = concEntries.reduce((s,[,v])=>s+v,0);
+  const cPct = v => totalRev>0 ? (v/totalRev*100) : 0;
+  const top1Pct = concEntries.length ? cPct(concEntries[0][1]) : 0;
+  const top3Pct = cPct(concEntries.slice(0,3).reduce((s,[,v])=>s+v,0));
+  const top5Pct = cPct(concEntries.slice(0,5).reduce((s,[,v])=>s+v,0));
+  // HHI = sum of squared % shares (0-10000). Higher = zyada concentrated
+  const hhi = Math.round(concEntries.reduce((s,[,v])=>{ const sh=cPct(v); return s+sh*sh; },0));
+  let cRiskLvl, cRiskColor, cRiskBg, cRiskMsg;
+  if(concEntries.length===0){ cRiskLvl='NO DATA'; cRiskColor='#94a3b8'; cRiskBg='#f8fafc'; cRiskMsg='Is period mein koi invoice nahi mili.'; }
+  else if(top1Pct>=40){ cRiskLvl='HIGH RISK'; cRiskColor='#dc2626'; cRiskBg='#fef2f2';
+    cRiskMsg=`⚠️ Sabse bada client akela <b>${top1Pct.toFixed(0)}%</b> revenue de raha hai (${esc(concEntries[0][0])}). Agar ye client chala gaya toh bada jhatka lagega. Naye clients laana abhi #1 priority.`; }
+  else if(top1Pct>=25){ cRiskLvl='MODERATE'; cRiskColor='#d97706'; cRiskBg='#fffbeb';
+    cRiskMsg=`Top client <b>${top1Pct.toFixed(0)}%</b> pe hai (${esc(concEntries[0][0])}) — thodi dependency hai. 1-2 naye solid clients aane se balance aa jayega.`; }
+  else { cRiskLvl='HEALTHY'; cRiskColor='#16a34a'; cRiskBg='#f0fdf4';
+    cRiskMsg=`Revenue achhe se faila hua hai — top client sirf <b>${top1Pct.toFixed(0)}%</b>. Kisi ek client pe over-dependency nahi, strong position.`; }
+  const cTop5 = concEntries.slice(0,5);
+  const cOthers = concEntries.slice(5).reduce((s,[,v])=>s+v,0);
+  const concLabels = [...cTop5.map(([p])=>p), ...(cOthers>0?['Others']:[])];
+  const concData = [...cTop5.map(([,v])=>v), ...(cOthers>0?[cOthers]:[])];
+
   el.innerHTML = `
+    <div class="an-card" style="border-left:4px solid ${cRiskColor}">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+        <div class="an-sec-title" style="margin:0">⚖️ Client Concentration Risk</div>
+        <div style="font-size:11px;font-weight:900;color:${cRiskColor};background:${cRiskBg};padding:4px 12px;border-radius:20px;border:1.5px solid ${cRiskColor}33">${cRiskLvl}</div>
+      </div>
+      <div class="an-kpi-grid" style="margin-bottom:10px">
+        <div class="an-kpi"><div class="an-kpi-val" style="color:${cRiskColor}">${top1Pct.toFixed(0)}%</div><div class="an-kpi-lbl">Top Client</div></div>
+        <div class="an-kpi"><div class="an-kpi-val">${top3Pct.toFixed(0)}%</div><div class="an-kpi-lbl">Top 3 Clients</div></div>
+        <div class="an-kpi"><div class="an-kpi-val">${top5Pct.toFixed(0)}%</div><div class="an-kpi-lbl">Top 5 Clients</div></div>
+        <div class="an-kpi"><div class="an-kpi-val">${hhi.toLocaleString('en-IN')}</div><div class="an-kpi-lbl">HHI Index</div></div>
+      </div>
+      <div class="an-chart-wrap" style="height:200px"><canvas id="an-ch-concentration"></canvas></div>
+      <div style="font-size:12px;font-weight:700;color:#1e293b;line-height:1.6;background:${cRiskBg};padding:10px 12px;border-radius:10px;margin-top:10px">${cRiskMsg}</div>
+      <div style="font-size:9.5px;color:var(--muted);font-weight:700;margin-top:6px;line-height:1.5">HHI: ek hi client = 10000. &lt;1500 healthy · 1500-2500 moderate · &gt;2500 concentrated. Buyer power jitni zyada client ke paas, utna risk.</div>
+    </div>
+
     <div class="an-kpi-grid">
       <div class="an-kpi"><div class="an-kpi-val">${allParties.size}</div><div class="an-kpi-lbl">Total Customers</div></div>
       <div class="an-kpi"><div class="an-kpi-val">${periodParties.size}</div><div class="an-kpi-lbl">Active (Period)</div></div>
@@ -14241,6 +14279,12 @@ function _anRenderCustomer(months){
       data:[repeatInPeriod, newInPeriod.length],
       backgroundColor:['#10b981','#3b82f6']
     }],{scales:{}});
+    if(concData.length){
+      _anMakeChart('an-ch-concentration','doughnut',concLabels,[{
+        data:concData,
+        backgroundColor:['#dc2626','#f97316','#f59e0b','#3b82f6','#6366f1','#cbd5e1']
+      }],{scales:{},plugins:{legend:{display:true,position:'bottom',labels:{font:{family:'Nunito',size:10},boxWidth:12,padding:8}},tooltip:{callbacks:{label:c=>` ${c.label}: ₹${(c.parsed||0).toLocaleString('en-IN')} (${totalRev>0?(c.parsed/totalRev*100).toFixed(1):0}%)`}}}});
+    }
   },100);
 }
 
