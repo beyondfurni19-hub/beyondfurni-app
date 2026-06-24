@@ -6105,13 +6105,16 @@ function stkMfgPreview(){
   const rows=it.ingredients.map(ingr=>{
     const mat=STK.find(i=>i.id===ingr.itemId);
     if(!mat) return '';
-    const needed=ingr.qty*qty;
-    const dispUnit = ingr.unit || mat.unit;
-    const ok=mat.current>=needed;
-    if(!ok) warnings.push(`❌ ${mat.name}: chahiye ${needed} ${dispUnit}, hai sirf ${mat.current} ${mat.unit}`);
+    const ingrUnit = ingr.unit||mat.unit;
+    const dispAmt = ingr.qty*qty;
+    const neededInStockUnit = _convertIngredient(dispAmt, ingrUnit, mat.unit);
+    const ok=mat.current>=neededInStockUnit;
+    const sameUnit = ingrUnit===mat.unit;
+    const convStr = sameUnit ? `${dispAmt} ${ingrUnit}` : `${dispAmt} ${ingrUnit} = ${neededInStockUnit.toFixed(3)} ${mat.unit}`;
+    if(!ok) warnings.push(`❌ ${mat.name}: chahiye ${neededInStockUnit.toFixed(3)} ${mat.unit}, hai sirf ${mat.current} ${mat.unit}`);
     return `<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;padding:4px 0;border-bottom:1px solid #bbf7d0">
       <span>${mat.ico||'📦'} ${esc(mat.name)}</span>
-      <span style="color:${ok?'#166534':'#b91c1c'}">${needed} ${dispUnit} ${ok?'✅':'⚠️'}</span>
+      <span style="color:${ok?'#166534':'#b91c1c'}">${convStr} ${ok?'✅':'⚠️'}</span>
     </div>`;
   }).join('');
   list.innerHTML=rows;
@@ -6121,6 +6124,48 @@ function stkMfgPreview(){
     warn.style.display='block';
   }
 }
+
+// ── UNIT CONVERSION ───────────────────────────────────────────────────────
+function _unitToBase(val, unit){
+  // Convert any unit to base (grams for weight, ml for volume, base for others)
+  const map = {
+    // Weight → grams
+    'g':1, 'gram':1, 'grams':1,
+    'kg':1000, 'kilogram':1000,
+    'mg':0.001,
+    // Volume → ml
+    'ml':1, 'milliliter':1,
+    'liter':1000, 'l':1000, 'litre':1000,
+    // Length → mm
+    'mm':1,
+    'cm':10,
+    'meter':1000, 'm':1000,
+    // Count — no conversion
+    'pcs':1, 'nos':1, 'set':1, 'box':1, 'roll':1, 'packet':1,
+  };
+  const k = (unit||'').toLowerCase().trim();
+  return val * (map[k] !== undefined ? map[k] : 1);
+}
+
+function _unitGroup(unit){
+  const u = (unit||'').toLowerCase().trim();
+  if(['g','gram','grams','kg','kilogram','mg'].includes(u)) return 'weight';
+  if(['ml','milliliter','liter','l','litre'].includes(u)) return 'volume';
+  if(['mm','cm','meter','m'].includes(u)) return 'length';
+  return 'count';
+}
+
+function _convertIngredient(ingrQty, ingrUnit, stockUnit){
+  // ingrQty in ingrUnit → convert to stockUnit
+  const ig = _unitGroup(ingrUnit);
+  const sg = _unitGroup(stockUnit);
+  if(ig !== sg) return ingrQty; // different groups — no conversion, return as-is
+  // Same group — convert via base
+  const baseVal = _unitToBase(ingrQty, ingrUnit);
+  const stockBase = _unitToBase(1, stockUnit);
+  return baseVal / stockBase;
+}
+
 function confirmMfg(){
   const qty=parseFloat(document.getElementById('stk-mfg-qty').value)||0;
   const note=document.getElementById('stk-mfg-note').value.trim();
@@ -6138,19 +6183,21 @@ function confirmMfg(){
     for(const ingr of it.ingredients){
       const mat=STK.find(i=>i.id===ingr.itemId);
       if(!mat) continue;
-      const needed=ingr.qty*qty;
-      if(mat.current<needed){
-        if(!confirm(`${mat.name} ka stock kam hai (chahiye: ${needed}, hai: ${mat.current}). Phir bhi continue karein?`)) return;
+      const ingrUnit = ingr.unit||mat.unit;
+      const neededInStockUnit = _convertIngredient(ingr.qty*qty, ingrUnit, mat.unit);
+      if(mat.current<neededInStockUnit){
+        if(!confirm(`${mat.name} ka stock kam hai (chahiye: ${neededInStockUnit.toFixed(3)} ${mat.unit}, hai: ${mat.current} ${mat.unit}). Phir bhi continue karein?`)) return;
       }
     }
     // Deduct ingredients
     it.ingredients.forEach(ingr=>{
       const mat=STK.find(i=>i.id===ingr.itemId);
       if(!mat) return;
-      const needed=ingr.qty*qty;
-      const dispUnit=ingr.unit||mat.unit;
-      mat.current=Math.max(0, mat.current-needed);
-      STXN.push({id:Date.now()+Math.random(),itemId:mat.id,type:'out',qty:needed,note:`🏭 Mfg: ${qty} ${it.name} ke liye (${needed} ${dispUnit})`,date:new Date().toISOString().slice(0,10)});
+      const ingrUnit = ingr.unit||mat.unit;
+      const neededInStockUnit = _convertIngredient(ingr.qty*qty, ingrUnit, mat.unit);
+      const dispAmt = ingr.qty*qty;
+      mat.current=Math.max(0, mat.current-neededInStockUnit);
+      STXN.push({id:Date.now()+Math.random(),itemId:mat.id,type:'out',qty:+neededInStockUnit.toFixed(4),note:`🏭 Mfg: ${qty} ${it.name} ke liye (${dispAmt} ${ingrUnit} = ${neededInStockUnit.toFixed(3)} ${mat.unit})`,date:new Date().toISOString().slice(0,10)});
     });
   }
   // Add manufactured qty
