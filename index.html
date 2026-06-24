@@ -4022,8 +4022,8 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
           <div style="font-size:11px;font-weight:800;color:#1d4ed8">🏭 Internally Manufactured?</div>
           <div style="font-size:10px;color:#6b7a99;font-weight:600">Agar yeh item factory mein banate ho toh yes karo</div>
         </div>
-        <label style="position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0">
-          <input type="checkbox" id="stk-em-ismfg" onchange="stkToggleMfgSection()" style="opacity:0;width:0;height:0">
+        <label for="stk-em-ismfg" style="position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0;cursor:pointer">
+          <input type="checkbox" id="stk-em-ismfg" onchange="stkToggleMfgSection()" style="opacity:0;width:0;height:0;position:absolute">
           <span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#cbd5e1;border-radius:22px;transition:.3s" id="stk-em-ismfg-slider"></span>
         </label>
       </div>
@@ -5998,19 +5998,39 @@ function stkRenderIngredients(){
 
 function stkAddIngredient(){
   const list=document.getElementById('stk-em-ingredients-list');
-  const opts=STK.filter(i=>!i.isMfg).map(i=>`<option value="${i.id}">${esc(i.name)} (${i.unit})</option>`).join('');
+  const allUnits=['pcs','nos','kg','g','mg','meter','cm','mm','liter','ml','box','roll','set','packet'];
+  const opts=STK.filter(i=>!i.isMfg).map(i=>`<option value="${i.id}" data-unit="${i.unit}">${esc(i.name)} (${i.unit})</option>`).join('');
   if(!opts){ toast('Pehle raw materials add karo!'); return; }
   const rowId='ingr_'+Date.now();
   const div=document.createElement('div');
   div.className='ingr-row';
   div.id=rowId;
-  div.style.cssText='display:grid;grid-template-columns:1fr 80px 26px;gap:6px;margin-bottom:6px;align-items:center';
+  div.style.cssText='display:grid;grid-template-columns:1fr 70px 70px 26px;gap:6px;margin-bottom:6px;align-items:center';
+  // Get first item's unit as default
+  const firstMat = STK.find(i=>!i.isMfg);
+  const defaultUnit = firstMat ? firstMat.unit : 'pcs';
+  const unitOpts = allUnits.map(u=>`<option value="${u}" ${u===defaultUnit?'selected':''}>${u}</option>`).join('');
   div.innerHTML=`
-    <select class="finp" style="font-size:11px;padding:5px 8px">${opts}</select>
+    <select class="finp ingr-item-sel" style="font-size:11px;padding:5px 8px" onchange="stkIngrItemChange(this)">${opts}</select>
     <input class="finp" type="number" min="0" step="any" placeholder="Qty" style="font-size:11px;padding:5px 8px">
+    <select class="finp ingr-unit-sel" style="font-size:11px;padding:5px 8px">${unitOpts}</select>
     <button onclick="document.getElementById('${rowId}').remove()" style="width:26px;height:26px;border-radius:6px;border:1px solid #fca5a5;background:#fef2f2;cursor:pointer;font-size:12px;color:#b91c1c">✕</button>
   `;
   list.appendChild(div);
+}
+
+function stkIngrItemChange(sel){
+  // Auto-fill unit when item changes
+  const opt = sel.options[sel.selectedIndex];
+  const unit = opt?.dataset?.unit || 'pcs';
+  const row = sel.closest('.ingr-row');
+  const unitSel = row?.querySelector('.ingr-unit-sel');
+  if(unitSel){
+    // Set matching option if exists
+    for(let i=0;i<unitSel.options.length;i++){
+      if(unitSel.options[i].value===unit){ unitSel.selectedIndex=i; break; }
+    }
+  }
 }
 
 function stkGetIngredientRows(){
@@ -6019,10 +6039,11 @@ function stkGetIngredientRows(){
   const rows=list.querySelectorAll('.ingr-row');
   const result=[];
   rows.forEach(row=>{
-    const sel=row.querySelector('select');
+    const sel=row.querySelector('.ingr-item-sel')||row.querySelector('select');
     const inp=row.querySelector('input[type="number"]');
+    const unitSel=row.querySelector('.ingr-unit-sel');
     if(sel&&inp&&parseFloat(inp.value)>0){
-      result.push({itemId:sel.value, qty:parseFloat(inp.value)});
+      result.push({itemId:sel.value, qty:parseFloat(inp.value), unit:unitSel?.value||''});
     }
   });
   return result;
@@ -6032,16 +6053,21 @@ function stkLoadIngredientRows(ingredients){
   const list=document.getElementById('stk-em-ingredients-list');
   if(!list) return;
   list.innerHTML='';
+  const allUnits=['pcs','nos','kg','g','mg','meter','cm','mm','liter','ml','box','roll','set','packet'];
   (ingredients||[]).forEach(ingr=>{
-    const opts=STK.filter(i=>!i.isMfg).map(i=>`<option value="${i.id}" ${i.id===ingr.itemId?'selected':''}>${esc(i.name)} (${i.unit})</option>`).join('');
+    const mat=STK.find(m=>m.id===ingr.itemId);
+    const savedUnit = ingr.unit || mat?.unit || 'pcs';
+    const opts=STK.filter(i=>!i.isMfg).map(i=>`<option value="${i.id}" data-unit="${i.unit}" ${i.id===ingr.itemId?'selected':''}>${esc(i.name)} (${i.unit})</option>`).join('');
+    const unitOpts=allUnits.map(u=>`<option value="${u}" ${u===savedUnit?'selected':''}>${u}</option>`).join('');
     const rowId='ingr_'+Date.now()+'_'+Math.random().toString(36).slice(2);
     const div=document.createElement('div');
     div.className='ingr-row';
     div.id=rowId;
-    div.style.cssText='display:grid;grid-template-columns:1fr 80px 26px;gap:6px;margin-bottom:6px;align-items:center';
+    div.style.cssText='display:grid;grid-template-columns:1fr 70px 70px 26px;gap:6px;margin-bottom:6px;align-items:center';
     div.innerHTML=`
-      <select class="finp" style="font-size:11px;padding:5px 8px">${opts}</select>
+      <select class="finp ingr-item-sel" style="font-size:11px;padding:5px 8px" onchange="stkIngrItemChange(this)">${opts}</select>
       <input class="finp" type="number" min="0" step="any" placeholder="Qty" value="${ingr.qty}" style="font-size:11px;padding:5px 8px">
+      <select class="finp ingr-unit-sel" style="font-size:11px;padding:5px 8px">${unitOpts}</select>
       <button onclick="document.getElementById('${rowId}').remove()" style="width:26px;height:26px;border-radius:6px;border:1px solid #fca5a5;background:#fef2f2;cursor:pointer;font-size:12px;color:#b91c1c">✕</button>
     `;
     list.appendChild(div);
@@ -6080,11 +6106,12 @@ function stkMfgPreview(){
     const mat=STK.find(i=>i.id===ingr.itemId);
     if(!mat) return '';
     const needed=ingr.qty*qty;
+    const dispUnit = ingr.unit || mat.unit;
     const ok=mat.current>=needed;
-    if(!ok) warnings.push(`❌ ${mat.name}: chahiye ${needed} ${mat.unit}, hai sirf ${mat.current}`);
+    if(!ok) warnings.push(`❌ ${mat.name}: chahiye ${needed} ${dispUnit}, hai sirf ${mat.current} ${mat.unit}`);
     return `<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;padding:4px 0;border-bottom:1px solid #bbf7d0">
       <span>${mat.ico||'📦'} ${esc(mat.name)}</span>
-      <span style="color:${ok?'#166534':'#b91c1c'}">${needed} ${mat.unit} ${ok?'✅':'⚠️'}</span>
+      <span style="color:${ok?'#166534':'#b91c1c'}">${needed} ${dispUnit} ${ok?'✅':'⚠️'}</span>
     </div>`;
   }).join('');
   list.innerHTML=rows;
@@ -6100,6 +6127,12 @@ function confirmMfg(){
   if(qty<=0||!_mfgItemId){ toast('Quantity daalo!'); return; }
   const it=STK.find(i=>i.id===_mfgItemId);
   if(!it) return;
+
+  // Debug: ingredients check
+  if(!it.ingredients||!it.ingredients.length){
+    toast('⚠️ Ingredients set nahi hain! Pehle item edit karo aur ingredients add karo.');
+    return;
+  }
   // Check stock
   if(it.ingredients&&it.ingredients.length){
     for(const ingr of it.ingredients){
@@ -6115,8 +6148,9 @@ function confirmMfg(){
       const mat=STK.find(i=>i.id===ingr.itemId);
       if(!mat) return;
       const needed=ingr.qty*qty;
+      const dispUnit=ingr.unit||mat.unit;
       mat.current=Math.max(0, mat.current-needed);
-      STXN.push({id:Date.now()+Math.random(),itemId:mat.id,type:'out',qty:needed,note:`🏭 Mfg: ${qty} ${it.name} ke liye`,date:new Date().toISOString()});
+      STXN.push({id:Date.now()+Math.random(),itemId:mat.id,type:'out',qty:needed,note:`🏭 Mfg: ${qty} ${it.name} ke liye (${needed} ${dispUnit})`,date:new Date().toISOString().slice(0,10)});
     });
   }
   // Add manufactured qty
@@ -7514,140 +7548,63 @@ function deleteBtBatch(bid){
   renderBatchSelectCard();
 }
 
-/* ── Batch Edit Modal (FULL edit — fresh form style) ── */
+/* ── Batch Edit Modal ── */
 function openBtEditModal(bid){
   const b=BATCHES.find(x=>x.id===bid);
   if(!b)return;
-  const ord=ORDERS.find(o=>o.id===b.orderId)||{};
-  const dispatchDone=!!(b.stages&&b.stages.dispatch&&b.stages.dispatch.done);
-  const old=document.getElementById('bt-edit-modal-bg');
-  if(old) old.remove();
-  const custs=CUSTOMERS
-    .filter(c=>!c.type||c.type==='customer'||c.type==='dealer')
-    .sort((a,b)=>a.name.localeCompare(b.name,'en-IN',{sensitivity:'base'}));
-  const custOpts='<option value="">— Customer chunno —</option>'+
-    custs.map(c=>'<option value="'+c.id+'"'+(c.id===b.custId?' selected':'')+'>'+esc(c.name)+'</option>').join('');
-  const prods=invGetProducts();
-  const prodOpts='<option value="">-- Product chunno --</option>'+
-    prods.map(p=>'<option value="'+p.id+'"'+(p.id===b.productId?' selected':'')+'>'+(p.icon||'🏭')+' '+esc(p.name)+'</option>').join('');
-  const pk=b.packingType||'none';
-  const m=document.createElement('div');
-  m.id='bt-edit-modal-bg';
-  m.style.cssText='display:flex;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:700;align-items:flex-end;justify-content:center;';
-  m.innerHTML='<div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;">'
-    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
-    +'<div style="font-size:15px;font-weight:800;color:var(--navy2)">✏️ Batch Edit Karo — '+esc(b.id)+'</div>'
-    +'<button onclick="closeBtEditModal()" style="width:30px;height:30px;border:none;background:#f0f4fb;border-radius:8px;cursor:pointer;font-size:16px">✕</button></div>'
-    +'<input type="hidden" id="bt-edit-id" value="'+esc(b.id)+'">'
-    +(dispatchDone?'<div style="background:#fff8f0;border:1.5px solid #ffd0a0;border-radius:10px;padding:9px 12px;margin-bottom:12px;font-size:11px;font-weight:700;color:#b85000;line-height:1.5">⚠️ Ye batch dispatch ho chuka hai. Agar qty / product / packing badloge toh stock automatically adjust ho jayega.</div>':'')
-    +'<div class="fg"><label>Customer *</label><select class="finp" id="bt-edit-cust">'+custOpts+'</select></div>'
-    +'<div class="g2">'
-    +'<div class="fg" style="margin:0"><label>Total Pieces *</label><input class="finp" type="number" id="bt-edit-qty" min="1" value="'+(b.qty||'')+'"></div>'
-    +'<div class="fg" style="margin:0"><label>Rate (₹/pc) *</label><input class="finp" type="number" id="bt-edit-rate" min="0" value="'+(ord.rate||'')+'"></div>'
-    +'</div>'
-    +'<div class="g2">'
-    +'<div class="fg" style="margin:0"><label>Advance (₹)</label><input class="finp" type="number" id="bt-edit-advance" min="0" value="'+(ord.advance||'')+'"></div>'
-    +'<div class="fg" style="margin:0"><label>Order Date</label><input class="finp" type="date" id="bt-edit-order-date" value="'+(ord.date||'')+'"></div>'
-    +'</div>'
-    +'<div class="fg"><label>Expected Delivery</label><input class="finp" type="date" id="bt-edit-delivery" value="'+(b.deliveryDate||'')+'"></div>'
-    +'<div class="fg"><label>Product / Stand Type *</label><select class="finp" id="bt-edit-product">'+prodOpts+'</select></div>'
-    +'<div class="fg"><label>Packing Type</label><select class="finp" id="bt-edit-packing">'
-    +'<option value="none"'+(pk==='none'?' selected':'')+'>🎁 No Packing (sirf stand + wrapping)</option>'
-    +'<option value="standard"'+(pk==='standard'?' selected':'')+'>📦 Standard (Box + Plastic Bag + Wrapping)</option>'
-    +'<option value="master"'+(pk==='master'?' selected':'')+'>🗃️ Master Carton (per 10 stands)</option>'
-    +'</select></div>'
-    +'<div class="fg"><label>Note</label><input class="finp" type="text" id="bt-edit-note"></div>'
-    +'<button class="btn-save" style="width:100%;text-align:center" onclick="saveBtEdit()">💾 Save Karo</button>'
-    +'</div>';
-  document.body.appendChild(m);
+  // build modal if not exists
+  if(!document.getElementById('bt-edit-modal-bg')){
+    const m=document.createElement('div');
+    m.id='bt-edit-modal-bg';
+    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:700;align-items:flex-end;justify-content:center;';
+    m.innerHTML='<div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
+      +'<div style="font-size:15px;font-weight:800;color:var(--navy2)">✏️ Batch Edit Karo</div>'
+      +'<button onclick="closeBtEditModal()" style="width:30px;height:30px;border:none;background:#f0f4fb;border-radius:8px;cursor:pointer;font-size:16px">✕</button></div>'
+      +'<input type="hidden" id="bt-edit-id">'
+      +'<div class="fg"><label>Party Ka Naam</label><input class="finp" type="text" id="bt-edit-party" placeholder="Party naam..."></div>'
+      +'<div class="g2">'
+      +'<div class="fg"><label>Total Pieces</label><input class="finp" type="number" id="bt-edit-qty" min="1"></div>'
+      +'<div class="fg"><label>Rate (₹/pc)</label><input class="finp" type="number" id="bt-edit-rate" min="0"></div>'
+      +'</div>'
+      +'<div class="fg"><label>Delivery Date</label><input class="finp" type="date" id="bt-edit-delivery"></div>'
+      +'<div class="fg"><label>Note</label><input class="finp" type="text" id="bt-edit-note"></div>'
+      +'<button class="btn-save" style="width:100%;text-align:center" onclick="saveBtEdit()">💾 Save Karo</button>'
+      +'</div>';
+    document.body.appendChild(m);
+  }
+  document.getElementById('bt-edit-id').value=bid;
+  document.getElementById('bt-edit-party').value=b.party||'';
+  document.getElementById('bt-edit-qty').value=b.qty||'';
+  document.getElementById('bt-edit-delivery').value=b.deliveryDate||'';
   document.getElementById('bt-edit-note').value=b.note||'';
+  const ord=ORDERS.find(o=>o.id===b.orderId);
+  const rateEl=document.getElementById('bt-edit-rate');
+  if(rateEl) rateEl.value=ord?.rate||0;
+  document.getElementById('bt-edit-modal-bg').style.display='flex';
 }
 function closeBtEditModal(){
   const m=document.getElementById('bt-edit-modal-bg');
   if(m)m.style.display='none';
 }
-function btReverseStockForBatch(batch){
-  const productId=batch.productId||btGetProductId(batch.product);
-  if(!productId) return;
-  const bom=invGetBOMForProduct(productId);
-  Object.keys(bom).forEach(matId=>{
-    const bomQty=bom[matId]||0;
-    if(bomQty<=0) return;
-    const back=bomQty*(batch.qty||0);
-    const idx=STK.findIndex(m=>m.id===matId);
-    if(idx<0) return;
-    STK[idx].current=(STK[idx].current||0)+back;
-    STXN.push({id:Date.now()+'_rv_'+Math.random().toString(36).slice(2,4),
-      itemId:matId,type:'in',qty:back,note:'Batch '+batch.id+' edit-reversal',date:new Date().toISOString()});
-  });
-  save('bf9_stk',STK); save('bf9_stxn',STXN);
-}
-function packReverseStock(batch){
-  const packType=batch.packingType||'none';
-  const qty=batch.qty||0;
-  const bom=packBomGet();
-  const typeBom=bom[packType]||{};
-  Object.keys(typeBom).forEach(matId=>{
-    let perUnit=typeBom[matId]||0;
-    if(perUnit<=0) return;
-    let back=perUnit*qty;
-    if(packType==='master'){
-      const mat=STK.find(m=>m.id===matId);
-      if(mat&&mat.name.toLowerCase().includes('carton')){ back=Math.ceil(qty/10)*perUnit; }
-    }
-    const idx=STK.findIndex(m=>m.id===matId);
-    if(idx<0) return;
-    STK[idx].current=(STK[idx].current||0)+back;
-    STXN.push({id:Date.now()+'_pkrv_'+Math.random().toString(36).slice(2,4),
-      itemId:matId,type:'in',qty:back,note:'Packing('+packType+') Batch '+batch.id+' edit-reversal',date:new Date().toISOString()});
-  });
-  save('bf9_stk',STK); save('bf9_stxn',STXN);
-}
 function saveBtEdit(){
   const bid=document.getElementById('bt-edit-id').value;
   const b=BATCHES.find(x=>x.id===bid);
   if(!b)return;
-  const custId=document.getElementById('bt-edit-cust').value;
-  const qty=parseInt(document.getElementById('bt-edit-qty').value)||0;
+  const party=document.getElementById('bt-edit-party').value.trim();
+  const qty=parseInt(document.getElementById('bt-edit-qty').value)||b.qty;
   const rate=parseFloat(document.getElementById('bt-edit-rate').value)||0;
-  const advance=parseFloat(document.getElementById('bt-edit-advance').value)||0;
-  const orderDate=document.getElementById('bt-edit-order-date').value||'';
-  const deliv=document.getElementById('bt-edit-delivery').value||'';
-  const productId=document.getElementById('bt-edit-product').value;
-  const note=document.getElementById('bt-edit-note').value.trim();
-  const packingType=document.getElementById('bt-edit-packing').value||'none';
-  if(!custId){toast('⚠️ Customer chunno!');return;}
-  if(!qty){toast('⚠️ Pieces ki qty dalo!');return;}
-  if(!rate){toast('⚠️ Rate dalo!');return;}
-  if(!productId){toast('⚠️ Product chunno!');return;}
-  const c=CUSTOMERS.find(x=>x.id===custId);
-  const party=c?.name||b.party||'—';
-  const prods=invGetProducts();
-  const prodName=prods.find(p=>p.id===productId)?.name||b.product||'';
-  const dispatchDone=!!(b.stages&&b.stages.dispatch&&b.stages.dispatch.done);
-  const stockChanged=dispatchDone&&(b.qty!==qty||b.productId!==productId||(b.packingType||'none')!==packingType);
-  if(stockChanged){
-    btReverseStockForBatch({...b,qty:b.qty,productId:b.productId});
-    packReverseStock({...b,qty:b.qty,packingType:b.packingType||'none'});
-  }
-  b.custId=custId; b.party=party; b.qty=qty;
-  b.product=prodName; b.productId=productId;
-  b.packingType=packingType; b.deliveryDate=deliv; b.note=note;
+  if(!party){toast('Party naam daalo!');return;}
+  b.party=party; b.qty=qty;
+  b.deliveryDate=document.getElementById('bt-edit-delivery').value||'';
+  b.note=document.getElementById('bt-edit-note').value.trim();
   save('bf9_batches',BATCHES);
+  // update linked order rate
   const ord=ORDERS.find(o=>o.id===b.orderId);
-  if(ord){
-    ord.custId=custId; ord.product=prodName; ord.qty=qty; ord.rate=rate;
-    ord.advance=advance; ord.date=orderDate||ord.date; ord.deliveryDate=deliv; ord.note=note;
-    save('bf9_orders',ORDERS);
-  }
-  if(stockChanged){
-    btDeductStockForBatch({...b});
-    packDeductStock(b);
-  }
-  toast('✅ Batch updated!'+(stockChanged?' (stock adjusted)':''));
+  if(ord&&rate>0){ord.rate=rate;ord.qty=qty;save('bf9_orders',ORDERS);}
+  toast('✅ Batch updated!');
   closeBtEditModal();
   renderBtActive();
-  if(typeof renderBtKpis==='function') renderBtKpis();
   renderBatchSelectCard();
 }
 
@@ -14278,45 +14235,7 @@ function _anRenderCustomer(months){
   months.forEach(m=>monthlyCustomers[m]=new Set());
   periodInv.forEach(i=>{ const m=i.date?.slice(0,7); if(m&&monthlyCustomers[m]) monthlyCustomers[m].add(i.party); });
 
-  // ── Client Concentration Risk (Porter: Buyer Power) ──
-  const concEntries = Object.entries(byParty).map(([p,v])=>[p, v||0]).sort((a,b)=>b[1]-a[1]);
-  const totalRev = concEntries.reduce((s,[,v])=>s+v,0);
-  const cPct = v => totalRev>0 ? (v/totalRev*100) : 0;
-  const top1Pct = concEntries.length ? cPct(concEntries[0][1]) : 0;
-  const top3Pct = cPct(concEntries.slice(0,3).reduce((s,[,v])=>s+v,0));
-  const top5Pct = cPct(concEntries.slice(0,5).reduce((s,[,v])=>s+v,0));
-  // HHI = sum of squared % shares (0-10000). Higher = zyada concentrated
-  const hhi = Math.round(concEntries.reduce((s,[,v])=>{ const sh=cPct(v); return s+sh*sh; },0));
-  let cRiskLvl, cRiskColor, cRiskBg, cRiskMsg;
-  if(concEntries.length===0){ cRiskLvl='NO DATA'; cRiskColor='#94a3b8'; cRiskBg='#f8fafc'; cRiskMsg='Is period mein koi invoice nahi mili.'; }
-  else if(top1Pct>=40){ cRiskLvl='HIGH RISK'; cRiskColor='#dc2626'; cRiskBg='#fef2f2';
-    cRiskMsg=`⚠️ Sabse bada client akela <b>${top1Pct.toFixed(0)}%</b> revenue de raha hai (${esc(concEntries[0][0])}). Agar ye client chala gaya toh bada jhatka lagega. Naye clients laana abhi #1 priority.`; }
-  else if(top1Pct>=25){ cRiskLvl='MODERATE'; cRiskColor='#d97706'; cRiskBg='#fffbeb';
-    cRiskMsg=`Top client <b>${top1Pct.toFixed(0)}%</b> pe hai (${esc(concEntries[0][0])}) — thodi dependency hai. 1-2 naye solid clients aane se balance aa jayega.`; }
-  else { cRiskLvl='HEALTHY'; cRiskColor='#16a34a'; cRiskBg='#f0fdf4';
-    cRiskMsg=`Revenue achhe se faila hua hai — top client sirf <b>${top1Pct.toFixed(0)}%</b>. Kisi ek client pe over-dependency nahi, strong position.`; }
-  const cTop5 = concEntries.slice(0,5);
-  const cOthers = concEntries.slice(5).reduce((s,[,v])=>s+v,0);
-  const concLabels = [...cTop5.map(([p])=>p), ...(cOthers>0?['Others']:[])];
-  const concData = [...cTop5.map(([,v])=>v), ...(cOthers>0?[cOthers]:[])];
-
   el.innerHTML = `
-    <div class="an-card" style="border-left:4px solid ${cRiskColor}">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
-        <div class="an-sec-title" style="margin:0">⚖️ Client Concentration Risk</div>
-        <div style="font-size:11px;font-weight:900;color:${cRiskColor};background:${cRiskBg};padding:4px 12px;border-radius:20px;border:1.5px solid ${cRiskColor}33">${cRiskLvl}</div>
-      </div>
-      <div class="an-kpi-grid" style="margin-bottom:10px">
-        <div class="an-kpi"><div class="an-kpi-val" style="color:${cRiskColor}">${top1Pct.toFixed(0)}%</div><div class="an-kpi-lbl">Top Client</div></div>
-        <div class="an-kpi"><div class="an-kpi-val">${top3Pct.toFixed(0)}%</div><div class="an-kpi-lbl">Top 3 Clients</div></div>
-        <div class="an-kpi"><div class="an-kpi-val">${top5Pct.toFixed(0)}%</div><div class="an-kpi-lbl">Top 5 Clients</div></div>
-        <div class="an-kpi"><div class="an-kpi-val">${hhi.toLocaleString('en-IN')}</div><div class="an-kpi-lbl">HHI Index</div></div>
-      </div>
-      <div class="an-chart-wrap" style="height:200px"><canvas id="an-ch-concentration"></canvas></div>
-      <div style="font-size:12px;font-weight:700;color:#1e293b;line-height:1.6;background:${cRiskBg};padding:10px 12px;border-radius:10px;margin-top:10px">${cRiskMsg}</div>
-      <div style="font-size:9.5px;color:var(--muted);font-weight:700;margin-top:6px;line-height:1.5">HHI: ek hi client = 10000. &lt;1500 healthy · 1500-2500 moderate · &gt;2500 concentrated. Buyer power jitni zyada client ke paas, utna risk.</div>
-    </div>
-
     <div class="an-kpi-grid">
       <div class="an-kpi"><div class="an-kpi-val">${allParties.size}</div><div class="an-kpi-lbl">Total Customers</div></div>
       <div class="an-kpi"><div class="an-kpi-val">${periodParties.size}</div><div class="an-kpi-lbl">Active (Period)</div></div>
@@ -14356,12 +14275,6 @@ function _anRenderCustomer(months){
       data:[repeatInPeriod, newInPeriod.length],
       backgroundColor:['#10b981','#3b82f6']
     }],{scales:{}});
-    if(concData.length){
-      _anMakeChart('an-ch-concentration','doughnut',concLabels,[{
-        data:concData,
-        backgroundColor:['#dc2626','#f97316','#f59e0b','#3b82f6','#6366f1','#cbd5e1']
-      }],{scales:{},plugins:{legend:{display:true,position:'bottom',labels:{font:{family:'Nunito',size:10},boxWidth:12,padding:8}},tooltip:{callbacks:{label:c=>` ${c.label}: ₹${(c.parsed||0).toLocaleString('en-IN')} (${totalRev>0?(c.parsed/totalRev*100).toFixed(1):0}%)`}}}});
-    }
   },100);
 }
 
@@ -17921,4 +17834,3 @@ init();
 
 </body>
 </html>
-          
