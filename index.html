@@ -5771,7 +5771,7 @@ function renderStock(){
         <div style="font-size:12px;font-weight:800;color:var(--navy2)">${esc(it.name)}</div>
         <div style="font-size:9px;color:var(--muted);font-weight:700">${it.cat}${hasConv?` · ${purUnit}→${it.unit}(×${it.convRatio})`:''}</div>
       </div>
-      <div style="font-size:12px;font-weight:800;color:${col};text-align:right">${it.current} <span style="font-size:9px;font-weight:700">${it.unit}</span></div>
+      <div style="font-size:12px;font-weight:800;color:${col};text-align:right">${+parseFloat(it.current||0).toFixed(4)} <span style="font-size:9px;font-weight:700">${it.unit}</span></div>
       <div style="font-size:11px;font-weight:700;color:var(--muted);text-align:right">₹${(it.rate||0).toLocaleString('en-IN')}</div>
       <div style="font-size:11px;font-weight:800;color:var(--navy2);text-align:right">₹${val.toLocaleString('en-IN',{maximumFractionDigits:0})}</div>
       <div style="display:flex;gap:3px;justify-content:flex-end" onclick="event.stopPropagation()">
@@ -5783,6 +5783,11 @@ function renderStock(){
   }).join('');
 }
 function renderStockHistory(){
+  // Clean orphan STXN entries (itemId jo STK mein exist nahi karta)
+  const validIds = new Set(STK.map(m=>m.id));
+  const before = STXN.length;
+  STXN = STXN.filter(t=> t.itemId && validIds.has(t.itemId));
+  if(STXN.length < before){ save('bf9_stxn', STXN); }
   const el = document.getElementById('stk-hist-body');
   if(!el) return;
 
@@ -5860,7 +5865,8 @@ function renderStockHistory(){
       </div>
       ${dayTxns.map(t=>{
         const mat     = STK.find(m=>m.id===t.itemId);
-        const matName = mat ? (mat.ico||'📦')+' '+mat.name : (t.itemId||'Unknown');
+        if(!mat) return ''; // orphan transaction — item deleted ya invalid itemId, skip
+        const matName = (mat.ico||'📦')+' '+mat.name;
         const unit    = mat ? mat.unit : '';
         const isIn    = t.type==='in';
         const src     = getSource(t);
@@ -5881,7 +5887,7 @@ function renderStockHistory(){
           </div>
           <div style="text-align:right;flex-shrink:0">
             <div style="font-size:15px;font-weight:900;color:${isIn?'var(--green-dark)':'var(--red-dark)'}">
-              ${isIn?'+':'-'}${t.qty} <span style="font-size:10px;font-weight:700">${unit}</span>
+              ${isIn?'+':'-'}${+parseFloat(t.qty||0).toFixed(4)} <span style="font-size:10px;font-weight:700">${unit}</span>
             </div>
           </div>
         </div>`;
@@ -6196,12 +6202,12 @@ function confirmMfg(){
       const ingrUnit = ingr.unit||mat.unit;
       const neededInStockUnit = _convertIngredient(ingr.qty*qty, ingrUnit, mat.unit);
       const dispAmt = ingr.qty*qty;
-      mat.current=Math.max(0, mat.current-neededInStockUnit);
+      mat.current=+Math.max(0, mat.current-neededInStockUnit).toFixed(4);
       STXN.push({id:Date.now()+Math.random(),itemId:mat.id,type:'out',qty:+neededInStockUnit.toFixed(4),note:`🏭 Mfg: ${qty} ${it.name} ke liye (${dispAmt} ${ingrUnit} = ${neededInStockUnit.toFixed(3)} ${mat.unit})`,date:new Date().toISOString().slice(0,10)});
     });
   }
   // Add manufactured qty
-  it.current+=qty;
+  it.current=+((it.current||0)+qty).toFixed(4);
   STXN.push({id:Date.now(),itemId:it.id,type:'in',qty,note:`🏭 Manufactured${note?' — '+note:''}`,date:new Date().toISOString()});
   if(STXN.length>500) STXN=STXN.slice(-500);
   save('bf9_stk',STK); save('bf9_stxn',STXN);
@@ -6225,8 +6231,8 @@ function confirmStock(){
   const note=document.getElementById('stk-note').value;
   if(qty<=0){ toast('Quantity daalo!'); return; }
   const it=STK.find(i=>i.id===stkCtx.id); if(!it) return;
-  if(stkCtx.type==='in') it.current+=qty;
-  else{ if(qty>it.current){ toast('Stock se zyada use nahi ho sakta!'); return; } it.current-=qty; }
+  if(stkCtx.type==='in') it.current=+((it.current||0)+qty).toFixed(4);
+  else{ if(qty>it.current){ toast('Stock se zyada use nahi ho sakta!'); return; } it.current=+(it.current-qty).toFixed(4); }
   STXN.push({id:Date.now(),itemId:it.id,type:stkCtx.type,qty,note,date:new Date().toISOString()});
   if(STXN.length>500) STXN=STXN.slice(-500);
   save('bf9_stk',STK); save('bf9_stxn',STXN);
@@ -8138,7 +8144,7 @@ function _processEntries(entries, newLastRow){
     );
     if(alreadyDone) return;
 
-    it.current += qty;
+    it.current = +((it.current||0)+qty).toFixed(4);
     const txn = {
       id:     Date.now()+added,
       itemId: it.id,
@@ -17393,7 +17399,7 @@ function packDeductStock(batch){
     }
     const idx = STK.findIndex(m=>m.id===matId);
     if(idx<0) return;
-    STK[idx].current = Math.max(0,(STK[idx].current||0)-totalDeduct);
+    STK[idx].current = +Math.max(0,(STK[idx].current||0)-totalDeduct).toFixed(4);
     STXN.push({id:Date.now()+'_pk_'+Math.random().toString(36).slice(2,4),
       itemId:matId,type:'out',qty:totalDeduct,
       note:'Packing('+packType+') Batch '+batch.id,date:new Date().toISOString()});
