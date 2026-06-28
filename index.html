@@ -10602,7 +10602,7 @@ function _renderPartyTable(filtered, el, listType){
         <th style="padding:10px 8px;font-size:11px;font-weight:800;color:var(--muted);text-align:center;text-transform:uppercase">Actions</th>
       </tr></thead>
       <tbody>${filtered.map(c=>{
-    const bal=_custBalance(c.id);
+    const bal=+(_custBalance(c.id)).toFixed(2);
     const balColor=bal>0?'var(--red)':bal<0?'var(--green)':'var(--muted)';
     const balLabel=bal>0?(listType==='supplier'?'Dena Hai':'Outstanding'):bal<0?'Advance':'Clear';
     const tc=typeColors[c.type]||'var(--muted)';
@@ -10646,7 +10646,7 @@ function openCustLedger(custId, fromTab){
 
 function _custBalance(custId){
   const entries=LEDGER[custId]||[];
-  return entries.reduce((s,e)=>s+(e.type==='dr'?e.amt:-e.amt),0);
+  return +entries.reduce((s,e)=>s+(e.type==='dr'?e.amt:-e.amt),0).toFixed(2);
 }
 
 function initLedgerView(){
@@ -11258,7 +11258,7 @@ function _renderHealthCheck(){
 
 function _custBalance(custId){
   const entries=LEDGER[custId]||[];
-  return entries.reduce((s,e)=>s+(e.type==='dr'?e.amt:-e.amt),0);
+  return +entries.reduce((s,e)=>s+(e.type==='dr'?e.amt:-e.amt),0).toFixed(2);
 }
 
 /* ═══════════════════════════════════════════════════
