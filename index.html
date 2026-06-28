@@ -2408,8 +2408,9 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <button class="htab active" id="ledtab-dashboard" onclick="setLedTab('dashboard')">📊 Dashboard</button>
     <button class="htab" id="ledtab-customers"  onclick="setLedTab('customers')">👤 Customers</button>
     <button class="htab" id="ledtab-suppliers"  onclick="setLedTab('suppliers')">🏭 Suppliers</button>
+    <button class="htab" id="ledtab-assets"     onclick="setLedTab('assets')">🏗️ Assets</button>
     <button class="htab" id="ledtab-ledger"     onclick="setLedTab('ledger')">📒 Ledger</button>
-    <button class="htab" id="ledtab-ageing"     onclick="setLedTab('ageing')">⏳ Ageing</button>
+    <button class="htab" id="ledtab-ageing"     onclick="setLedTab('ageing')\">⏳ Ageing</button>
     <button class="htab" id="ledtab-newcust"    onclick="setLedTab('newcust')">➕ Add Party</button>
   </div>
 
@@ -2515,6 +2516,18 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   </div>
 
   <!-- Ageing Report -->
+  <!-- Assets Pane -->
+  <div id="led-assets-pane" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:14px;font-weight:900;color:var(--navy2)">🏗️ Fixed Asset Register</div>
+      <button onclick="openAssetModal()" style="padding:8px 14px;background:var(--navy2);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">＋ Asset Add Karo</button>
+    </div>
+    <!-- KPI cards -->
+    <div id="asset-kpi" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px"></div>
+    <!-- Asset list -->
+    <div id="asset-list"></div>
+  </div>
+
   <div id="led-ageing-pane" style="display:none">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
       <h2 style="font-size:18px;font-weight:900;color:var(--navy2)">⏳ Ageing Report</h2>
@@ -3897,6 +3910,126 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   </div>
 </div>
 
+<!-- Asset Add/Edit Modal -->
+<div class="modal-bg" id="asset-modal">
+  <div class="modal" style="max-height:90vh;overflow-y:auto">
+    <div class="modal-handle"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div>
+        <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase">🏗️ Fixed Asset</div>
+        <div id="asset-modal-title" style="font-size:16px;font-weight:900;color:var(--navy2)">Naya Asset Add Karo</div>
+      </div>
+      <button onclick="closeAssetModal()" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:#f0f4ff;font-size:14px;cursor:pointer">✕</button>
+    </div>
+
+    <input type="hidden" id="asset-id">
+
+    <!-- Basic Details -->
+    <div class="g2">
+      <div class="fg"><label>Asset Naam *</label><input class="finp" id="asset-name" placeholder="e.g. Moulding Machine #1"></div>
+      <div class="fg"><label>Category *</label>
+        <select class="finp" id="asset-category">
+          <option value="machinery">🏭 Machinery & Equipment</option>
+          <option value="vehicle">🚗 Vehicle</option>
+          <option value="furniture">🪑 Furniture & Fixtures</option>
+          <option value="computer">💻 Computer & Electronics</option>
+          <option value="building">🏢 Building/Land</option>
+          <option value="other">📦 Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="fg"><label>Purchase Date *</label><input class="finp" type="date" id="asset-purchase-date"></div>
+      <div class="fg"><label>Dealer/Supplier</label><input class="finp" id="asset-dealer" placeholder="Dealer naam"></div>
+    </div>
+    <div class="g2">
+      <div class="fg"><label>Purchase Amount ₹ *</label><input class="finp" type="number" id="asset-cost" placeholder="0" oninput="assetCalcBook()"></div>
+      <div class="fg"><label>GST Amount ₹</label><input class="finp" type="number" id="asset-gst" placeholder="0" oninput="assetCalcBook()"></div>
+    </div>
+    <div class="fg"><label>Description / Serial No.</label><input class="finp" id="asset-desc" placeholder="Model no., serial no., specs..."></div>
+
+    <!-- Payment Type -->
+    <div style="font-size:11px;font-weight:800;color:var(--navy2);margin-bottom:8px;margin-top:4px">💳 Payment Type</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <label style="flex:1;padding:8px;border:1.5px solid var(--border);border-radius:var(--r2);cursor:pointer;text-align:center;font-size:11px;font-weight:800" id="apay-cash-lbl">
+        <input type="radio" name="asset-pay" value="cash" id="apay-cash" onchange="assetPayType()" style="display:none" checked>💵 Cash/UPI
+      </label>
+      <label style="flex:1;padding:8px;border:1.5px solid var(--border);border-radius:var(--r2);cursor:pointer;text-align:center;font-size:11px;font-weight:800" id="apay-loan-lbl">
+        <input type="radio" name="asset-pay" value="loan" id="apay-loan" onchange="assetPayType()" style="display:none">🏦 Loan/EMI
+      </label>
+      <label style="flex:1;padding:8px;border:1.5px solid var(--border);border-radius:var(--r2);cursor:pointer;text-align:center;font-size:11px;font-weight:800" id="apay-partial-lbl">
+        <input type="radio" name="asset-pay" value="partial" id="apay-partial" onchange="assetPayType()" style="display:none">💸 Partial
+      </label>
+    </div>
+
+    <!-- EMI Section -->
+    <div id="asset-emi-section" style="display:none;background:#f0f7ff;border:1.5px solid #93c5fd;border-radius:var(--r2);padding:12px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:900;color:#1d4ed8;margin-bottom:8px">🏦 EMI Details</div>
+      <div class="g2">
+        <div class="fg" style="margin:0"><label>Bank / NBFC</label><input class="finp" id="asset-emi-bank" placeholder="SBI, HDFC..."></div>
+        <div class="fg" style="margin:0"><label>Loan Amount ₹</label><input class="finp" type="number" id="asset-emi-amount" placeholder="0" oninput="assetCalcEMI()"></div>
+      </div>
+      <div class="g2" style="margin-top:8px">
+        <div class="fg" style="margin:0"><label>Monthly EMI ₹</label><input class="finp" type="number" id="asset-emi-monthly" placeholder="0"></div>
+        <div class="fg" style="margin:0"><label>Tenure (months)</label><input class="finp" type="number" id="asset-emi-tenure" placeholder="36" oninput="assetCalcEMI()"></div>
+      </div>
+      <div class="g2" style="margin-top:8px">
+        <div class="fg" style="margin:0"><label>EMI Start Date</label><input class="finp" type="date" id="asset-emi-start"></div>
+        <div class="fg" style="margin:0"><label>Interest Rate % p.a.</label><input class="finp" type="number" id="asset-emi-rate" placeholder="12" oninput="assetCalcEMI()"></div>
+      </div>
+      <div id="asset-emi-preview" style="margin-top:8px;font-size:11px;font-weight:700;color:#1d4ed8"></div>
+    </div>
+
+    <!-- Depreciation -->
+    <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:var(--r2);padding:12px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:900;color:#166534;margin-bottom:8px">📉 Depreciation</div>
+      <div class="g2">
+        <div class="fg" style="margin:0"><label>Method</label>
+          <select class="finp" id="asset-dep-method" onchange="assetCalcBook()">
+            <option value="wdv">WDV — Written Down Value (Income Tax)</option>
+            <option value="slm">SLM — Straight Line Method</option>
+            <option value="none">None — No Depreciation</option>
+          </select>
+        </div>
+        <div class="fg" style="margin:0"><label>Rate % per year</label><input class="finp" type="number" id="asset-dep-rate" placeholder="15" oninput="assetCalcBook()"></div>
+      </div>
+      <div class="fg" style="margin-top:8px;margin-bottom:0"><label>Useful Life (years)</label><input class="finp" type="number" id="asset-dep-life" placeholder="10" oninput="assetCalcBook()"></div>
+      <!-- Book Value Preview -->
+      <div id="asset-book-preview" style="margin-top:10px;background:#fff;border-radius:var(--r2);padding:10px;font-size:11px"></div>
+    </div>
+
+    <div class="modal-btns">
+      <button class="mbtn-primary" onclick="saveAsset()">✅ Save Asset</button>
+      <button class="mbtn-cancel" id="asset-delete-btn" onclick="deleteAsset()" style="display:none;background:#fef2f2;color:var(--red-dark);border-color:#fca5a5">🗑 Delete</button>
+      <button class="mbtn-cancel" onclick="closeAssetModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Asset EMI Payment Modal -->
+<div class="modal-bg" id="asset-emi-pay-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div style="font-size:15px;font-weight:900;color:var(--navy2);margin-bottom:14px">💳 EMI Payment Mark Karo</div>
+    <input type="hidden" id="aep-asset-id">
+    <input type="hidden" id="aep-emi-idx">
+    <div class="fg"><label>Payment Date</label><input class="finp" type="date" id="aep-date"></div>
+    <div class="fg"><label>Amount ₹</label><input class="finp" type="number" id="aep-amount"></div>
+    <div class="fg"><label>Payment Mode</label>
+      <select class="finp" id="aep-mode">
+        <option value="bank">🏦 Bank</option>
+        <option value="upi">📱 UPI</option>
+        <option value="cash">💵 Cash</option>
+      </select>
+    </div>
+    <div class="fg"><label>Note</label><input class="finp" id="aep-note" placeholder="e.g. EMI #3 paid"></div>
+    <div class="modal-btns">
+      <button class="mbtn-primary" onclick="saveEmiPayment()">✅ Mark Paid</button>
+      <button class="mbtn-cancel" onclick="document.getElementById('asset-emi-pay-modal').classList.remove('show')">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- Manufacture Modal -->
 <div class="modal-bg" id="stk-mfg-modal">
   <div class="modal" style="max-height:85vh;overflow-y:auto">
@@ -4170,6 +4303,8 @@ const GD_KEYS = [
   'bf9_inv_products','bf9_inv_all_boms','bf9_inv_pack_bom',
   // Daybook & Discipline
   'bf9_daybook','bf9_cat_labels','bf9_disc_settings',
+  // Assets
+  'bf9_assets',
   // Attendance & Salary
   'bf9_att','bf9_sal_rates','bf9_sal_rules','bf9_advances',
   // CFO module
@@ -10187,7 +10322,7 @@ function _ledBackBtn(){
 
 /* ── Tab switch ── */
 function setLedTab(name){
-  ['dashboard','customers','suppliers','ledger','ageing','newcust'].forEach(t=>{
+  ['dashboard','customers','suppliers','assets','ledger','ageing','newcust'].forEach(t=>{
     const btn=document.getElementById('ledtab-'+t);
     const pane=document.getElementById('led-'+t+'-pane');
     if(btn) btn.classList.toggle('active',t===name);
@@ -10196,6 +10331,7 @@ function setLedTab(name){
   if(name==='dashboard') _renderLedDashboard();
   if(name==='customers') renderCustomerList();
   if(name==='suppliers') renderSupplierList();
+  if(name==='assets')    renderAssetList();
   if(name==='ledger')    initLedgerView();
   if(name==='ageing')    _renderAgeing('customer');
   if(name==='newcust'){
@@ -10205,6 +10341,333 @@ function setLedTab(name){
 }
 
 /* ── Dashboard ── */
+// ══════════════════════════════════════════════════════
+// FIXED ASSET MODULE
+// ══════════════════════════════════════════════════════
+
+let ASSETS = load('bf9_assets') || [];
+
+const ASSET_CATS = {
+  machinery:  {label:'Machinery & Equipment', icon:'🏭', depRate:15},
+  vehicle:    {label:'Vehicle',               icon:'🚗', depRate:15},
+  furniture:  {label:'Furniture & Fixtures',  icon:'🪑', depRate:10},
+  computer:   {label:'Computer & Electronics',icon:'💻', depRate:40},
+  building:   {label:'Building',              icon:'🏢', depRate:5},
+  other:      {label:'Other',                 icon:'📦', depRate:10},
+};
+
+function _assetBookValue(asset, asOfDate){
+  const purchaseDate = new Date(asset.purchaseDate);
+  const asOf = asOfDate ? new Date(asOfDate) : new Date();
+  const cost = (asset.cost||0) + (asset.gst||0);
+  const method = asset.depMethod || 'wdv';
+  const rate = (asset.depRate||0) / 100;
+  const life = asset.depLife || 10;
+
+  if(method === 'none' || rate === 0) return cost;
+
+  // Years elapsed (fractional)
+  const msPerYear = 365.25 * 24 * 3600 * 1000;
+  const yearsElapsed = Math.max(0, (asOf - purchaseDate) / msPerYear);
+
+  if(method === 'wdv'){
+    // WDV: Value = Cost × (1 - rate)^years
+    return Math.max(0, cost * Math.pow(1 - rate, yearsElapsed));
+  } else {
+    // SLM: Value = Cost - (Cost/life × years)
+    const annualDep = cost / life;
+    return Math.max(0, cost - annualDep * yearsElapsed);
+  }
+}
+
+function _assetDepThisYear(asset){
+  const today = new Date();
+  const yearStart = new Date(today.getFullYear(), 3, 1); // April 1 (India FY)
+  const bookStart = _assetBookValue(asset, yearStart);
+  const bookNow   = _assetBookValue(asset);
+  return Math.max(0, bookStart - bookNow);
+}
+
+function _emiSchedule(asset){
+  if(asset.payType !== 'loan' && asset.payType !== 'partial') return [];
+  const emi = asset.emiMonthly || 0;
+  const tenure = asset.emiTenure || 0;
+  const start = asset.emiStart ? new Date(asset.emiStart) : new Date();
+  const schedule = [];
+  for(let i = 0; i < tenure; i++){
+    const d = new Date(start);
+    d.setMonth(d.getMonth() + i);
+    const dateStr = d.toISOString().slice(0,10);
+    const paid = (asset.emiPayments||[]).find(p=>p.emiIdx===i);
+    schedule.push({ idx:i, date:dateStr, amount:emi, paid:!!paid, payDate:paid?.date, payMode:paid?.mode });
+  }
+  return schedule;
+}
+
+// ── RENDER ─────────────────────────────────────────────
+function renderAssetList(){
+  const kpiEl = document.getElementById('asset-kpi');
+  const listEl = document.getElementById('asset-list');
+  if(!kpiEl||!listEl) return;
+
+  const today = new Date();
+  const totalCost   = ASSETS.reduce((s,a)=>s+(a.cost||0)+(a.gst||0), 0);
+  const totalBook   = ASSETS.reduce((s,a)=>s+_assetBookValue(a), 0);
+  const totalDep    = totalCost - totalBook;
+  const totalEmiPending = ASSETS.reduce((s,a)=>{
+    const sched = _emiSchedule(a);
+    return s + sched.filter(e=>!e.paid && new Date(e.date)<=today).reduce((ss,e)=>ss+e.amount,0);
+  }, 0);
+
+  kpiEl.innerHTML = `
+    <div class="an-kpi"><div class="an-kpi-val">₹${(totalCost/1000).toFixed(0)}k</div><div class="an-kpi-lbl">Total Cost</div></div>
+    <div class="an-kpi" style="background:#f0fdf4;border-color:#86efac"><div class="an-kpi-val" style="color:#16a34a">₹${(totalBook/1000).toFixed(0)}k</div><div class="an-kpi-lbl">Book Value</div></div>
+    <div class="an-kpi" style="background:#fef2f2;border-color:#fca5a5"><div class="an-kpi-val" style="color:#dc2626">₹${(totalDep/1000).toFixed(0)}k</div><div class="an-kpi-lbl">Total Depreciation</div></div>
+    <div class="an-kpi" style="background:#fffbeb;border-color:#fde68a"><div class="an-kpi-val" style="color:#92400e">₹${(totalEmiPending/1000).toFixed(0)}k</div><div class="an-kpi-lbl">EMI Pending</div></div>
+  `;
+
+  if(!ASSETS.length){
+    listEl.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px;font-weight:700">Koi asset nahi — upar "+ Asset Add Karo" dabao</div>';
+    return;
+  }
+
+  listEl.innerHTML = ASSETS.map(a=>{
+    const cat = ASSET_CATS[a.category] || ASSET_CATS.other;
+    const cost = (a.cost||0) + (a.gst||0);
+    const book = _assetBookValue(a);
+    const dep = cost - book;
+    const depPct = cost>0 ? Math.round(dep/cost*100) : 0;
+    const depYear = _assetDepThisYear(a);
+    const sched = _emiSchedule(a);
+    const emiDue = sched.filter(e=>!e.paid && new Date(e.date)<=today);
+    const emiPaid = sched.filter(e=>e.paid).length;
+    const emiTotal = sched.length;
+
+    return `<div style="border:1.5px solid var(--border);border-radius:var(--r2);margin-bottom:10px;overflow:hidden">
+      <!-- Header -->
+      <div style="padding:12px 14px;background:#f8faff;display:flex;align-items:center;gap:10px">
+        <div style="font-size:24px">${cat.icon}</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:900;color:var(--navy2)">${esc(a.name)}</div>
+          <div style="font-size:10px;color:var(--muted)">${cat.label} · ${a.purchaseDate||''} · ${a.dealer?esc(a.dealer):'No dealer'}</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button onclick="openAssetModal('${a.id}')" style="padding:5px 10px;border:1px solid var(--border);border-radius:var(--r2);background:#fff;font-size:11px;font-weight:800;cursor:pointer">✏️</button>
+        </div>
+      </div>
+      <!-- Values -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border)">
+        <div style="background:#fff;padding:10px;text-align:center">
+          <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase">Purchase Cost</div>
+          <div style="font-family:'Bebas Neue';font-size:18px;color:var(--navy2)">₹${_fmtAmt(cost)}</div>
+        </div>
+        <div style="background:#fff;padding:10px;text-align:center">
+          <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase">Book Value</div>
+          <div style="font-family:'Bebas Neue';font-size:18px;color:#16a34a">₹${_fmtAmt(book)}</div>
+        </div>
+        <div style="background:#fff;padding:10px;text-align:center">
+          <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase">This Year Dep.</div>
+          <div style="font-family:'Bebas Neue';font-size:18px;color:#dc2626">₹${_fmtAmt(depYear)}</div>
+        </div>
+      </div>
+      <!-- Depreciation bar -->
+      <div style="padding:8px 14px;background:#fff;border-top:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;font-size:10px;font-weight:800;color:var(--muted);margin-bottom:4px">
+          <span>Depreciation: ${depPct}%</span>
+          <span>${a.depMethod?.toUpperCase()||'WDV'} @ ${a.depRate||0}%/yr</span>
+        </div>
+        <div style="height:6px;background:#f0f4fb;border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${depPct}%;background:#ef4444;border-radius:3px"></div>
+        </div>
+      </div>
+      ${sched.length ? `
+      <!-- EMI Section -->
+      <div style="padding:10px 14px;border-top:1px solid var(--border);background:#f0f7ff">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div style="font-size:11px;font-weight:900;color:#1d4ed8">🏦 EMI: ${emiPaid}/${emiTotal} paid · Bank: ${esc(a.emiBank||'—')}</div>
+          ${emiDue.length ? `<div style="font-size:10px;font-weight:900;color:#dc2626;background:#fef2f2;padding:2px 8px;border-radius:10px">${emiDue.length} EMI due!</div>` : '<div style="font-size:10px;font-weight:800;color:#16a34a">✅ Up to date</div>'}
+        </div>
+        <!-- Next 3 EMIs -->
+        ${sched.filter(e=>!e.paid).slice(0,3).map(e=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:#fff;border-radius:var(--r2);margin-bottom:4px;border:1px solid ${new Date(e.date)<=today?'#fca5a5':'#e2e8f0'}">
+            <div>
+              <div style="font-size:11px;font-weight:800;color:var(--navy2)">EMI #${e.idx+1} · ${e.date}</div>
+              <div style="font-size:10px;color:${new Date(e.date)<=today?'#dc2626':'var(--muted)'}">${new Date(e.date)<=today?'⚠️ Overdue':'Upcoming'}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="font-size:13px;font-weight:900;color:var(--navy2)">₹${_fmtAmt(e.amount)}</div>
+              <button onclick="openEmiPayModal('${a.id}',${e.idx})" style="padding:4px 10px;border:none;background:#3b82f6;color:#fff;border-radius:var(--r2);font-size:10px;font-weight:800;cursor:pointer">Pay</button>
+            </div>
+          </div>`).join('')}
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ── MODAL ──────────────────────────────────────────────
+function openAssetModal(id){
+  const a = id ? ASSETS.find(x=>x.id===id) : null;
+  document.getElementById('asset-id').value = id||'';
+  document.getElementById('asset-modal-title').textContent = a ? 'Asset Edit Karo' : 'Naya Asset Add Karo';
+  document.getElementById('asset-delete-btn').style.display = a ? 'block' : 'none';
+
+  document.getElementById('asset-name').value = a?.name||'';
+  document.getElementById('asset-category').value = a?.category||'machinery';
+  document.getElementById('asset-purchase-date').value = a?.purchaseDate||new Date().toISOString().slice(0,10);
+  document.getElementById('asset-dealer').value = a?.dealer||'';
+  document.getElementById('asset-cost').value = a?.cost||'';
+  document.getElementById('asset-gst').value = a?.gst||'';
+  document.getElementById('asset-desc').value = a?.desc||'';
+  document.getElementById('asset-dep-method').value = a?.depMethod||'wdv';
+  document.getElementById('asset-dep-rate').value = a?.depRate||15;
+  document.getElementById('asset-dep-life').value = a?.depLife||10;
+  document.getElementById('asset-emi-bank').value = a?.emiBank||'';
+  document.getElementById('asset-emi-amount').value = a?.emiAmount||'';
+  document.getElementById('asset-emi-monthly').value = a?.emiMonthly||'';
+  document.getElementById('asset-emi-tenure').value = a?.emiTenure||'';
+  document.getElementById('asset-emi-start').value = a?.emiStart||'';
+  document.getElementById('asset-emi-rate').value = a?.emiRate||'';
+
+  // Set pay type radio
+  const payType = a?.payType||'cash';
+  document.querySelector(`input[name="asset-pay"][value="${payType}"]`).checked = true;
+  assetPayType();
+  assetCalcBook();
+
+  document.getElementById('asset-modal').classList.add('show');
+}
+
+function closeAssetModal(){
+  document.getElementById('asset-modal').classList.remove('show');
+}
+
+function assetPayType(){
+  const type = document.querySelector('input[name="asset-pay"]:checked')?.value||'cash';
+  ['cash','loan','partial'].forEach(t=>{
+    const lbl = document.getElementById('apay-'+t+'-lbl');
+    if(lbl) lbl.style.cssText = t===type
+      ? 'flex:1;padding:8px;border:2px solid #3b82f6;border-radius:var(--r2);cursor:pointer;text-align:center;font-size:11px;font-weight:800;background:#eff6ff;color:#1d4ed8'
+      : 'flex:1;padding:8px;border:1.5px solid var(--border);border-radius:var(--r2);cursor:pointer;text-align:center;font-size:11px;font-weight:800';
+  });
+  document.getElementById('asset-emi-section').style.display = (type==='loan'||type==='partial') ? 'block' : 'none';
+}
+
+function assetCalcEMI(){
+  const P = parseFloat(document.getElementById('asset-emi-amount').value)||0;
+  const r = (parseFloat(document.getElementById('asset-emi-rate').value)||0)/1200;
+  const n = parseFloat(document.getElementById('asset-emi-tenure').value)||0;
+  if(P>0 && r>0 && n>0){
+    const emi = P * r * Math.pow(1+r,n) / (Math.pow(1+r,n)-1);
+    document.getElementById('asset-emi-monthly').value = Math.round(emi);
+    document.getElementById('asset-emi-preview').textContent = `Monthly EMI: ₹${_fmtAmt(Math.round(emi))} · Total Payable: ₹${_fmtAmt(Math.round(emi*n))} · Interest: ₹${_fmtAmt(Math.round(emi*n-P))}`;
+  }
+}
+
+function assetCalcBook(){
+  const cost = (parseFloat(document.getElementById('asset-cost').value)||0) + (parseFloat(document.getElementById('asset-gst').value)||0);
+  const method = document.getElementById('asset-dep-method').value;
+  const rate = parseFloat(document.getElementById('asset-dep-rate').value)||0;
+  const life = parseFloat(document.getElementById('asset-dep-life').value)||10;
+  const el = document.getElementById('asset-book-preview');
+  if(!el||!cost) return;
+
+  let rows = '';
+  const today = new Date();
+  const purchDate = new Date(document.getElementById('asset-purchase-date').value||today);
+  for(let yr=1; yr<=Math.min(life,10); yr++){
+    const d = new Date(purchDate); d.setFullYear(d.getFullYear()+yr);
+    const tempAsset = {cost:parseFloat(document.getElementById('asset-cost').value)||0, gst:parseFloat(document.getElementById('asset-gst').value)||0, purchaseDate:document.getElementById('asset-purchase-date').value, depMethod:method, depRate:rate, depLife:life};
+    const bv = _assetBookValue(tempAsset, d);
+    const dep = yr===1 ? cost-bv : 0;
+    rows += `<div style="display:flex;justify-content:space-between;font-size:10px;padding:3px 0;border-bottom:1px solid #f0f4fb">
+      <span style="font-weight:700">Year ${yr} (${d.getFullYear()})</span>
+      <span style="color:#16a34a;font-weight:800">₹${_fmtAmt(bv)}</span>
+    </div>`;
+  }
+  el.innerHTML = `<div style="font-size:10px;font-weight:900;color:#166534;margin-bottom:6px">📊 Projected Book Values (${method.toUpperCase()})</div>${rows}`;
+}
+
+function saveAsset(){
+  const name = document.getElementById('asset-name').value.trim();
+  const cost = parseFloat(document.getElementById('asset-cost').value)||0;
+  if(!name){ toast('Asset naam daalo!'); return; }
+  if(!cost){ toast('Purchase amount daalo!'); return; }
+
+  const id = document.getElementById('asset-id').value || 'ast_'+Date.now();
+  const existing = ASSETS.find(a=>a.id===id);
+
+  const data = {
+    id, name,
+    category: document.getElementById('asset-category').value,
+    purchaseDate: document.getElementById('asset-purchase-date').value,
+    dealer: document.getElementById('asset-dealer').value.trim(),
+    cost, gst: parseFloat(document.getElementById('asset-gst').value)||0,
+    desc: document.getElementById('asset-desc').value.trim(),
+    payType: document.querySelector('input[name="asset-pay"]:checked')?.value||'cash',
+    depMethod: document.getElementById('asset-dep-method').value,
+    depRate: parseFloat(document.getElementById('asset-dep-rate').value)||0,
+    depLife: parseFloat(document.getElementById('asset-dep-life').value)||10,
+    emiBank: document.getElementById('asset-emi-bank').value.trim(),
+    emiAmount: parseFloat(document.getElementById('asset-emi-amount').value)||0,
+    emiMonthly: parseFloat(document.getElementById('asset-emi-monthly').value)||0,
+    emiTenure: parseFloat(document.getElementById('asset-emi-tenure').value)||0,
+    emiStart: document.getElementById('asset-emi-start').value,
+    emiRate: parseFloat(document.getElementById('asset-emi-rate').value)||0,
+    emiPayments: existing?.emiPayments||[],
+    createdAt: existing?.createdAt||new Date().toISOString(),
+  };
+
+  if(existing){ Object.assign(existing, data); }
+  else { ASSETS.push(data); }
+  save('bf9_assets', ASSETS);
+  closeAssetModal();
+  renderAssetList();
+  toast('✅ Asset saved!');
+}
+
+function deleteAsset(){
+  const id = document.getElementById('asset-id').value;
+  if(!confirm('Is asset ko delete karo?')) return;
+  ASSETS = ASSETS.filter(a=>a.id!==id);
+  save('bf9_assets', ASSETS);
+  closeAssetModal();
+  renderAssetList();
+  toast('🗑 Asset deleted');
+}
+
+// ── EMI PAYMENT ────────────────────────────────────────
+function openEmiPayModal(assetId, emiIdx){
+  const a = ASSETS.find(x=>x.id===assetId);
+  if(!a) return;
+  document.getElementById('aep-asset-id').value = assetId;
+  document.getElementById('aep-emi-idx').value = emiIdx;
+  document.getElementById('aep-date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('aep-amount').value = a.emiMonthly||0;
+  document.getElementById('aep-note').value = `EMI #${emiIdx+1}`;
+  document.getElementById('asset-emi-pay-modal').classList.add('show');
+}
+
+function saveEmiPayment(){
+  const assetId = document.getElementById('aep-asset-id').value;
+  const emiIdx = parseInt(document.getElementById('aep-emi-idx').value);
+  const a = ASSETS.find(x=>x.id===assetId);
+  if(!a) return;
+  if(!a.emiPayments) a.emiPayments = [];
+  // Remove existing payment for this EMI if any
+  a.emiPayments = a.emiPayments.filter(p=>p.emiIdx!==emiIdx);
+  a.emiPayments.push({
+    emiIdx,
+    date: document.getElementById('aep-date').value,
+    amount: parseFloat(document.getElementById('aep-amount').value)||0,
+    mode: document.getElementById('aep-mode').value,
+    note: document.getElementById('aep-note').value.trim(),
+  });
+  save('bf9_assets', ASSETS);
+  document.getElementById('asset-emi-pay-modal').classList.remove('show');
+  renderAssetList();
+  toast(`✅ EMI #${emiIdx+1} paid!`);
+}
+
 function _renderLedDashboard(){
   const el=document.getElementById('led-dash-content');
   if(!el) return;
