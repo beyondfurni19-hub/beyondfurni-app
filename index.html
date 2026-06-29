@@ -2642,7 +2642,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 
     <!-- Supplier Field (expense only) -->
     <div class="fg" id="db-supplier-wrap" style="display:none">
-      <label>Supplier / Party Name <span style="color:var(--muted);font-size:9px">(optional)</span></label>
+      <label id="db-supplier-label">Supplier / Party Name <span style="color:var(--muted);font-size:9px">(optional)</span></label>
       <div style="display:flex;gap:6px">
         <select class="finp" id="db-supplier" style="font-size:13px;flex:1">
           <option value="">— Supplier chunno —</option>
@@ -11035,6 +11035,15 @@ function renderSupplierList(){
     (c.phone&&c.phone.includes(search))
   );
 
+  // Priority sort: High > Medium > Low > undefined
+  const priOrder={high:0,medium:1,low:2};
+  filtered.sort((a,b)=>{
+    const pa=priOrder[a.suppPriority||'medium']??1;
+    const pb=priOrder[b.suppPriority||'medium']??1;
+    if(pa!==pb) return pa-pb;
+    return (a.suppSortOrder||999)-(b.suppSortOrder||999);
+  });
+
   const totalPayable=suppOnly.reduce((s,c)=>s+Math.max(0,_custBalance(c.id)),0);
   const pendingCount=suppOnly.filter(c=>_custBalance(c.id)>0).length;
 
@@ -11043,7 +11052,127 @@ function renderSupplierList(){
     <div class="inv-kpi" style="border-color:var(--red)"><div class="inv-kval" style="color:var(--red);font-size:16px">₹${_fmtAmt(totalPayable)}</div><div class="inv-klbl">Payable</div></div>
     <div class="inv-kpi" style="border-color:var(--orange)"><div class="inv-kval" style="color:var(--orange)">${pendingCount}</div><div class="inv-klbl">Due</div></div>`;
 
-  _renderPartyTable(filtered, el, 'supplier');
+  _renderSupplierTable(filtered, el);
+}
+
+function _setSuppPriority(custId, priority){
+  const idx=CUSTOMERS.findIndex(c=>c.id===custId);
+  if(idx<0) return;
+  CUSTOMERS[idx].suppPriority=priority;
+  save('bf9_customers',CUSTOMERS);
+  renderSupplierList();
+  toast(`Priority set: ${priority}`);
+}
+
+function _moveSuppOrder(custId, dir){
+  // Get current sorted supplier list
+  const suppOnly=CUSTOMERS.filter(c=>c.type==='supplier');
+  const priOrder={high:0,medium:1,low:2};
+  suppOnly.sort((a,b)=>{
+    const pa=priOrder[a.suppPriority||'medium']??1;
+    const pb=priOrder[b.suppPriority||'medium']??1;
+    if(pa!==pb) return pa-pb;
+    return (a.suppSortOrder||999)-(b.suppSortOrder||999);
+  });
+  // Assign sortOrder based on current position, then swap
+  suppOnly.forEach((c,i)=>{ const ci=CUSTOMERS.findIndex(x=>x.id===c.id); if(ci>=0) CUSTOMERS[ci].suppSortOrder=i*10; });
+  const pos=suppOnly.findIndex(c=>c.id===custId);
+  const swapPos=pos+dir;
+  if(swapPos<0||swapPos>=suppOnly.length) return;
+  const idxA=CUSTOMERS.findIndex(c=>c.id===suppOnly[pos].id);
+  const idxB=CUSTOMERS.findIndex(c=>c.id===suppOnly[swapPos].id);
+  const tmp=CUSTOMERS[idxA].suppSortOrder;
+  CUSTOMERS[idxA].suppSortOrder=CUSTOMERS[idxB].suppSortOrder;
+  CUSTOMERS[idxB].suppSortOrder=tmp;
+  save('bf9_customers',CUSTOMERS);
+  renderSupplierList();
+}
+
+function _quickPaySupplier(custId){
+  const c=CUSTOMERS.find(x=>x.id===custId);
+  if(!c) return;
+  const bal=+(_custBalance(custId)).toFixed(2);
+  const sugAmt=bal>0?bal:'';
+  const amtStr=prompt(`💸 ${c.name} ko payment dena\nAbhi due: ₹${_fmtAmt(bal>0?bal:0)}\n\nKitna pay kar rahe ho? (₹)`, sugAmt||'');
+  if(!amtStr||amtStr.trim()==='') return;
+  const amt=parseFloat(amtStr);
+  if(!amt||amt<=0){ toast('⚠️ Valid amount dalo!'); return; }
+  const note=prompt('Note (optional): cheque no, NEFT, cash...','')??'';
+  if(!LEDGER[custId]) LEDGER[custId]=[];
+  LEDGER[custId].push({id:'le_'+Date.now(),date:new Date().toISOString().split('T')[0],type:'cr',amt,note:note||'Payment',mode:'Cash',ref:'manual'});
+  save('bf9_ledger',LEDGER);
+  renderSupplierList();
+  toast(`✅ ₹${_fmtAmt(amt)} payment ${c.name} ko record ho gayi!`);
+}
+
+function _renderSupplierTable(filtered, el){
+  const priCfg={
+    high:{label:'🔴 High',bg:'#fff0f0',color:'var(--red)',border:'#fca5a5'},
+    medium:{label:'🟡 Medium',bg:'#fff8e6',color:'#b45309',border:'#fde68a'},
+    low:{label:'🟢 Low',bg:'#e6fff3',color:'var(--green)',border:'#6ee7b7'}
+  };
+
+  if(!filtered.length){
+    el.innerHTML=`<div class="empty"><div class="empty-ico">🏭</div><div style="font-weight:800">Koi Supplier Nahi</div><div style="font-size:13px;margin-top:5px">Upar "+ Add Supplier" se add karo</div></div>`;
+    return;
+  }
+
+  el.innerHTML=`<div style="background:var(--card);border-radius:var(--r);border:1px solid var(--border);overflow:hidden;box-shadow:var(--shadow)">
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:560px">
+      <thead><tr style="background:#f0f4fb;border-bottom:2px solid var(--border2)">
+        <th style="padding:10px 8px;font-size:11px;font-weight:800;color:var(--muted);text-align:center;width:40px">#</th>
+        <th style="padding:10px 12px;font-size:11px;font-weight:800;color:var(--muted);text-align:left;text-transform:uppercase">Naam</th>
+        <th style="padding:10px 12px;font-size:11px;font-weight:800;color:var(--muted);text-align:left;text-transform:uppercase">Contact</th>
+        <th style="padding:10px 12px;font-size:11px;font-weight:800;color:var(--muted);text-align:center;text-transform:uppercase">Priority</th>
+        <th style="padding:10px 12px;font-size:11px;font-weight:800;color:var(--muted);text-align:right;text-transform:uppercase">Balance</th>
+        <th style="padding:10px 8px;font-size:11px;font-weight:800;color:var(--muted);text-align:center;text-transform:uppercase">Actions</th>
+      </tr></thead>
+      <tbody>${filtered.map((c,i)=>{
+    const bal=+(_custBalance(c.id)).toFixed(2);
+    const balColor=bal>0?'var(--red)':bal<0?'var(--green)':'var(--muted)';
+    const balLabel=bal>0?'Dena Hai':bal<0?'Advance':'Clear';
+    const pri=c.suppPriority||'medium';
+    const pc=priCfg[pri]||priCfg.medium;
+    const address=[c.billCity,c.billState].filter(Boolean).join(', ')||c.address||'';
+    return `<tr style="border-bottom:1px solid var(--border);cursor:pointer" onmouseover="this.style.background='#f8faff'" onmouseout="this.style.background=''" onclick="openCustLedger('${c.id}','suppliers')">
+      <td style="padding:8px;text-align:center" onclick="event.stopPropagation()">
+        <div style="display:flex;flex-direction:column;gap:2px;align-items:center">
+          <button onclick="_moveSuppOrder('${c.id}',-1)" title="Upar" style="width:22px;height:18px;border-radius:4px;border:1px solid var(--border);background:var(--bg);cursor:pointer;font-size:10px;line-height:1">▲</button>
+          <span style="font-size:11px;font-weight:800;color:var(--muted)">${i+1}</span>
+          <button onclick="_moveSuppOrder('${c.id}',1)" title="Neeche" style="width:22px;height:18px;border-radius:4px;border:1px solid var(--border);background:var(--bg);cursor:pointer;font-size:10px;line-height:1">▼</button>
+        </div>
+      </td>
+      <td style="padding:11px 12px">
+        <div style="font-size:13px;font-weight:800">${esc(c.name)}</div>
+        ${address?`<div style="font-size:10px;color:var(--muted)">${esc(address)}</div>`:''}
+        ${c.gstin?`<div style="font-size:10px;color:var(--muted)">GST: ${esc(c.gstin)}</div>`:''}
+      </td>
+      <td style="padding:11px 12px">
+        ${c.phone?`<div style="font-size:12px;font-weight:700">📞 ${esc(c.phone)}</div>`:''}
+        ${c.email?`<div style="font-size:11px;color:var(--muted)">✉ ${esc(c.email)}</div>`:''}
+      </td>
+      <td style="padding:11px 12px;text-align:center" onclick="event.stopPropagation()">
+        <select onchange="_setSuppPriority('${c.id}',this.value)" style="padding:4px 6px;border-radius:8px;border:1px solid ${pc.border};background:${pc.bg};color:${pc.color};font-size:11px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif">
+          <option value="high" ${pri==='high'?'selected':''}>🔴 High</option>
+          <option value="medium" ${pri==='medium'?'selected':''}>🟡 Medium</option>
+          <option value="low" ${pri==='low'?'selected':''}>🟢 Low</option>
+        </select>
+      </td>
+      <td style="padding:11px 12px;text-align:right">
+        <div style="font-size:13px;font-weight:800;color:${balColor}">₹${_fmtAmt(Math.abs(bal))}</div>
+        <div style="font-size:10px;color:var(--muted)">${balLabel}</div>
+      </td>
+      <td style="padding:11px 8px;text-align:center" onclick="event.stopPropagation()">
+        <div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap">
+          ${bal>0?`<button onclick="_quickPaySupplier('${c.id}')" title="Payment Do" style="padding:5px 8px;border-radius:6px;border:none;background:var(--green);color:#fff;cursor:pointer;font-size:11px;font-weight:800">💸 Pay</button>`:''}
+          <button onclick="_downloadLedgerPDF('${c.id}')" title="PDF" style="width:30px;height:30px;border-radius:6px;border:1px solid var(--border);background:var(--bg);cursor:pointer;font-size:14px">📄</button>
+          <button onclick="openCustModal('${c.id}')" title="Edit" style="width:30px;height:30px;border-radius:6px;border:1px solid var(--border);background:var(--bg);cursor:pointer;font-size:14px">✏️</button>
+          <button onclick="deleteCustomer('${c.id}')" title="Delete" style="width:30px;height:30px;border-radius:6px;border:1px solid var(--border);background:var(--bg);cursor:pointer;font-size:14px">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('')}</tbody>
+    </table></div></div>`;
 }
 
 function _renderPartyTable(filtered, el, listType){
@@ -14386,10 +14515,16 @@ function _dbCatSelect(catId){
     btn.style.fontWeight  = isActive?'900':'800';
   });
   // Show supplier field for categories that involve external parties
-  const supplierCats = ['powder_coating','raw_material','packaging','repair_maint','other_prod','other_expense','admin_misc'];
+  const supplierCats = ['powder_coating','raw_material','packaging','repair_maint','other_prod','other_expense','admin_misc','transport'];
   const supWrap = document.getElementById('db-supplier-wrap');
+  const supLabel = document.getElementById('db-supplier-label');
   if(supWrap && _dbType==='expense'){
     supWrap.style.display = supplierCats.includes(catId)?'block':'none';
+    if(supLabel){
+      supLabel.innerHTML = catId==='transport'
+        ? 'Driver / Transport Party <span style="color:var(--muted);font-size:9px">(zaroori hai)</span>'
+        : 'Supplier / Party Name <span style="color:var(--muted);font-size:9px">(optional)</span>';
+    }
   }
 }
 
@@ -18350,3 +18485,5 @@ init();
 
 </body>
 </html>
+
+  
