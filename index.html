@@ -48,6 +48,40 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 /* Sales Overview card */
 .sales-overview{background:var(--card);border-radius:var(--r);border:1px solid var(--border);padding:14px;margin-bottom:10px;box-shadow:var(--shadow);}
 .sales-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);}
+
+/* KPI stat strip */
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+@media(min-width:640px){.kpi-grid{grid-template-columns:repeat(4,1fr);}}
+.kpi-card{
+  background:var(--card);border-radius:var(--r2);border:1px solid var(--border);
+  padding:12px 13px 11px;box-shadow:var(--shadow);position:relative;overflow:hidden;
+}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--kpi-c,var(--orange));}
+.kpi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;}
+.kpi-ico{
+  width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-size:14px;color:#fff;
+}
+.kpi-live{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(23,184,106,.6);animation:kpiPulse 2s infinite;}
+@media(prefers-reduced-motion:reduce){.kpi-live{animation:none;}}
+@keyframes kpiPulse{0%{box-shadow:0 0 0 0 rgba(23,184,106,.5);}70%{box-shadow:0 0 0 6px rgba(23,184,106,0);}100%{box-shadow:0 0 0 0 rgba(23,184,106,0);}}
+.kpi-val{font-family:'Bebas Neue';font-size:23px;color:var(--navy2);line-height:1;letter-spacing:.3px;}
+.kpi-label{font-size:9.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:4px;}
+.kpi-delta{font-size:10px;font-weight:800;margin-top:6px;line-height:1.3;}
+
+/* Chart cards */
+.chart-card{background:var(--card);border-radius:var(--r);border:1px solid var(--border);padding:14px;margin-bottom:10px;box-shadow:var(--shadow);}
+.chart-canvas-wrap{position:relative;height:190px;margin-top:8px;}
+.donut-row{display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:10px;}
+@media(min-width:640px){.donut-row{grid-template-columns:1fr 1fr;}}
+.donut-card{background:var(--card);border-radius:var(--r);border:1px solid var(--border);padding:14px;box-shadow:var(--shadow);}
+.donut-canvas-wrap{position:relative;height:140px;width:140px;margin:8px auto 2px;}
+.donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;}
+.donut-center-val{font-family:'Bebas Neue';font-size:24px;color:var(--navy2);line-height:1;}
+.donut-center-lbl{font-size:8px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-top:1px;}
+.donut-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:5px 10px;margin-top:10px;}
+.dl-item{display:flex;align-items:center;gap:5px;font-size:10.5px;font-weight:800;color:var(--muted);}
+.dl-item i{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0;}
 .sales-row:last-child{border:none;}
 .sales-label{font-size:11px;font-weight:700;color:var(--muted);flex-shrink:0;width:120px;}
 .sales-bar-wrap{flex:1;height:8px;background:#f0f4fb;border-radius:4px;overflow:hidden;}
@@ -1470,18 +1504,46 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     </div>
   </div>
 
-  <!-- Sales Overview -->
-  <div class="sales-overview">
-    <div class="card-hdr" style="margin-bottom:8px">
-      <div class="card-title">📈 Sales Overview</div>
-      <div style="font-size:10px;font-weight:800;color:var(--muted)" id="dash-fin-year">FY 2026-27</div>
+  <!-- KPI Strip -->
+  <div class="kpi-grid" id="dash-kpi-grid"></div>
+
+  <!-- Revenue Trend -->
+  <div class="chart-card">
+    <div class="card-hdr" style="margin-bottom:0">
+      <div class="card-title">📊 Revenue Trend</div>
+      <div class="card-sub">Last 6 months</div>
     </div>
-    <div id="dash-sales-rows"></div>
+    <div class="chart-canvas-wrap"><canvas id="dash-trend-chart"></canvas></div>
   </div>
 
-  <!-- Module Grid -->
-  <div class="card-title" style="margin-bottom:8px;padding:0 2px">⚡ Modules</div>
-  <div class="module-grid" id="dash-modules"></div>
+  <!-- Monthly Quantity Sold (Full Year) -->
+  <div class="chart-card">
+    <div class="card-hdr" style="margin-bottom:0">
+      <div class="card-title">📦 Monthly Quantity Sold</div>
+      <div class="card-sub" id="dash-qty-growth">FY 2026-27</div>
+    </div>
+    <div class="chart-canvas-wrap"><canvas id="dash-qty-chart"></canvas></div>
+  </div>
+
+  <!-- Status Breakdown Donuts -->
+  <div class="donut-row">
+    <div class="donut-card">
+      <div class="card-title">🧾 Invoice Status</div>
+      <div class="donut-canvas-wrap">
+        <canvas id="dash-inv-donut"></canvas>
+        <div class="donut-center"><div class="donut-center-val" id="dash-inv-donut-val">0</div><div class="donut-center-lbl">Invoices</div></div>
+      </div>
+      <div class="donut-legend" id="dash-inv-donut-legend"></div>
+    </div>
+    <div class="donut-card">
+      <div class="card-title">🧱 Stock Health</div>
+      <div class="donut-canvas-wrap">
+        <canvas id="dash-stock-donut"></canvas>
+        <div class="donut-center"><div class="donut-center-val" id="dash-stock-donut-val">0</div><div class="donut-center-lbl">Items</div></div>
+      </div>
+      <div class="donut-legend" id="dash-stock-donut-legend"></div>
+    </div>
+  </div>
 
   <!-- Quick Actions -->
   <div class="card-title" style="margin-bottom:8px;padding:0 2px">🚀 Quick Actions</div>
@@ -11544,104 +11606,143 @@ function renderDashboard(){
   const todayEl=document.getElementById('dash-today-inv');
   if(todayEl) todayEl.textContent='₹'+_fmtAmt(todayT);
 
-  // Sales rows
-  const maxVal=Math.max(fyTotal,lastMonthT,thisMonthT,1);
+  // ── Fin year label ──
   const fyLabel=now.getMonth()>=3?`${now.getFullYear()}-${(now.getFullYear()+1).toString().slice(2)}`:`${now.getFullYear()-1}-${now.getFullYear().toString().slice(2)}`;
-  document.getElementById('dash-fin-year').textContent=`FY ${fyLabel}`;
 
-  const salesRows=[
-    {label:`Fin Year (${fyLabel})`,   val:fyTotal,    pct:100},
-    {label:`Last Month (${now.toLocaleString('en-IN',{month:'short'})})`, val:lastMonthT, pct:maxVal?lastMonthT/maxVal*100:0},
-    {label:`This Month (${now.toLocaleString('en-IN',{month:'short'})})`, val:thisMonthT, pct:maxVal?thisMonthT/maxVal*100:0},
-    {label:`Yesterday`,               val:yestT,      pct:maxVal?yestT/maxVal*100:0},
-    {label:`Today (${now.getDate()}-${now.toLocaleString('en-IN',{month:'short'})})`, val:todayT, pct:maxVal?todayT/maxVal*100:0},
-    {label:`Pending (Unpaid)`,        val:pendingT,   pct:maxVal?pendingT/maxVal*100:0, color:'var(--red)'},
+  // ── KPI Strip ──
+  const monthDelta = lastMonthT>0 ? ((thisMonthT-lastMonthT)/lastMonthT*100) : (thisMonthT>0?100:0);
+  const yestDelta   = yestT>0 ? ((todayT-yestT)/yestT*100) : (todayT>0?100:0);
+  const unpaidCount = INVOICES.filter(i=>i.status==='unpaid').length;
+
+  const kpis=[
+    {c:'var(--orange)', ico:'💰', val:'₹'+_fmtAmt(todayT), label:"Today's Sales",
+     delta:(yestT?`${yestDelta>=0?'▲':'▼'} ${Math.abs(yestDelta).toFixed(0)}% vs kal`:'Pehla din'),
+     deltaColor: yestT?(yestDelta>=0?'var(--green)':'var(--red)'):'var(--muted)', live:true},
+    {c:'var(--blue)', ico:'📅', val:'₹'+_fmtAmt(thisMonthT), label:'This Month',
+     delta:(lastMonthT?`${monthDelta>=0?'▲':'▼'} ${Math.abs(monthDelta).toFixed(0)}% vs pichla mahina`:'Naya mahina'),
+     deltaColor: lastMonthT?(monthDelta>=0?'var(--green)':'var(--red)'):'var(--muted)'},
+    {c:'var(--green)', ico:'📈', val:'₹'+_fmtAmt(fyTotal), label:`FY ${fyLabel}`,
+     delta:'Total revenue', deltaColor:'var(--muted)'},
+    {c:'var(--red)', ico:'⏳', val:'₹'+_fmtAmt(pendingT), label:'Pending (Unpaid)',
+     delta:(unpaidCount?`${unpaidCount} invoices due`:'Sab clear ✅'), deltaColor:(unpaidCount?'var(--red)':'var(--green)')},
   ];
-  document.getElementById('dash-sales-rows').innerHTML=salesRows.map(r=>`
-    <div class="sales-row">
-      <div class="sales-label">${r.label}</div>
-      <div class="sales-bar-wrap"><div class="sales-bar" style="width:${Math.max(r.pct,2)}%;background:${r.color||'var(--orange)'}"></div></div>
-      <div class="sales-val" style="color:${r.color||'var(--text)'}">₹${_fmtAmt(r.val)}</div>
+  const kpiGridEl=document.getElementById('dash-kpi-grid');
+  if(kpiGridEl) kpiGridEl.innerHTML=kpis.map(k=>`
+    <div class="kpi-card" style="--kpi-c:${k.c}">
+      <div class="kpi-top">
+        <div class="kpi-ico" style="background:${k.c}">${k.ico}</div>
+        ${k.live?'<span class="kpi-live" title="Live"></span>':''}
+      </div>
+      <div class="kpi-val">${k.val}</div>
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-delta" style="color:${k.deltaColor}">${k.delta}</div>
     </div>`).join('');
 
-  // ── Module cards ──
+  // ── Revenue Trend chart (last 6 months) ──
+  if(typeof _anMakeChart==='function'){
+    const trendMonthsArr=[];
+    for(let i=5;i>=0;i--) trendMonthsArr.push(new Date(now.getFullYear(),now.getMonth()-i,1));
+    const trendLabels=trendMonthsArr.map(d=>d.toLocaleString('en-IN',{month:'short'}));
+    const trendData=trendMonthsArr.map(d=>{
+      const ms=d.toISOString().slice(0,7);
+      return INVOICES.filter(i=>(i.date||'').slice(0,7)===ms).reduce((s,i)=>s+i.grandTotal,0);
+    });
+    _anMakeChart('dash-trend-chart','bar',trendLabels,[{
+      data:trendData, backgroundColor:'#f07020', hoverBackgroundColor:'#ffaa44',
+      borderRadius:6, maxBarThickness:34
+    }],{
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>'₹'+_fmtAmt(c.parsed.y)}} },
+      scales:{
+        x:{ ticks:{font:{family:'Nunito',size:10,weight:'700'}}, grid:{display:false} },
+        y:{ ticks:{font:{family:'Nunito',size:9}, callback:v=>v>=1000?'₹'+(v/1000).toFixed(0)+'k':'₹'+v}, beginAtZero:true, grid:{color:'#eef1fa'} }
+      }
+    });
+
+    // ── Monthly Quantity Sold (Full FY, 12 months) with Month-to-Month growth ──
+    const fyStartMonth = now.getMonth()>=3 ? new Date(now.getFullYear(),3,1) : new Date(now.getFullYear()-1,3,1);
+    const qtyMonthsArr=[];
+    for(let i=0;i<12;i++) qtyMonthsArr.push(new Date(fyStartMonth.getFullYear(), fyStartMonth.getMonth()+i, 1));
+    const qtyLabels=qtyMonthsArr.map(d=>d.toLocaleString('en-IN',{month:'short'}));
+    const qtyData=qtyMonthsArr.map(d=>{
+      const ms=d.toISOString().slice(0,7);
+      return INVOICES.filter(i=>(i.date||'').slice(0,7)===ms)
+        .reduce((s,i)=>s+(i.items||[]).reduce((qs,it)=>qs+(Number(it.qty)||0),0),0);
+    });
+    // Latest month (up to today) with growth vs previous month
+    let curQIdx=-1;
+    for(let i=qtyMonthsArr.length-1;i>=0;i--){ if(qtyMonthsArr[i]<=now){ curQIdx=i; break; } }
+    const qtyGrowthEl=document.getElementById('dash-qty-growth');
+    if(qtyGrowthEl){
+      if(curQIdx>0){
+        const curQ=qtyData[curQIdx], prevQ=qtyData[curQIdx-1];
+        const g = prevQ>0 ? ((curQ-prevQ)/prevQ*100) : (curQ>0?100:0);
+        const gColor = prevQ ? (g>=0?'var(--green)':'var(--red)') : 'var(--muted)';
+        qtyGrowthEl.innerHTML=`<span style="color:${gColor};font-weight:800">${g>=0?'▲':'▼'} ${Math.abs(g).toFixed(0)}%</span> ${qtyLabels[curQIdx]} vs ${qtyLabels[curQIdx-1]}`;
+      } else {
+        qtyGrowthEl.textContent=`FY ${fyLabel}`;
+      }
+    }
+    _anMakeChart('dash-qty-chart','bar',qtyLabels,[{
+      data:qtyData, backgroundColor:'#3b7cf6', hoverBackgroundColor:'#6ea0ff',
+      borderRadius:6, maxBarThickness:26
+    }],{
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{
+        label:c=>{
+          const idx=c.dataIndex, v=c.parsed.y;
+          const prev = idx>0 ? qtyData[idx-1] : null;
+          let g='';
+          if(prev!==null){
+            const pct = prev>0 ? ((v-prev)/prev*100) : (v>0?100:0);
+            g=` (${pct>=0?'▲':'▼'} ${Math.abs(pct).toFixed(0)}% MoM)`;
+          }
+          return v+' units'+g;
+        }
+      } } },
+      scales:{
+        x:{ ticks:{font:{family:'Nunito',size:9.5,weight:'700'}}, grid:{display:false} },
+        y:{ ticks:{font:{family:'Nunito',size:9}}, beginAtZero:true, grid:{color:'#eef1fa'} }
+      }
+    });
+
+    // ── Invoice status donut ──
+    const paidInv=INVOICES.filter(i=>i.status==='paid').length;
+    const partialInv=INVOICES.filter(i=>i.status==='partial').length;
+    const invDonutVal=document.getElementById('dash-inv-donut-val');
+    if(invDonutVal) invDonutVal.textContent=INVOICES.length;
+    _anMakeChart('dash-inv-donut','doughnut',['Paid','Partial','Unpaid'],[{
+      data:[paidInv,partialInv,unpaidCount],
+      backgroundColor:['#17b86a','#f5c842','#e83a3a'],
+      borderWidth:0, hoverOffset:6
+    }],{ cutout:'70%', plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>c.label+': '+c.parsed}} } });
+    const invLegendEl=document.getElementById('dash-inv-donut-legend');
+    if(invLegendEl) invLegendEl.innerHTML=[
+      {c:'#17b86a',l:'Paid',v:paidInv},{c:'#f5c842',l:'Partial',v:partialInv},{c:'#e83a3a',l:'Unpaid',v:unpaidCount}
+    ].map(x=>`<span class="dl-item"><i style="background:${x.c}"></i>${x.l} (${x.v})</span>`).join('');
+
+    // ── Stock health donut ──
+    const okStockN=STK.filter(s=>getStockStatus(s)==='ok').length;
+    const lowStockN=STK.filter(s=>getStockStatus(s)==='low').length;
+    const critStockN=STK.filter(s=>getStockStatus(s)==='crit').length;
+    const stockDonutVal=document.getElementById('dash-stock-donut-val');
+    if(stockDonutVal) stockDonutVal.textContent=STK.length;
+    _anMakeChart('dash-stock-donut','doughnut',['OK','Low','Out'],[{
+      data:[okStockN,lowStockN,critStockN],
+      backgroundColor:['#17b86a','#f5c842','#e83a3a'],
+      borderWidth:0, hoverOffset:6
+    }],{ cutout:'70%', plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>c.label+': '+c.parsed}} } });
+    const stockLegendEl=document.getElementById('dash-stock-donut-legend');
+    if(stockLegendEl) stockLegendEl.innerHTML=[
+      {c:'#17b86a',l:'OK',v:okStockN},{c:'#f5c842',l:'Low',v:lowStockN},{c:'#e83a3a',l:'Out',v:critStockN}
+    ].map(x=>`<span class="dl-item"><i style="background:${x.c}"></i>${x.l} (${x.v})</span>`).join('');
+  }
+
+  // ── Module cards ── (grid removed from dashboard UI; stats below still used by Alerts)
   const activeBatches = BATCHES.filter(b=>!b.deleted&&!btIsDone(b));
   const delayedBatches= activeBatches.filter(b=>btStatus(b)==='delayed');
   const lowStock      = STK.filter(s=>getStockStatus(s)!=='ok');
   const unpaidInv     = INVOICES.filter(i=>i.status==='unpaid');
   const totalOutstanding = unpaidInv.reduce((s,i)=>s+i.grandTotal,0);
   const hasPlan       = !!curPlan;
-  const todayEOD      = curPlan&&EOD[curPlan.date];
-
-  const modules=[
-    // ✅ READY modules
-    {
-      ico:'📋', title:'Daily Planning', tab:'daily',
-      val: hasPlan ? (curPlan.present?.length||0)+' workers' : 'Plan nahi',
-      sub: hasPlan ? `${curPlan.date} · ${curPlan.shift}` : 'Aaj ka plan banao',
-      alert: !hasPlan ? '!' : null,
-      ready:true,
-    },
-    {
-      ico:'📦', title:'Batch Tracker', tab:'batch',
-      val: activeBatches.length + ' active',
-      sub: delayedBatches.length ? `⚠️ ${delayedBatches.length} delayed` : 'Sab on-track',
-      alert: delayedBatches.length||null,
-      ready:true,
-    },
-    {
-      ico:'🧾', title:'Invoices', tab:'invoice',
-      val: '₹'+_fmtAmt(thisMonthT),
-      sub: `${INVOICES.length} total · ${unpaidInv.length} unpaid`,
-      alert: unpaidInv.length||null,
-      ready:true,
-    },
-    {
-      ico:'📒', title:'Ledger', tab:'ledger',
-      val: '₹'+_fmtAmt(totalOutstanding),
-      sub: `${CUSTOMERS.length} parties`,
-      alert: totalOutstanding>0?'₹':null,
-      ready:true,
-    },
-    {
-      ico:'🧱', title:'Stock', tab:'stock',
-      val: STK.length + ' items',
-      sub: lowStock.length ? `🚨 ${lowStock.length} low/khatam` : 'Sab OK',
-      alert: lowStock.length||null,
-      ready:true,
-    },
-    {
-      ico:'📊', title:'EOD Track', tab:'tracking',
-      val: todayEOD?.closed ? 'Closed ✅' : hasPlan ? 'Open' : '—',
-      sub: hasPlan ? `${curPlan.date}` : 'Plan ke baad available',
-      ready:true,
-    },
-    // 🚧 WIP modules
-    {ico:'🤝', title:'CRM',           wip:true, sub:'Leads, Follow-ups'},
-    {ico:'📝', title:'Quotations',     wip:true, sub:'Quote management'},
-    {ico:'🛒', title:'Purchase Orders',wip:true, sub:'Supplier orders'},
-    {ico:'🏭', title:'Manufacturing',  wip:true, sub:'Production reports'},
-    {ico:'🎯', title:'Targets',        wip:true, sub:'Sales goals'},
-    {ico:'📞', title:'Support',        wip:true, sub:'Customer support'},
-  ];
-
-  document.getElementById('dash-modules').innerHTML=modules.map(m=>{
-    if(m.wip) return `
-      <div class="module-card wip">
-        <div class="mc-wip">WIP</div>
-        <div class="mc-ico">${m.ico}</div>
-        <div class="mc-title">${m.title}</div>
-        <div class="mc-sub">${m.sub}</div>
-      </div>`;
-    return `
-      <div class="module-card" onclick="sw('${m.tab}',document.querySelector('.bnav[data-tab=${m.tab}]'))">
-        ${m.alert?`<div class="mc-alert">${typeof m.alert==='number'?m.alert:m.alert}</div>`:''}
-        <div class="mc-ico">${m.ico}</div>
-        <div class="mc-title">${m.title}</div>
-        <div class="mc-val">${m.val}</div>
-        <div class="mc-sub">${m.sub}</div>
-      </div>`;
-  }).join('');
 
   // ── Alerts ──
   const alerts=[];
