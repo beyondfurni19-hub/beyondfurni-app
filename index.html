@@ -9772,6 +9772,10 @@ function createInvoiceFromBatch(batchId){
 
 /* ── Helper functions ── */
 function _fmtAmt(n){ return Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+// Timezone-safe local YYYY-MM extractor — avoids the UTC-shift bug where
+// d.toISOString() on a locally-built date can roll back into the previous month
+// for timezones ahead of UTC (e.g. India, UTC+5:30).
+function _ymLocal(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
 function _fmtDate(d){ if(!d) return '—'; return new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}); }
 function _inWords(n){
   if(n===0) return 'Zero';
@@ -11644,7 +11648,7 @@ function renderDashboard(){
     for(let i=5;i>=0;i--) trendMonthsArr.push(new Date(now.getFullYear(),now.getMonth()-i,1));
     const trendLabels=trendMonthsArr.map(d=>d.toLocaleString('en-IN',{month:'short'}));
     const trendData=trendMonthsArr.map(d=>{
-      const ms=d.toISOString().slice(0,7);
+      const ms=_ymLocal(d);
       return INVOICES.filter(i=>(i.date||'').slice(0,7)===ms).reduce((s,i)=>s+i.grandTotal,0);
     });
     _anMakeChart('dash-trend-chart','bar',trendLabels,[{
@@ -11664,7 +11668,7 @@ function renderDashboard(){
     for(let i=0;i<12;i++) qtyMonthsArr.push(new Date(fyStartMonth.getFullYear(), fyStartMonth.getMonth()+i, 1));
     const qtyLabels=qtyMonthsArr.map(d=>d.toLocaleString('en-IN',{month:'short'}));
     const qtyData=qtyMonthsArr.map(d=>{
-      const ms=d.toISOString().slice(0,7);
+      const ms=_ymLocal(d);
       return INVOICES.filter(i=>(i.date||'').slice(0,7)===ms)
         .reduce((s,i)=>s+(i.items||[]).reduce((qs,it)=>qs+(Number(it.qty)||0),0),0);
     });
@@ -12760,7 +12764,7 @@ function _parseWithXLSX(ab, filename){
 
   // Use period string as key (e.g. "2026-01-01 ~ 2026-01-31")
   // If same period re-imported, it overwrites (intentional)
-  const key = period || new Date().toISOString().slice(0,7);
+  const key = period || _ymLocal(new Date());
   ATT_DATA[key] = {workers, period, importedAt: new Date().toISOString()};
   save('bf9_att', ATT_DATA);
   _attPeriod = key;
@@ -14677,7 +14681,7 @@ function _anGetMonths(n){
   const count = n==='all' ? 24 : parseInt(n);
   for(let i=count-1;i>=0;i--){
     const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
-    months.push(d.toISOString().slice(0,7));
+    months.push(_ymLocal(d));
   }
   return months;
 }
@@ -15435,7 +15439,7 @@ function _dbRunDiscipline(amount, date, category, note, supplier, mode){
   // 20. Revenue drop vs last month
   if(_dbType==='income' && (category==='customer_payment'||category==='payment_recv'||category==='sale_cash')){
     const prevMonth = new Date(thisMonth+'-01'); prevMonth.setMonth(prevMonth.getMonth()-1);
-    const prevStr = prevMonth.toISOString().slice(0,7);
+    const prevStr = _ymLocal(prevMonth);
     const prevInc = DAYBOOK.filter(e=>e.date?.startsWith(prevStr)&&e.type==='income'&&e.category!=='inter_account_in'&&e.category!=='personal_in').reduce((s,e)=>s+e.amount,0);
     const curInc = DAYBOOK.filter(e=>e.date?.startsWith(thisMonth)&&e.type==='income'&&e.category!=='inter_account_in'&&e.category!=='personal_in').reduce((s,e)=>s+e.amount,0)+amount;
     if(prevInc>0 && curInc<prevInc*0.8 && new Date().getDate()>15)
@@ -15500,7 +15504,7 @@ function _dbRunDiscipline(amount, date, category, note, supplier, mode){
     let noSavingMonths = 0;
     for(let i=1;i<=3;i++){
       const d = new Date(thisMonth+'-01'); d.setMonth(d.getMonth()-i);
-      const m = d.toISOString().slice(0,7);
+      const m = _ymLocal(d);
       const saved = DAYBOOK.filter(e=>e.date?.startsWith(m)&&e.category==='inter_account'&&e.note?.toLowerCase().includes('backup')).length;
       if(saved===0) noSavingMonths++;
     }
@@ -15522,7 +15526,7 @@ function _dbRunDiscipline(amount, date, category, note, supplier, mode){
     const months = DISC_SET.emergencyMonths||2;
     const last3MonthsExp = DAYBOOK.filter(e=>{
       const d = new Date(thisMonth+'-01'); d.setMonth(d.getMonth()-3);
-      return e.type==='expense' && e.date>=d.toISOString().slice(0,7);
+      return e.type==='expense' && e.date>=_ymLocal(d);
     }).reduce((s,e)=>s+e.amount,0);
     const avgMonthlyExp = last3MonthsExp/3;
     const required = avgMonthlyExp*months;
