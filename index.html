@@ -2158,6 +2158,10 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
           <input class="finp" id="inv-contact" placeholder="Mr. Ramesh...">
         </div>
         <div class="fg">
+          <label>Phone Number</label>
+          <input class="finp" id="inv-phone" type="tel" placeholder="98xxxxxxxx">
+        </div>
+        <div class="fg">
           <label>Billing Address</label>
           <textarea class="finp" id="inv-address" rows="2" placeholder="Street, City, State, PIN..."></textarea>
         </div>
@@ -8598,6 +8602,7 @@ function initNewInvoice(){
   document.getElementById('inv-due').value='';
   document.getElementById('inv-party').value='';
   document.getElementById('inv-contact')&&(document.getElementById('inv-contact').value='');
+  document.getElementById('inv-phone')&&(document.getElementById('inv-phone').value='');
   document.getElementById('inv-address').value='';
   document.getElementById('inv-ship-address').value='';
   document.getElementById('inv-ship-details')&&(document.getElementById('inv-ship-details').value='');
@@ -8751,7 +8756,7 @@ function createInvoice(saveAndNew=false){
     ref:       document.getElementById('inv-ref')?.value.trim()||'',
     party,
     contact:   document.getElementById('inv-contact')?.value.trim()||'',
-    phone:     '',
+    phone:     document.getElementById('inv-phone')?.value.trim()||'',
     gstin:     document.getElementById('inv-gstin').value.trim().toUpperCase(),
     address:   document.getElementById('inv-address').value.trim(),
     shipAddress: shipSame?'':document.getElementById('inv-ship-address')?.value.trim()||'',
@@ -9422,6 +9427,7 @@ function openEditInvoice(invId){
     _editingInvId=invId;
     const set=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val||'';};
     set('inv-party',inv.party); set('inv-address',inv.address); set('inv-contact',inv.contact);
+    set('inv-phone',inv.phone);
     set('inv-gstin',inv.gstin); set('inv-num-field',inv.num); set('inv-date',inv.date);
     set('inv-due',inv.due); set('inv-ref',inv.ref); set('inv-note',inv.note);
     set('inv-internal-note',inv.internalNote);
@@ -9466,6 +9472,7 @@ function _updateInvoice(saveAndNew=false){
   INVOICES[idx]={...old,party,
     address:document.getElementById('inv-address')?.value.trim()||'',
     contact:document.getElementById('inv-contact')?.value.trim()||'',
+    phone:document.getElementById('inv-phone')?.value.trim()||'',
     gstin:document.getElementById('inv-gstin')?.value.trim().toUpperCase()||'',
     date:document.getElementById('inv-date')?.value||old.date,
     due:document.getElementById('inv-due')?.value||'',
@@ -9479,7 +9486,7 @@ function _updateInvoice(saveAndNew=false){
     discount:{label:document.getElementById('inv-disc-label')?.value||'Discount',amt:discAmt},
     recoveryAmt:recovery,status,updatedAt:new Date().toISOString()
   };
-  const c=_ensureCustomer(party,old.phone,INVOICES[idx].address,INVOICES[idx].gstin);
+  const c=_ensureCustomer(party,INVOICES[idx].phone,INVOICES[idx].address,INVOICES[idx].gstin);
   if(LEDGER[c.id]){
     const li=LEDGER[c.id].findIndex(e=>e.ref===_editingInvId&&e.type==='dr');
     if(li>=0){ LEDGER[c.id][li].amt=grand; LEDGER[c.id][li].note=`Invoice ${INVOICES[idx].num}`; save('bf9_ledger',LEDGER); }
@@ -10266,6 +10273,8 @@ function _genInvoiceFromDelivery(o, qty, date, delId){
     if(partyEl){ partyEl.value=c?.name||''; }
     const contactEl=document.getElementById('inv-contact');
     if(contactEl) contactEl.value=(c?.salutation?c.salutation+' ':'')+esc(c?.fname||'')+' '+(c?.lname||'');
+    const phoneEl=document.getElementById('inv-phone');
+    if(phoneEl) phoneEl.value=c?.phone||'';
     const addrEl=document.getElementById('inv-address');
     if(addrEl) addrEl.value=c?.address||c?.billAddr1||'';
     const gstinEl=document.getElementById('inv-gstin');
@@ -18485,5 +18494,3 @@ init();
 
 </body>
 </html>
-
-  
