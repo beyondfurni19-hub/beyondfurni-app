@@ -2193,12 +2193,12 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <div class="inv-form-card">
       <div style="font-size:13px;font-weight:900;color:var(--navy2);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)">Basic Information</div>
       <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;flex-wrap:wrap">
-        <div style="font-size:12px;font-weight:700;color:var(--muted);flex-shrink:0">Type :</div>
+        <div style="font-size:12px;font-weight:700;color:var(--muted);flex-shrink:0">Firm :</div>
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:700">
-          <input type="radio" name="inv-type" id="inv-type-party" value="party" checked onchange="setInvGST(true)" style="accent-color:var(--orange)"> Party Invoice
+          <input type="radio" name="inv-firm" id="inv-firm-bf" value="bf" checked onchange="setInvFirm('bf')" style="accent-color:var(--orange)"> BeyondFurni <span style="font-size:10px;color:var(--muted);font-weight:700">(Without GST)</span>
         </label>
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:700">
-          <input type="radio" name="inv-type" id="inv-type-cash" value="cash" onchange="setInvGST(false)" style="accent-color:var(--orange)"> Cash Memo
+          <input type="radio" name="inv-firm" id="inv-firm-sr" value="sr" onchange="setInvFirm('sr')" style="accent-color:var(--orange)"> S.R. Enterprises <span style="font-size:10px;color:var(--muted);font-weight:700">(GST)</span>
         </label>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
@@ -2464,6 +2464,60 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
       <div class="fg"><label>Invoice Prefix</label>
         <input class="finp" id="ic-prefix" placeholder="BF/2026-27/" value="BF/2026-27/"></div>
       <button class="btn-gen" style="font-size:15px" onclick="saveInvSettings()">💾 Save Company Details</button>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <div class="card-hdr"><div class="card-title">⚙️ S.R. Enterprises Details <span style="font-size:10px;font-weight:800;color:var(--orange);background:var(--orange-bg);padding:2px 8px;border-radius:10px;margin-left:4px">GST FIRM</span></div></div>
+      <div style="font-size:11px;color:var(--muted);font-weight:700;margin-bottom:10px">Yeh firm sirf GST invoices ke liye use hogi — Invoice banate waqt "S.R. Enterprises" firm select karo.</div>
+      <!-- Logo Upload -->
+      <div class="inv-section-title">Company Logo</div>
+      <div class="logo-upload-wrap">
+        <div class="logo-preview" id="logo-preview-box2">
+          <div class="logo-placeholder" id="logo-placeholder2">SR</div>
+          <img id="logo-img-preview2" style="display:none;max-width:76px;max-height:60px;object-fit:contain">
+        </div>
+        <div style="flex:1">
+          <input type="file" id="logo-file-input2" accept="image/*" style="display:none" onchange="handleLogoUpload(this,'sr')">
+          <button class="logo-upload-btn" onclick="document.getElementById('logo-file-input2').click()">
+            📁 Logo Upload Karo<br><span style="font-size:10px;font-weight:600">PNG/JPG/SVG — max 200KB</span>
+          </button>
+          <button onclick="removeLogo('sr')" style="width:100%;margin-top:5px;padding:7px;border-radius:var(--r3);border:1px solid var(--border);background:#fff;color:var(--muted);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">✕ Logo Hata Do</button>
+        </div>
+      </div>
+      <div class="fg"><label>Company Ka Naam</label>
+        <input class="finp" id="ic2-name" placeholder="S.R. Enterprises"></div>
+      <div class="fg"><label>Address Line 1</label>
+        <input class="finp" id="ic2-addr1" placeholder="Plot No, Area..."></div>
+      <div class="fg"><label>Address Line 2</label>
+        <input class="finp" id="ic2-addr2" placeholder="Nashik, Maharashtra - 422001"></div>
+      <div class="g2">
+        <div class="fg" style="margin:0"><label>Phone</label>
+          <input class="finp" id="ic2-phone" placeholder="9876543210"></div>
+        <div class="fg" style="margin:0"><label>Email</label>
+          <input class="finp" id="ic2-email" placeholder="info@srenterprises.com"></div>
+      </div>
+      <div class="g2">
+        <div class="fg" style="margin:0"><label>GSTIN</label>
+          <input class="finp" id="ic2-gstin" placeholder="27XXXXX..." style="text-transform:uppercase"></div>
+        <div class="fg" style="margin:0"><label>State Code</label>
+          <input class="finp" id="ic2-state" placeholder="27 (Maharashtra)"></div>
+      </div>
+      <div class="inv-section-title">Bank Details</div>
+      <div class="g2">
+        <div class="fg" style="margin:0"><label>Bank Name</label>
+          <input class="finp" id="ic2-bank" placeholder="SBI / HDFC..."></div>
+        <div class="fg" style="margin:0"><label>Account No</label>
+          <input class="finp" id="ic2-acc" placeholder="XXXXXXXXXXXX"></div>
+      </div>
+      <div class="g2">
+        <div class="fg" style="margin:0"><label>IFSC Code</label>
+          <input class="finp" id="ic2-ifsc" placeholder="SBIN0XXXXXX"></div>
+        <div class="fg" style="margin:0"><label>UPI ID</label>
+          <input class="finp" id="ic2-upi" placeholder="name@upi"></div>
+      </div>
+      <div class="fg"><label>Invoice Prefix</label>
+        <input class="finp" id="ic2-prefix" placeholder="SR/2026-27/" value="SR/2026-27/"></div>
+      <button class="btn-gen" style="font-size:15px" onclick="saveSrSettings()">💾 Save S.R. Enterprises Details</button>
     </div>
   </div>
 </div>
@@ -4380,7 +4434,7 @@ const GD_KEYS = [
   // Orders & batches
   'bf9_batches','bf9_orders',
   // Invoicing & customers
-  'bf9_invoices','bf9_invsettings','bf9_customers','bf9_ledger',
+  'bf9_invoices','bf9_invsettings','bf9_invsettings_sr','bf9_customers','bf9_ledger',
   // Inventory module
   'bf9_inv_mats','bf9_inv_bom','bf9_inv_bom','bf9_inv_conv','bf9_inv_purlog','bf9_inv_prodlog',
   'bf9_inv_products','bf9_inv_all_boms','bf9_inv_pack_bom',
@@ -8549,6 +8603,22 @@ let _invSettings = load('bf9_invsettings') || {
   upi:'',
   prefix:'BF/2026-27/'
 };
+let _invSettingsSR = load('bf9_invsettings_sr') || {
+  name:'S.R. Enterprises',
+  addr1:'',
+  addr2:'',
+  phone:'',
+  email:'',
+  gstin:'',
+  state:'',
+  bank:'',
+  acc:'',
+  ifsc:'',
+  upi:'',
+  prefix:'SR/2026-27/'
+};
+let _invFirm = 'bf'; // 'bf' = BeyondFurni (without GST), 'sr' = S.R. Enterprises (GST)
+function _firmSettings(firmKey){ return firmKey==='sr' ? _invSettingsSR : _invSettings; }
 
 /* ── Sub tabs ── */
 function setInvTab(name){
@@ -8558,7 +8628,7 @@ function setInvTab(name){
   });
   if(name==='list')     renderInvList();
   if(name==='new')      initNewInvoice();
-  if(name==='settings') { loadInvSettings(); loadDiscSettings(); }
+  if(name==='settings') { loadInvSettings(); loadSrSettings(); loadDiscSettings(); }
   // whats-new is static HTML
   if(name==='analytics') renderAnalytics();
 }
@@ -8627,7 +8697,7 @@ function renderInvList(){
     return `<tr style="border-bottom:1px solid var(--border);cursor:pointer" onmouseover="this.style.background='#f8faff'" onmouseout="this.style.background=''" onclick="openInvDetail('${inv.id}')">
       <td style="padding:11px 12px">
         <div style="font-size:13px;font-weight:800;color:var(--text)">${esc(inv.party)}</div>
-        <div style="font-size:10px;color:var(--muted)">${inv.isGST?'GST Invoice':'Cash Bill'}${inv.phone?' · '+inv.phone:''}</div>
+        <div style="font-size:10px;color:var(--muted)">${(inv.firm||'bf')==='sr'?'S.R. Enterprises':'BeyondFurni'} · ${inv.isGST?'GST Invoice':'Cash Bill'}${inv.phone?' · '+inv.phone:''}</div>
       </td>
       <td style="padding:11px 12px;font-size:12px;font-weight:700;color:var(--orange)">${esc(inv.num)}</td>
       <td style="padding:11px 12px;font-size:12px;color:var(--muted);font-weight:700">${new Date(inv.date).toLocaleDateString('en-IN',{day:'2-digit',month:'short'})}</td>
@@ -8690,7 +8760,7 @@ function toggleInvShip(){
 
 /* ── Bank display in form ── */
 function _loadBankDisplay(){
-  const s=_invSettings;
+  const s=_firmSettings(_invFirm);
   const el=document.getElementById('inv-bank-display');
   if(!el) return;
   if(s.bank||s.acc){
@@ -8708,7 +8778,7 @@ function _loadBankDisplay(){
 function initNewInvoice(){
   _editingInvId=null; document.getElementById('inv-edit-banner')?.remove();
   _invItems=[{name:'Metal Stand (Adjustable)',hsn:'9403',qty:1,rate:0,disc:0,unit:'no.s'}];
-  _invGST=true; _gstRate=18;
+  _invFirm='bf'; _invGST=false; _gstRate=18;
   const today=new Date().toISOString().split('T')[0];
   document.getElementById('inv-date').value=today;
   document.getElementById('inv-due').value='';
@@ -8731,9 +8801,11 @@ function initNewInvoice(){
   document.getElementById('inv-disc-wrap')&&(document.getElementById('inv-disc-wrap').style.display='none');
   document.getElementById('inv-extra-amt')&&(document.getElementById('inv-extra-amt').value='0');
   document.getElementById('inv-disc-amt')&&(document.getElementById('inv-disc-amt').value='0');
-  // Type radio
-  const partyRadio=document.getElementById('inv-type-party');
-  if(partyRadio) partyRadio.checked=true;
+  // Firm radio — default to BeyondFurni (without GST)
+  const bfRadio=document.getElementById('inv-firm-bf');
+  if(bfRadio) bfRadio.checked=true;
+  document.getElementById('inv-gst-rate-wrap')&&(document.getElementById('inv-gst-rate-wrap').style.display='none');
+  document.getElementById('inv-gstin-wrap')&&(document.getElementById('inv-gstin-wrap').style.display='none');
   _populateBatchDropdown();
   _renderInvItems();
   _renderTerms();
@@ -8743,8 +8815,9 @@ function initNewInvoice(){
 }
 
 function _nextInvNum(){
-  const prefix=_invSettings.prefix||'BF/2026-27/';
-  const n=INVOICES.length+1;
+  const s=_firmSettings(_invFirm);
+  const prefix=s.prefix||(_invFirm==='sr'?'SR/2026-27/':'BF/2026-27/');
+  const n=INVOICES.filter(i=>(i.firm||'bf')===_invFirm).length+1;
   return prefix+String(n).padStart(3,'0');
 }
 
@@ -8769,13 +8842,19 @@ function _populateInvPartyList(){
   dl.innerHTML=parties.map(p=>`<option value="${esc(p)}">`).join('');
 }
 
-/* ── GST Toggle ── */
-function setInvGST(val){
-  _invGST=val;
-  document.getElementById('inv-gst-yes').classList.toggle('active',val);
-  document.getElementById('inv-gst-no').classList.toggle('active',!val);
-  document.getElementById('inv-gst-rate-wrap').style.display=val?'block':'none';
-  document.getElementById('inv-gstin-wrap').style.display=val?'block':'none';
+/* ── Firm Selector (drives GST on/off) ── */
+function setInvFirm(firmKey){
+  _invFirm=firmKey;
+  const isGst=firmKey==='sr';
+  _invGST=isGst;
+  document.getElementById('inv-gst-rate-wrap').style.display=isGst?'block':'none';
+  document.getElementById('inv-gstin-wrap').style.display=isGst?'block':'none';
+  // Renumber invoice using the selected firm's prefix (only if not editing an existing invoice)
+  if(!_editingInvId){
+    const numEl=document.getElementById('inv-num-field');
+    if(numEl) numEl.value=_nextInvNum();
+  }
+  _loadBankDisplay();
   _calcInvTotals();
 }
 function setGstRate(r){
@@ -8867,6 +8946,7 @@ function createInvoice(saveAndNew=false){
     due:       document.getElementById('inv-due').value||'',
     ref:       document.getElementById('inv-ref')?.value.trim()||'',
     party,
+    firm:      _invFirm,
     contact:   document.getElementById('inv-contact')?.value.trim()||'',
     phone:     document.getElementById('inv-phone')?.value.trim()||'',
     gstin:     document.getElementById('inv-gstin').value.trim().toUpperCase(),
@@ -8969,7 +9049,7 @@ function openInvDetail(invId){
         </div>
         <div style="background:#f8faff;border-radius:var(--r3);padding:10px;border:1px solid var(--border)">
           <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase">Type</div>
-          <div style="font-size:13px;font-weight:800">${inv.isGST?'GST Invoice':'Cash Bill'}</div>
+          <div style="font-size:13px;font-weight:800">${(inv.firm||'bf')==='sr'?'S.R. Enterprises':'BeyondFurni'} — ${inv.isGST?'GST Invoice':'Cash Bill'}</div>
         </div>
         ${inv.batchId?`<div style="background:#f8faff;border-radius:var(--r3);padding:10px;border:1px solid var(--border);grid-column:1/-1">
           <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase">Batch</div>
@@ -9036,7 +9116,7 @@ function openInvDetail(invId){
 function generateChallan(invId){
   const inv=INVOICES.find(i=>i.id===invId);
   if(!inv){toast('Invoice nahi mili!');return;}
-  const s=_invSettings;
+  const s=_firmSettings(inv.firm);
   const shipAddr=inv.shipAddress||inv.address||'';
   const itemRows=inv.items.map((it,i)=>`
     <tr>
@@ -9150,7 +9230,7 @@ function generateChallan(invId){
 function generateBoxLabel(invId){
   const inv=INVOICES.find(i=>i.id===invId);
   if(!inv){toast('Invoice nahi mili!');return;}
-  const s=_invSettings;
+  const s=_firmSettings(inv.firm);
   const shipAddr=inv.shipAddress||inv.address||'';
   const totalQty=inv.items.reduce((s,i)=>s+i.qty,0);
   const custContact=CUSTOMERS.find(c=>c.name.toLowerCase().trim()===inv.party.toLowerCase().trim());
@@ -9543,12 +9623,16 @@ function openEditInvoice(invId){
     set('inv-gstin',inv.gstin); set('inv-num-field',inv.num); set('inv-date',inv.date);
     set('inv-due',inv.due); set('inv-ref',inv.ref); set('inv-note',inv.note);
     set('inv-internal-note',inv.internalNote);
-    _invGST=inv.isGST||false; _gstRate=inv.gstRate||18;
+    _invFirm=inv.firm||'bf'; _invGST=inv.isGST||false; _gstRate=inv.gstRate||18;
+    const bfR=document.getElementById('inv-firm-bf'), srR=document.getElementById('inv-firm-sr');
+    if(bfR&&srR){ bfR.checked=(_invFirm==='bf'); srR.checked=(_invFirm==='sr'); }
+    document.getElementById('inv-gst-rate-wrap')&&(document.getElementById('inv-gst-rate-wrap').style.display=_invGST?'block':'none');
+    document.getElementById('inv-gstin-wrap')&&(document.getElementById('inv-gstin-wrap').style.display=_invGST?'block':'none');
     const tog=document.getElementById('inv-gst-toggle'); if(tog) tog.checked=_invGST;
     document.querySelectorAll('.gst-btn').forEach(b=>b.classList.remove('active'));
     const gb=document.getElementById('gstr-'+(_gstRate||18)); if(gb) gb.classList.add('active');
     _invItems=JSON.parse(JSON.stringify(inv.items||[]));
-    _renderInvItems(); _calcInvTotals();
+    _renderInvItems(); _calcInvTotals(); _loadBankDisplay();
     const paidSoFar=(inv.payments||[]).reduce((s,p)=>s+p.amt,0)||inv.recoveryAmt||0;
     set('inv-recovery',paidSoFar||''); set('inv-total-paid',paidSoFar||'');
     const sf=document.getElementById('inv-status-field'); if(sf) sf.value=inv.status||'unpaid';
@@ -9582,6 +9666,7 @@ function _updateInvoice(saveAndNew=false){
   const recovery=parseFloat(document.getElementById('inv-recovery')?.value)||0;
   const status=document.getElementById('inv-status-field')?.value||(recovery>=grand?'paid':recovery>0?'partial':'unpaid');
   INVOICES[idx]={...old,party,
+    firm:_invFirm,
     address:document.getElementById('inv-address')?.value.trim()||'',
     contact:document.getElementById('inv-contact')?.value.trim()||'',
     phone:document.getElementById('inv-phone')?.value.trim()||'',
@@ -9613,7 +9698,7 @@ function _updateInvoice(saveAndNew=false){
 function previewAndDownload(invId){
   const inv=INVOICES.find(i=>i.id===invId);
   if(!inv){toast('Invoice nahi mili!');return;}
-  const s=_invSettings;
+  const s=_firmSettings(inv.firm);
   const html=_buildInvoiceHTML(inv,s);
   const blob=new Blob([html],{type:'text/html'});
   const url=URL.createObjectURL(blob);
@@ -9799,6 +9884,15 @@ function saveInvSettings(){
   const fields=['name','addr1','addr2','phone','email','gstin','state','bank','acc','ifsc','upi','prefix'];
   fields.forEach(f=>{ const el=document.getElementById('ic-'+f); if(el) _invSettings[f]=el.value.trim(); });
   save('bf9_invsettings',_invSettings); toast('✅ Company details save ho gayi!');
+}
+function loadSrSettings(){
+  const fields=['name','addr1','addr2','phone','email','gstin','state','bank','acc','ifsc','upi','prefix'];
+  fields.forEach(f=>{ const el=document.getElementById('ic2-'+f); if(el) el.value=_invSettingsSR[f]||''; });
+}
+function saveSrSettings(){
+  const fields=['name','addr1','addr2','phone','email','gstin','state','bank','acc','ifsc','upi','prefix'];
+  fields.forEach(f=>{ const el=document.getElementById('ic2-'+f); if(el) _invSettingsSR[f]=el.value.trim(); });
+  save('bf9_invsettings_sr',_invSettingsSR); toast('✅ S.R. Enterprises details save ho gayi!');
 }
 
 /* ── Batch Tracker integration — Invoice button ── */
@@ -11573,23 +11667,27 @@ function onInvPartyChange(){
 /* ═══════════════════════════════════════════════════
    LOGO UPLOAD
 ═══════════════════════════════════════════════════ */
-function handleLogoUpload(input){
+function handleLogoUpload(input,firmKey){
+  firmKey=firmKey||'bf';
   const file=input.files[0];
   if(!file) return;
   if(file.size>300000){toast('⚠️ Logo 300KB se chhota hona chahiye!');return;}
   const reader=new FileReader();
   reader.onload=e=>{
     const b64=e.target.result;
-    _invSettings.logo=b64;
-    save('bf9_invsettings',_invSettings);
-    _showLogoPreview(b64);
+    const s=_firmSettings(firmKey);
+    s.logo=b64;
+    save(firmKey==='sr'?'bf9_invsettings_sr':'bf9_invsettings',s);
+    _showLogoPreview(b64,firmKey);
     toast('✅ Logo upload ho gaya!');
   };
   reader.readAsDataURL(file);
 }
-function _showLogoPreview(b64){
-  const img=document.getElementById('logo-img-preview');
-  const ph=document.getElementById('logo-placeholder');
+function _showLogoPreview(b64,firmKey){
+  firmKey=firmKey||'bf';
+  const suffix=firmKey==='sr'?'2':'';
+  const img=document.getElementById('logo-img-preview'+suffix);
+  const ph=document.getElementById('logo-placeholder'+suffix);
   if(!img||!ph) return;
   if(b64){
     img.src=b64; img.style.display='block'; ph.style.display='none';
@@ -11597,14 +11695,17 @@ function _showLogoPreview(b64){
     img.style.display='none'; ph.style.display='block';
   }
 }
-function removeLogo(){
-  _invSettings.logo='';
-  save('bf9_invsettings',_invSettings);
-  _showLogoPreview('');
+function removeLogo(firmKey){
+  firmKey=firmKey||'bf';
+  const s=_firmSettings(firmKey);
+  s.logo='';
+  save(firmKey==='sr'?'bf9_invsettings_sr':'bf9_invsettings',s);
+  _showLogoPreview('',firmKey);
   toast('Logo hata diya');
 }
 function loadLogoPreview(){
-  if(_invSettings.logo) _showLogoPreview(_invSettings.logo);
+  if(_invSettings.logo) _showLogoPreview(_invSettings.logo,'bf');
+  if(_invSettingsSR.logo) _showLogoPreview(_invSettingsSR.logo,'sr');
 }
 
 /* ═══════════════════════════════════════════════════
