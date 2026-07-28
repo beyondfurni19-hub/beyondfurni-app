@@ -3530,6 +3530,23 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
       Har packing type ke liye materials aur quantity set karo (per stand). Dispatch pe auto-deduct hoga.
     </div>
 
+    <!-- Product-specific Packing BOM -->
+    <div class="card" style="padding:12px;margin-bottom:14px;border:1.5px solid var(--orange)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:800;color:var(--navy2);flex:1">🏷️ Product Se Linked Packing BOM</div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Naye product ka packing alag hai? Yahan product chunno aur uski apni packing materials set karo — Batch banate waqt "Packing Type" mein yeh product apne aap dikhega.</div>
+      <div id="pack-prod-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
+      <div id="pack-prod-bom-section" style="display:none">
+        <div id="pack-prod-bom-title" style="font-size:12px;font-weight:800;color:var(--navy2);margin-bottom:8px"></div>
+        <div id="pack-prod-bom-list"></div>
+        <button class="btn-save" style="width:100%;text-align:center;margin-top:8px" onclick="packProdBomSave()">💾 Product Packing BOM Save Karo</button>
+      </div>
+      <div id="pack-prod-bom-empty-hint" style="text-align:center;padding:14px;color:var(--muted);font-size:11px;font-weight:700">☝️ Upar se product chunno</div>
+    </div>
+
+    <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Generic Packing Types (product na ho toh fallback)</div>
+
     <!-- No Packing -->
     <div class="card" style="margin-bottom:10px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
@@ -4260,7 +4277,7 @@ const DEF_W=[
   {id:"006",name:"Lata",          role:"Assembly Team", skills:"Assembly,Tapping,QC,Packing",  type:"Permanent"},
   {id:"007",name:"Shah Rukh",     role:"Welder",        skills:"Welding,Fabrication,Cutting,Grinding",type:"Permanent"},
 ];
-const DEF_P=[{id:"P001",name:"Metal Stand (Adjustable)",code:"001",price:600,target:50,max:70}];
+const DEF_P=[{id:"P001",name:"Metal Stand (Adjustable)",code:"001",price:600,target:50,max:500}];
 const DEF_M=[
   {name:"Cutting Machine",type:"Cutting"},
   {name:"Press",          type:"Punching/Bending"},
@@ -4811,7 +4828,7 @@ function adjQ(pid,d){
   const el=document.getElementById('qv-'+pid);
   const p=P.find(x=>x.id===pid);
   let v=parseInt(el.textContent)+d;
-  v=Math.max(1,Math.min(p.max,v));
+  v=Math.max(1,Math.min(p.max||500,v));
   el.textContent=v;
   el.style.transform='scale(1.25)';
   setTimeout(()=>el.style.transform='',150);
@@ -7335,11 +7352,12 @@ function renderPList(){
       <input class="set-inp" value="${esc(p.code)}" placeholder="Code" onchange="P[${i}].code=this.value" style="width:48px;flex:none">
       <input class="set-inp" type="number" value="${p.price}" placeholder="₹" onchange="P[${i}].price=+this.value" style="width:64px;flex:none">
       <input class="set-inp" type="number" value="${p.target}" placeholder="Target" onchange="P[${i}].target=+this.value" style="width:56px;flex:none">
+      <input class="set-inp" type="number" value="${p.max||500}" placeholder="Max" title="Daily entry mein max qty limit" onchange="P[${i}].max=+this.value" style="width:56px;flex:none">
       <button class="btn-del" onclick="delP(${i})">✕</button>`;
     el.appendChild(div);
   });
 }
-function addPRow(){ P.push({id:'P'+Date.now(),name:'Naya Product',code:'',price:0,target:50,max:70}); renderPList(); }
+function addPRow(){ P.push({id:'P'+Date.now(),name:'Naya Product',code:'',price:0,target:50,max:500}); renderPList(); }
 function delP(i){ if(P.length<=1){toast('Min 1 product chahiye!');return;} P.splice(i,1); renderPList(); }
 function saveP(){ save('bf9_p',P); renderDE(); toast('Products save ho gaye! ✓'); }
 
@@ -18045,6 +18063,10 @@ function invDeleteProduct(){
 function invGetAllBOMs(){ return INV_LS.get('all_boms', {}); }
 function invSetAllBOMs(v){ INV_LS.set('all_boms',v); }
 
+/* ── Product-linked Packing BOMs: { productId: { matId: qty, ... } } ── */
+function invGetAllPackBOMs(){ return INV_LS.get('all_pack_boms', {}); }
+function invSetAllPackBOMs(v){ INV_LS.set('all_pack_boms',v); }
+
 /* ── BOM ── */
 function invBomSubTab(tab,btn){
   ['bom','packing','conv','mats'].forEach(t=>{
@@ -18054,7 +18076,7 @@ function invBomSubTab(tab,btn){
   document.querySelectorAll('#s-inv-bom .inv-tab').forEach(t=>t.classList.remove('active'));
   if(btn)btn.classList.add('active');
   if(tab==='bom') invRenderProductChips();
-  if(tab==='packing') packBomRender();
+  if(tab==='packing'){ packBomRender(); packProdRenderChips(); }
   if(tab==='mats') invRenderMatSettings();
 }
 
@@ -18124,9 +18146,146 @@ function packBomSave(){
   invToast('✅ Packing BOM saved!');
 }
 
+/* ══════════════════════════════════════════
+   PRODUCT-LINKED PACKING BOM
+   Har product ki apni packing materials — jaise
+   naye product ka packaging part alag ho sakta hai.
+══════════════════════════════════════════ */
+let _packBomSelectedProdId = null;
+
+function packProdRenderChips(){
+  const prods = invGetProducts();
+  const list = document.getElementById('pack-prod-list');
+  if(!list) return;
+  list.innerHTML = prods.map(p=>`
+    <div onclick="packProdSelect('${p.id}')" style="
+      padding:7px 13px;border-radius:20px;border:2px solid var(--border2);
+      background:${_packBomSelectedProdId===p.id?'var(--orange)':'var(--card)'};
+      color:${_packBomSelectedProdId===p.id?'#fff':'var(--navy2)'};
+      font-size:12px;font-weight:800;cursor:pointer;transition:all .15s;
+      display:flex;align-items:center;gap:5px;
+    ">${p.icon||'🏭'} ${p.name}</div>
+  `).join('');
+}
+
+function packProdSelect(id){
+  _packBomSelectedProdId = id;
+  const prod = invGetProducts().find(p=>p.id===id);
+  if(!prod) return;
+  packProdRenderChips();
+  document.getElementById('pack-prod-bom-section').style.display = '';
+  document.getElementById('pack-prod-bom-empty-hint').style.display = 'none';
+  document.getElementById('pack-prod-bom-title').textContent = (prod.icon||'🏭')+' '+prod.name+' — Packing BOM';
+  packProdRenderBOM();
+}
+
+function packProdRenderBOM(){
+  if(!_packBomSelectedProdId) return;
+  const allPackBoms = invGetAllPackBOMs();
+  const bom = allPackBoms[_packBomSelectedProdId] || {};
+  const matIds = Object.keys(bom).filter(id=>bom[id]>0);
+
+  document.getElementById('pack-prod-bom-list').innerHTML = matIds.map(matId=>{
+    const mat = STK.find(m=>m.id===matId);
+    if(!mat) return '';
+    return `<div class="inv-bom-row" style="display:flex;align-items:center;gap:8px">
+      <div style="font-size:16px">${mat.ico||'📦'}</div>
+      <div style="flex:1;font-size:12px;font-weight:700">${mat.name}</div>
+      <input class="inv-small-inp" type="number" min="0" step="any" id="packprodbom_${matId}" value="${bom[matId]||0}" style="width:70px">
+      <div style="font-size:11px;color:var(--muted);min-width:30px">${mat.unit}</div>
+      <button onclick="packProdBomRemoveMat('${matId}')" style="width:26px;height:26px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800;flex-shrink:0">✕</button>
+    </div>`;
+  }).join('') || '<div style="text-align:center;padding:12px;color:var(--muted);font-size:12px">Koi item nahi — neeche se add karo</div>';
+
+  const addedIds = new Set(matIds);
+  const available = STK.filter(m=>!addedIds.has(m.id));
+  const addRow = `<div style="display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+    <select id="pack-prod-bom-add-sel" class="finp" style="flex:1;font-size:12px">
+      <option value="">-- Material chunno --</option>
+      ${available.map(m=>`<option value="${m.id}">${m.ico||'📦'} ${m.name} (${m.unit})</option>`).join('')}
+    </select>
+    <button onclick="packProdBomAddMat()" style="padding:7px 14px;background:var(--navy);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">＋ Add</button>
+  </div>
+  <div style="margin-top:8px;text-align:center">
+    <button onclick="openPackProdQuickAddMat()" style="padding:6px 12px;background:transparent;border:1.5px dashed var(--border2);border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer;color:var(--orange)">➕ Naya Packing Material Banao</button>
+  </div>`;
+  document.getElementById('pack-prod-bom-list').innerHTML += addRow;
+}
+
+function packProdBomAddMat(){
+  if(!_packBomSelectedProdId) return;
+  const sel = document.getElementById('pack-prod-bom-add-sel');
+  const matId = sel.value;
+  if(!matId){ invToast('Material chunno!','err'); return; }
+  const allPackBoms = invGetAllPackBOMs();
+  if(!allPackBoms[_packBomSelectedProdId]) allPackBoms[_packBomSelectedProdId]={};
+  allPackBoms[_packBomSelectedProdId][matId] = 1;
+  invSetAllPackBOMs(allPackBoms);
+  packProdRenderBOM();
+}
+
+function packProdBomRemoveMat(matId){
+  if(!_packBomSelectedProdId) return;
+  if(!confirm('Is material ko packing BOM se hatao?')) return;
+  const allPackBoms = invGetAllPackBOMs();
+  if(allPackBoms[_packBomSelectedProdId]) delete allPackBoms[_packBomSelectedProdId][matId];
+  invSetAllPackBOMs(allPackBoms);
+  packProdRenderBOM();
+}
+
+function packProdBomSave(){
+  if(!_packBomSelectedProdId){ invToast('Pehle product chunno!','err'); return; }
+  const allPackBoms = invGetAllPackBOMs();
+  const bom = allPackBoms[_packBomSelectedProdId] || {};
+  Object.keys(bom).forEach(matId=>{
+    const inp = document.getElementById('packprodbom_'+matId);
+    if(inp) bom[matId] = parseFloat(inp.value)||0;
+  });
+  allPackBoms[_packBomSelectedProdId] = bom;
+  invSetAllPackBOMs(allPackBoms);
+  invToast('✅ '+(invGetProducts().find(p=>p.id===_packBomSelectedProdId)?.name||'Product')+' ki Packing BOM saved!');
+  btRefreshPackingTypeOptions();
+}
+
+function openPackProdQuickAddMat(){
+  if(!_packBomSelectedProdId){ invToast('Pehle product chunno!','err'); return; }
+  _bqmTargetMode='pack';
+  ['bqm-name','bqm-qty'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const qtyEl=document.getElementById('bqm-qty'); if(qtyEl) qtyEl.value=1;
+  const catEl=document.getElementById('bqm-cat'); if(catEl) catEl.value='Packaging';
+  document.getElementById('bqm-modal-bg').classList.add('show');
+}
+
 function packDeductStock(batch){
   const packType = batch.packingType||'none';
   const qty = batch.qty||0;
+
+  // Product-linked packing BOM (e.g. a new product's own distinct packaging)
+  if(packType.startsWith('product:')){
+    const productId = packType.slice('product:'.length);
+    const allPackBoms = invGetAllPackBOMs();
+    const typeBom = allPackBoms[productId]||{};
+    let deducted=[];
+    Object.keys(typeBom).forEach(matId=>{
+      const perUnit = typeBom[matId]||0;
+      if(perUnit<=0) return;
+      const totalDeduct = perUnit*qty;
+      const idx = STK.findIndex(m=>m.id===matId);
+      if(idx<0) return;
+      STK[idx].current = +Math.max(0,(STK[idx].current||0)-totalDeduct).toFixed(4);
+      STXN.push({id:Date.now()+'_pk_'+Math.random().toString(36).slice(2,4),
+        itemId:matId,type:'out',qty:totalDeduct,
+        note:'Packing(product) Batch '+batch.id,date:new Date().toISOString()});
+      deducted.push(STK[idx].name);
+    });
+    if(deducted.length>0){
+      save('bf9_stk',STK); save('bf9_stxn',STXN);
+      if(typeof renderStock==='function') renderStock();
+      toast('📦 Packing deducted: '+deducted.join(', '));
+    }
+    return;
+  }
+
   const bom = packBomGet();
   const typeBom = bom[packType]||{};
   let deducted = [];
@@ -18185,10 +18344,56 @@ function invRenderBOM(){
       ${available.map(m=>`<option value="${m.id}">${m.ico||'📦'} ${m.name} (${m.unit})</option>`).join('')}
     </select>
     <button onclick="invBomAddMat()" style="padding:7px 14px;background:var(--navy);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">＋ Add</button>
+  </div>
+  <div style="margin-top:8px;text-align:center">
+    <button onclick="openBomQuickAddMat()" style="padding:6px 12px;background:transparent;border:1.5px dashed var(--border2);border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer;color:var(--orange)">➕ Naya Material Banao (jaise alag Packaging part)</button>
   </div>`;
   document.getElementById('inv-bom-list').innerHTML += addRow;
 
   invRenderBomMatQuickList();
+}
+
+/* ── Quick-add a brand new material straight from the BOM screen ──
+   Useful when a new product needs its own distinct part (e.g. different
+   packaging) that doesn't exist in Stock yet. Creates the STK item and
+   attaches it to the currently selected product's BOM in one step. */
+let _bqmTargetMode='bom'; // 'bom' (regular BOM) or 'pack' (product packing BOM)
+function openBomQuickAddMat(){
+  if(!_invSelectedProdId){ invToast('Pehle product chunno!','err'); return; }
+  _bqmTargetMode='bom';
+  ['bqm-name','bqm-qty'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const qtyEl=document.getElementById('bqm-qty'); if(qtyEl) qtyEl.value=1;
+  document.getElementById('bqm-modal-bg').classList.add('show');
+}
+function closeBomQuickAddMat(){ document.getElementById('bqm-modal-bg').classList.remove('show'); }
+function saveBomQuickAddMat(){
+  const targetId = _bqmTargetMode==='pack' ? _packBomSelectedProdId : _invSelectedProdId;
+  if(!targetId){ invToast('Pehle product chunno!','err'); return; }
+  const name=document.getElementById('bqm-name').value.trim();
+  if(!name){ invToast('Material naam bharo!','err'); return; }
+  const cat=document.getElementById('bqm-cat').value;
+  const unit=document.getElementById('bqm-unit').value;
+  const qty=parseFloat(document.getElementById('bqm-qty').value)||1;
+  const newMat={id:'S'+Date.now(),name,cat,unit,purUnit:unit,convRatio:1,current:0,reorder:0,orderQty:0,ico:cat==='Packaging'?'📦':'📦',suppliers:''};
+  STK.push(newMat);
+  save('bf9_stk',STK);
+  if(_bqmTargetMode==='pack'){
+    const allPackBoms=invGetAllPackBOMs();
+    if(!allPackBoms[targetId]) allPackBoms[targetId]={};
+    allPackBoms[targetId][newMat.id]=qty;
+    invSetAllPackBOMs(allPackBoms);
+    closeBomQuickAddMat();
+    packProdRenderBOM();
+    invToast('✅ '+name+' ban gaya aur is product ki Packing BOM mein jud gaya!');
+  } else {
+    const allBoms=invGetAllBOMs();
+    if(!allBoms[targetId]) allBoms[targetId]={};
+    allBoms[targetId][newMat.id]=qty;
+    invSetAllBOMs(allBoms);
+    closeBomQuickAddMat();
+    invRenderBOM();
+    invToast('✅ '+name+' ban gaya aur is product ki BOM mein jud gaya!');
+  }
 }
 
 function invBomAddMat(){
@@ -18302,8 +18507,9 @@ function btCheckStockOnProductChange(){
   const sel = document.getElementById('bt-product');
   const qty = parseInt(document.getElementById('bt-qty')?.value)||0;
   const statusDiv = document.getElementById('bt-stock-status');
-  if(!statusDiv) return;
   const productId = sel.value;
+  btAutoSelectPacking(productId);
+  if(!statusDiv) return;
   if(!productId || qty<=0){ statusDiv.style.display='none'; return; }
   const short = btCheckStock(productId, qty);
   if(short.length===0){
@@ -18388,6 +18594,41 @@ function btRefreshProductDropdown(){
   const cur = sel.value;
   sel.innerHTML = '<option value="">-- Product chunno --</option>' +
     prods.map(p=>`<option value="${p.id}" ${cur===p.id?'selected':''}>${p.icon||'🏭'} ${p.name}</option>`).join('');
+  btRefreshPackingTypeOptions();
+}
+
+/* ── Inject product-linked packing options into Packing Type dropdown ── */
+function btRefreshPackingTypeOptions(){
+  const sel = document.getElementById('bt-packing-type');
+  if(!sel) return;
+  const cur = sel.value;
+  // Remove any previously-injected product options
+  [...sel.querySelectorAll('option[data-prod-pack]')].forEach(o=>o.remove());
+  const allPackBoms = invGetAllPackBOMs();
+  const prods = invGetProducts();
+  Object.keys(allPackBoms).forEach(pid=>{
+    const bom = allPackBoms[pid];
+    if(!bom || !Object.keys(bom).some(m=>bom[m]>0)) return;
+    const prod = prods.find(p=>p.id===pid);
+    if(!prod) return;
+    const opt = document.createElement('option');
+    opt.value = 'product:'+pid;
+    opt.dataset.prodPack = '1';
+    opt.textContent = (prod.icon||'🏷️')+' '+prod.name+' Packing (Product Default)';
+    sel.appendChild(opt);
+  });
+  if([...sel.options].some(o=>o.value===cur)) sel.value = cur;
+}
+
+/* ── Auto-select a product's own packing when it's chosen for a batch ── */
+function btAutoSelectPacking(productId){
+  const sel = document.getElementById('bt-packing-type');
+  if(!sel || !productId) return;
+  const allPackBoms = invGetAllPackBOMs();
+  const bom = allPackBoms[productId];
+  if(bom && Object.keys(bom).some(m=>bom[m]>0)){
+    sel.value = 'product:'+productId;
+  }
 }
 
 /* ── CONVERSION ── */
@@ -18626,6 +18867,33 @@ init();
       <button class="btn-save" style="flex:1;text-align:center" onclick="invSaveEditMat()">✅ Save</button>
       <button onclick="invDeleteMat()" style="padding:10px 16px;background:var(--red);color:#fff;border:none;border-radius:var(--r2);font-family:Nunito,sans-serif;font-size:12px;font-weight:800;cursor:pointer">🗑 Delete</button>
     </div>
+  </div>
+</div>
+
+<!-- Quick Add Material (from BOM screen) Modal -->
+<div class="modal-bg" id="bqm-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:flex-end;justify-content:center;">
+  <div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:500px;animation:slideUp .25s ease;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:15px;font-weight:800;color:var(--navy2)">➕ Naya Material — Is Product Ki BOM Ke Liye</div>
+      <button onclick="closeBomQuickAddMat()" style="width:30px;height:30px;border:none;background:#f0f4fb;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
+    </div>
+    <div class="fg"><label>Material Name</label><input class="finp" type="text" id="bqm-name" placeholder="e.g. XL Box Packaging"></div>
+    <div class="g2">
+      <div class="fg"><label>Category</label>
+        <select class="finp" id="bqm-cat">
+          <option>Raw Material</option><option>Hardware</option><option>Semi-Finished</option>
+          <option selected>Packaging</option><option>Chemical</option><option>Other</option>
+        </select>
+      </div>
+      <div class="fg"><label>Unit</label>
+        <select class="finp" id="bqm-unit">
+          <option value="pcs">pcs</option><option value="nos">nos</option><option value="kg">kg</option>
+          <option value="meter">meter</option><option value="box">box</option><option value="roll">roll</option><option value="set">set</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label>Qty Per Unit (is product ke 1 piece mein)</label><input class="finp" type="number" id="bqm-qty" min="0" step="any" value="1"></div>
+    <button class="btn-save" style="width:100%;text-align:center" onclick="saveBomQuickAddMat()">✅ Banao Aur BOM Mein Add Karo</button>
   </div>
 </div>
 
