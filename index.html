@@ -2143,6 +2143,11 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         <option value="paid">Paid</option>
         <option value="partial">Partial</option>
       </select>
+      <select class="finp" id="inv-filter-firm" onchange="renderInvList()" style="flex:1;min-width:150px;padding:8px 10px;font-size:12px">
+        <option value="all">Dono Firms</option>
+        <option value="bf">BeyondFurni (No GST)</option>
+        <option value="sr">S.R. Enterprises (GST)</option>
+      </select>
       <input class="finp" id="inv-search" placeholder="🔍 Search party..." oninput="renderInvList()" style="flex:2;min-width:140px;padding:8px 10px;font-size:12px">
     </div>
 
@@ -8649,6 +8654,7 @@ function renderInvList(){
   // ── Filters ──
   const period = document.getElementById('inv-filter-period')?.value||'all';
   const status = document.getElementById('inv-filter-status')?.value||'all';
+  const firmF  = document.getElementById('inv-filter-firm')?.value||'all';
   const search = (document.getElementById('inv-search')?.value||'').toLowerCase();
   const now    = new Date();
 
@@ -8665,6 +8671,7 @@ function renderInvList(){
   const filtered=[...INVOICES].reverse().filter(inv=>{
     if(!inPeriod(inv)) return false;
     if(status!=='all'&&inv.status!==status) return false;
+    if(firmF!=='all'&&(inv.firm||'bf')!==firmF) return false;
     if(search&&!inv.party.toLowerCase().includes(search)&&!inv.num.toLowerCase().includes(search)) return false;
     return true;
   });
@@ -8694,12 +8701,19 @@ function renderInvList(){
     const pending=inv.status==='paid'?0:inv.grandTotal;
     const stColor=inv.status==='paid'?'var(--green)':inv.status==='partial'?'var(--yellow-dark)':'var(--red)';
     const stBg   =inv.status==='paid'?'var(--green-bg)':inv.status==='partial'?'var(--yellow-bg)':'var(--red-bg)';
-    return `<tr style="border-bottom:1px solid var(--border);cursor:pointer" onmouseover="this.style.background='#f8faff'" onmouseout="this.style.background=''" onclick="openInvDetail('${inv.id}')">
+    const isSr    =(inv.firm||'bf')==='sr';
+    const firmClr =isSr?'var(--blue)':'var(--orange)';
+    const firmBg  =isSr?'rgba(59,124,246,.1)':'var(--orange-bg)';
+    const firmName=isSr?'S.R. Enterprises':'BeyondFurni';
+    return `<tr style="border-bottom:1px solid var(--border);border-left:3px solid ${firmClr};cursor:pointer" onmouseover="this.style.background='#f8faff'" onmouseout="this.style.background=''" onclick="openInvDetail('${inv.id}')">
       <td style="padding:11px 12px">
         <div style="font-size:13px;font-weight:800;color:var(--text)">${esc(inv.party)}</div>
-        <div style="font-size:10px;color:var(--muted)">${(inv.firm||'bf')==='sr'?'S.R. Enterprises':'BeyondFurni'} · ${inv.isGST?'GST Invoice':'Cash Bill'}${inv.phone?' · '+inv.phone:''}</div>
+        <div style="display:flex;align-items:center;gap:5px;margin-top:2px;flex-wrap:wrap">
+          <span style="padding:1px 8px;border-radius:20px;font-size:9px;font-weight:800;background:${firmBg};color:${firmClr}">${firmName}</span>
+          <span style="font-size:10px;color:var(--muted)">${inv.isGST?'GST Invoice':'Cash Bill'}${inv.phone?' · '+inv.phone:''}</span>
+        </div>
       </td>
-      <td style="padding:11px 12px;font-size:12px;font-weight:700;color:var(--orange)">${esc(inv.num)}</td>
+      <td style="padding:11px 12px;font-size:12px;font-weight:700;color:${firmClr}">${esc(inv.num)}</td>
       <td style="padding:11px 12px;font-size:12px;color:var(--muted);font-weight:700">${new Date(inv.date).toLocaleDateString('en-IN',{day:'2-digit',month:'short'})}</td>
       <td style="padding:11px 12px;font-size:12px;font-weight:700;text-align:right">₹${_fmtAmt(inv.subtotal)}</td>
       <td style="padding:11px 12px;font-size:13px;font-weight:800;text-align:right;color:var(--navy2)">₹${_fmtAmt(inv.grandTotal)}</td>
@@ -9666,6 +9680,7 @@ function _updateInvoice(saveAndNew=false){
   const recovery=parseFloat(document.getElementById('inv-recovery')?.value)||0;
   const status=document.getElementById('inv-status-field')?.value||(recovery>=grand?'paid':recovery>0?'partial':'unpaid');
   INVOICES[idx]={...old,party,
+    num:document.getElementById('inv-num-field')?.value.trim()||old.num,
     firm:_invFirm,
     address:document.getElementById('inv-address')?.value.trim()||'',
     contact:document.getElementById('inv-contact')?.value.trim()||'',
