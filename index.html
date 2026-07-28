@@ -7556,12 +7556,14 @@ function btRefreshCustDropdown(){
 function renderBtKpis(){
   const active=BATCHES.filter(b=>!b.deleted&&!btIsDone(b));
   const delayed=active.filter(b=>btStatus(b)==='delayed');
+  const highPri=active.filter(b=>(b.priority||'medium')==='high');
   const done=BATCHES.filter(b=>!b.deleted&&btIsDone(b));
   const el=document.getElementById('bt-kpis');
   if(!el)return;
   el.innerHTML=`
     <div class="bt-kpi"><div class="bt-kval">${active.length}</div><div class="bt-klbl">Active</div></div>
     <div class="bt-kpi ${delayed.length?'k-red':''}"><div class="bt-kval">${delayed.length}</div><div class="bt-klbl">Delayed⚠️</div></div>
+    <div class="bt-kpi ${highPri.length?'k-red':''}"><div class="bt-kval">${highPri.length}</div><div class="bt-klbl">High Pri🔴</div></div>
     <div class="bt-kpi k-grn"><div class="bt-kval">${done.length}</div><div class="bt-klbl">Done✅</div></div>
     <div class="bt-kpi"><div class="bt-kval">${active.reduce((s,b)=>s+b.qty,0)}</div><div class="bt-klbl">Active Pcs</div></div>`;
 }
@@ -7971,9 +7973,32 @@ function renderBtActive(){
     el.innerHTML=`<div class="empty"><div class="empty-ico">🏭</div><div style="font-weight:800;color:var(--text)">Koi Active Batch Nahi</div><div style="font-size:13px;margin-top:5px">"Naya Batch" tab se banao</div></div>`;
     return;
   }
+  // Priority sort first (High > Medium > Low), then delayed/warn/ok status
+  const priOrder={high:0,medium:1,low:2};
   const order={delayed:0,warn:1,ok:2};
-  const sorted=[...active].sort((a,b)=>(order[btStatus(a)]||2)-(order[btStatus(b)]||2));
+  const sorted=[...active].sort((a,b)=>{
+    const pa=priOrder[a.priority||'medium']??1;
+    const pb=priOrder[b.priority||'medium']??1;
+    if(pa!==pb) return pa-pb;
+    return (order[btStatus(a)]||2)-(order[btStatus(b)]||2);
+  });
   el.innerHTML=sorted.map(b=>renderBtCard(b)).join('');
+}
+
+/* ── Batch Priority ── */
+const BT_PRI_CFG={
+  high:{label:'🔴 High',bg:'#fff0f0',color:'var(--red)',border:'#fca5a5'},
+  medium:{label:'🟡 Medium',bg:'#fff8e6',color:'#b45309',border:'#fde68a'},
+  low:{label:'🟢 Low',bg:'#e6fff3',color:'var(--green)',border:'#6ee7b7'}
+};
+function _setBtPriority(bid, priority){
+  const idx=BATCHES.findIndex(b=>b.id===bid);
+  if(idx<0) return;
+  BATCHES[idx].priority=priority;
+  save('bf9_batches',BATCHES);
+  renderBtActive();
+  renderBtKpis();
+  toast(`Priority set: ${priority}`);
 }
 
 function renderBtCard(b){
@@ -8105,11 +8130,18 @@ function renderBtCard(b){
   }
 
   const isSel=!!_selectedBatches[b.id];
+  const bPri=b.priority||'medium';
+  const bpc=BT_PRI_CFG[bPri]||BT_PRI_CFG.medium;
   return `<div class="bt-card bt-${st}" id="btc-${b.id}">
     <div class="bt-hdr" onclick="toggleBtBody('${b.id}')">
       <div style="display:flex;flex-direction:column;gap:3px">
         <div class="bt-id">${b.id}</div>
         ${isSel?`<div style="font-size:9px;font-weight:800;color:var(--orange)">✓ Selected</div>`:''}
+        <select onclick="event.stopPropagation()" onchange="_setBtPriority('${b.id}',this.value)" style="padding:2px 5px;border-radius:6px;border:1px solid ${bpc.border};background:${bpc.bg};color:${bpc.color};font-size:9px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif">
+          <option value="high" ${bPri==='high'?'selected':''}>🔴 High</option>
+          <option value="medium" ${bPri==='medium'?'selected':''}>🟡 Medium</option>
+          <option value="low" ${bPri==='low'?'selected':''}>🟢 Low</option>
+        </select>
       </div>
       <div style="flex:1;margin-left:8px">
         <div class="bt-party">${esc(b.party)}</div>
