@@ -7810,7 +7810,7 @@ function createBatch(force){
   const b={id:btGenId(),party,custId,orderId:ordId,qty,product:prod,productId,
     packingType:document.getElementById('bt-packing-type')?.value||'none',
     deliveryDate:deliv,note,createdAt:new Date().toISOString(),stages,deleted:false,
-    deliveries:[]};
+    deliveries:[],dispatched:0,invoiceIds:[]};
   BATCHES.unshift(b);
   save('bf9_batches',BATCHES);
   // Reset form
@@ -7846,12 +7846,10 @@ function confirmBtStage(){
   const s=BT_STAGES[_btPending.si];
   b.stages[s.id]={done:true,date:document.getElementById('btsm-date').value||btToday(),note:document.getElementById('btsm-note').value.trim()};
   save('bf9_batches',BATCHES);
-  // ── Auto-deduct stock when dispatch (last stage) is marked done ──
-  if(s.id==='dispatch'){
-    const pid=b.productId||btGetProductId(b.product);
-    if(pid) btDeductStockForBatch({...b, productId:pid});
-    packDeductStock(b);
-  }
+  // ── Note: stock is no longer auto-deducted here. Dispatch stage is now a
+  // pure production-tracking milestone; actual raw-material + packing stock
+  // is deducted per-piece at invoice time (see createInvoice's batch block),
+  // so partial dispatches (e.g. 30 of 50) don't over-deduct stock. ──
   closeBtModal();
   toast(`✅ ${s.name} done!`);
   updateBatchBadge();
@@ -7928,6 +7926,7 @@ function saveBtEdit(){
   const qty=parseInt(document.getElementById('bt-edit-qty').value)||b.qty;
   const rate=parseFloat(document.getElementById('bt-edit-rate').value)||0;
   if(!party){toast('Party naam daalo!');return;}
+  if(qty<(b.dispatched||0)){toast(`⚠️ ${b.dispatched} pcs already dispatch ho chuke hain — qty isse kam nahi rakh sakte!`);return;}
   b.party=party; b.qty=qty;
   b.deliveryDate=document.getElementById('bt-edit-delivery').value||'';
   b.note=document.getElementById('bt-edit-note').value.trim();
@@ -8016,7 +8015,7 @@ function btSaveDelivery(genInv){
   toast('✅ '+qty+' pcs delivered to '+toParty+'!');
   btCloseDelivery();
   renderBtActive();
-  if(genInv)createInvoiceFromBatch(_btDelivBid);
+  if(genInv)createInvoiceFromBatch(_btDelivBid, qty);
 }
 function btDeleteDelivery(bid,idx){
   if(!confirm('Is delivery entry ko delete karo?'))return;
@@ -8225,8 +8224,9 @@ function renderBtCard(b){
         <div class="bt-meta">${esc(b.product)} · ${td} din${b.deliveryDate?' · Delivery: '+btFmt(b.deliveryDate):''}${ord?' · ₹'+(ord.qty*ord.rate).toLocaleString('en-IN'):''}</div>
       </div>
       <div class="bt-right">
-        <div class="bt-qty">${b.qty}</div>
-        <div class="bt-qunit">pieces</div>
+        <div class="bt-qty">${(b.dispatched||0)>0?(b.qty-b.dispatched):b.qty}</div>
+        <div class="bt-qunit">${(b.dispatched||0)>0?`baaki / ${b.qty}`:'pieces'}</div>
+        ${(b.dispatched||0)>0?`<div style="font-size:9px;font-weight:800;color:var(--orange)">📦 ${b.dispatched} dispatched</div>`:''}
         <div style="font-size:16px;color:var(--muted);margin-top:4px" class="bt-chevron-${b.id}">▼</div>
       </div>
     </div>
@@ -8840,7 +8840,11 @@ function _populateBatchDropdown(){
   if(!sel) return;
   const active=BATCHES.filter(b=>!b.deleted&&!btIsDone(b));
   sel.innerHTML='<option value="">— Koi batch nahi —</option>'+
-    active.map(b=>`<option value="${b.id}">${b.id} — ${esc(b.party)} (${b.qty} pcs)</option>`).join('');
+    active.map(b=>{
+      const rem=b.qty-(b.dispatched||0);
+      const qtyLabel=(b.dispatched||0)>0?`${rem}/${b.qty} pcs baaki`:`${b.qty} pcs`;
+      return `<option value="${b.id}">${b.id} — ${esc(b.party)} (${qtyLabel})</option>`;
+    }).join('');
   // Agar koi batch selected hai global mein toh pre-select
   const selBatches=Object.keys(_selectedBatches);
   if(selBatches.length) sel.value=selBatches[0];
@@ -8993,11 +8997,29 @@ function createInvoice(saveAndNew=false){
   // Link invoice back to delivery if generated from order
   _linkInvoiceToDelivery(inv.id);
 
-  // Batch dispatch
+  // Batch dispatch — partial-qty aware: deduct stock only for the qty
+  // actually invoiced this time, and keep the batch "active" with a
+  // running balance until its full qty has been dispatched.
   if(batchId){
     const b=BATCHES.find(x=>x.id===batchId);
-    if(b&&!b.stages.dispatch?.done){
-      b.stages.dispatch={done:true,date:inv.date,note:'Invoice: '+inv.num};
+    if(b){
+      const remaining=b.qty-(b.dispatched||0);
+      const requestedQty=_invItems.reduce((s,it)=>s+(it.qty||0),0);
+      const dispatchQty=Math.max(0,Math.min(remaining,requestedQty));
+      if(dispatchQty>0){
+        b.dispatched=(b.dispatched||0)+dispatchQty;
+        const pid=b.productId||btGetProductId(b.product);
+        if(pid) btDeductStockForBatch({...b,productId:pid}, dispatchQty);
+        packDeductStock(b, dispatchQty);
+        if(!b.invoiceIds) b.invoiceIds=[];
+        b.invoiceIds.push(inv.id);
+        const nowRemaining=b.qty-b.dispatched;
+        if(nowRemaining<=0){
+          b.stages.dispatch={done:true,date:inv.date,note:'Invoice: '+inv.num+' — poora batch dispatch complete'};
+        } else {
+          b.stages.dispatch={done:false,date:null,progressNote:`${b.dispatched}/${b.qty} dispatch ho chuka (Invoice ${inv.num}) — ${nowRemaining} pcs baaki`};
+        }
+      }
       save('bf9_batches',BATCHES);
     }
   }
@@ -9911,9 +9933,12 @@ function saveSrSettings(){
 }
 
 /* ── Batch Tracker integration — Invoice button ── */
-function createInvoiceFromBatch(batchId){
+function createInvoiceFromBatch(batchId, presetQty){
   const b=BATCHES.find(x=>x.id===batchId);
   if(!b) return;
+  const remaining=b.qty-(b.dispatched||0);
+  if(remaining<=0){ toast('✅ Ye batch already fully invoice/dispatch ho chuki hai!'); return; }
+  const qty = presetQty ? Math.min(presetQty, remaining) : remaining;
   // Switch to invoice tab → new → pre-fill
   const btn=document.querySelector('.bnav[data-tab="invoice"]');
   sw('invoice',btn);
@@ -9922,10 +9947,16 @@ function createInvoiceFromBatch(batchId){
     document.getElementById('inv-party').value=b.party;
     onInvPartyChange();
     document.getElementById('inv-num-field').value=_nextInvNum();
-    _invItems=[{name:b.product||'Metal Stand (Adjustable)',hsn:'9403',qty:b.qty,rate:0}];
+    _invItems=[{name:b.product||'Metal Stand (Adjustable)',hsn:'9403',qty:qty,rate:0}];
     document.getElementById('inv-batch-link').value=batchId;
     _renderInvItems(); _calcInvTotals();
-    toast('📋 Batch se details fill ho gayi — rate dalo!');
+    if(qty<remaining){
+      toast(`📋 Batch se ${qty} pcs fill ho gayi — rate dalo! (${remaining-qty} pcs is ke baad bhi baaki rahenge)`);
+    } else if((b.dispatched||0)>0){
+      toast(`📋 Batch ke baaki ${qty} pcs fill ho gaye — rate dalo!`);
+    } else {
+      toast('📋 Batch se details fill ho gayi — rate dalo!');
+    }
   },200);
 }
 
@@ -18372,9 +18403,10 @@ function openPackProdQuickAddMat(){
   document.getElementById('bqm-modal-bg').classList.add('show');
 }
 
-function packDeductStock(batch){
+function packDeductStock(batch, dispatchQty){
   const packType = batch.packingType||'none';
-  const qty = batch.qty||0;
+  const qty = (dispatchQty!=null) ? dispatchQty : (batch.qty||0);
+  if(qty<=0) return;
 
   // Product-linked packing BOM (e.g. a new product's own distinct packaging)
   if(packType.startsWith('product:')){
@@ -18666,16 +18698,18 @@ function bomWarnForceCreate(){
 /* ══════════════════════════════════════════
    STOCK AUTO-DEDUCT — Dispatch stage pe
 ══════════════════════════════════════════ */
-function btDeductStockForBatch(batch){
+function btDeductStockForBatch(batch, dispatchQty){
   const productId = batch.productId || btGetProductId(batch.product);
   if(!productId) return;
+  const qty = (dispatchQty!=null) ? dispatchQty : (batch.qty||0);
+  if(qty<=0) return;
   const bom = invGetBOMForProduct(productId);
   let deducted = [];
 
   Object.keys(bom).forEach(matId=>{
     const bomQty = bom[matId]||0;
     if(bomQty<=0) return;
-    const needed = bomQty * batch.qty;
+    const needed = bomQty * qty;
     const idx = STK.findIndex(m=>m.id===matId);
     if(idx<0) return;
     STK[idx].current = Math.max(0, (STK[idx].current||0) - needed);
@@ -18683,7 +18717,7 @@ function btDeductStockForBatch(batch){
     STXN.push({
       id:Date.now()+'_'+Math.random().toString(36).slice(2,4),
       itemId:matId, type:'out', qty:needed,
-      note:'Batch '+batch.id+' production',
+      note:'Batch '+batch.id+' dispatch ('+qty+' pcs)',
       date:new Date().toISOString()
     });
     deducted.push(STK[idx].name);
