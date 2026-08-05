@@ -3260,6 +3260,15 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
       <div id="_restore_status" style="display:none;margin-top:10px;padding:10px 12px;border-radius:var(--r2);font-size:12px;font-weight:800;"></div>
     </div>
 
+    <!-- Cloud Snapshot History -->
+    <div style="background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:var(--r2);padding:14px;margin-bottom:10px;">
+      <div style="font-size:13px;font-weight:900;color:#5b21b6;margin-bottom:4px;">📜 Snapshot History (Cloud)</div>
+      <div style="font-size:11px;color:#555;margin-bottom:12px;line-height:1.6;">Har thodi der mein automatic ek safe copy cloud pe save hoti hai. Agar kabhi data kam dikhe, yahan se purani snapshot dekh ke restore kar sakte ho.</div>
+      <button onclick="openSnapshotHistoryModal()" style="width:100%;padding:12px;background:#7c3aed;color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;">
+        📜 Snapshot History Dekho
+      </button>
+    </div>
+
     <!-- How to move safely -->
     <div style="background:#fff8e6;border:1.5px solid #fde68a;border-radius:var(--r2);padding:12px;">
       <div style="font-size:11px;font-weight:800;color:var(--yellow-dark);margin-bottom:6px;">📋 File Move Karne ka Safe Tarika:</div>
@@ -4868,6 +4877,59 @@ let _gdSyncing   = false;
 let _gdPushTimer = null;
 let _gdLoaded    = false;
 
+/* ══════════════════════════════════════════════════════════
+   DATA-LOSS GUARD — koi bhi wholesale sync (push ya pull) jo
+   critical records ko achanak kam kar de, use auto-block karta
+   hai. Isse woh bug dobara nahi hoga jisme fresh/stale session
+   ne accha local data cloud ke khaali/purane data se overwrite
+   kar diya tha.
+══════════════════════════════════════════════════════════ */
+const CRITICAL_ARR_KEYS = ['bf9_daybook','bf9_batches','bf9_invoices','bf9_orders','bf9_customers','bf9_ledger','bf9_att','bf9_stxn','bf9_trips','bf9_assets','bf9_advances'];
+const GUARD_DROP_PCT = 0.15; // 15% se zyada gira toh block
+
+function _arrCount(jsonStr){
+  try{ const v = JSON.parse(jsonStr); return Array.isArray(v) ? v.length : 0; }catch(e){ return 0; }
+}
+function _countsOf(src){ // src: 'local' ya {key: jsonString} object (cloud data)
+  const out={};
+  CRITICAL_ARR_KEYS.forEach(k=>{
+    out[k] = _arrCount(src==='local' ? localStorage.getItem(k) : src[k]);
+  });
+  return out;
+}
+function _findDataLossDrops(fromCounts, toCounts){
+  const drops=[];
+  CRITICAL_ARR_KEYS.forEach(k=>{
+    if(fromCounts[k]>=5 && toCounts[k] < fromCounts[k]*(1-GUARD_DROP_PCT)){
+      drops.push({key:k, from:fromCounts[k], to:toCounts[k]});
+    }
+  });
+  return drops;
+}
+function _applyCloudData(cloud){
+  let restored=0;
+  GD_KEYS.forEach(k=>{
+    if(cloud[k]!==undefined && cloud[k]!=='' && cloud[k]!=='null'){
+      localStorage.setItem(k, cloud[k]);
+      restored++;
+    }
+  });
+  return restored;
+}
+function _showGuardBanner(drops, direction){
+  const msg = drops.map(d=>`${d.key.replace('bf9_','')}: ${d.from}→${d.to}`).join(' · ');
+  console.warn('🛑 SYNC BLOCKED — possible data loss ('+direction+'):', msg);
+  let el = document.getElementById('gd-guard-banner');
+  if(!el){
+    el = document.createElement('div');
+    el.id='gd-guard-banner';
+    el.style.cssText='position:fixed;top:0;left:0;right:0;background:#fee2e2;color:#991b1b;padding:10px 14px;font-size:12px;font-weight:800;z-index:9999;text-align:center;border-bottom:2px solid #ef4444;font-family:Nunito,sans-serif;';
+    document.body.prepend(el);
+  }
+  el.textContent = `⚠️ Auto-sync ROKA gaya (data-loss risk): ${msg}. Settings → Snapshot History se check karo, khud reload mat karo.`;
+  el.style.display='block';
+}
+
 /* ── localStorage helpers (unchanged) ── */
 function load(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; }}
 function save(k,v){
@@ -4911,11 +4973,40 @@ async function gdPush(){
     _gdSyncing = false;
     gdSetDot('ok');
     localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
+    _gdSaveHistorySnapshot(payload);
   } catch(e) {
     _gdSyncing = false;
     gdSetDot('err');
     console.warn('Supabase push failed:', e);
   }
+}
+
+/* ── Versioned snapshot history (apna khud ka point-in-time backup,
+   kyunki Supabase Free plan mein PITR nahi hota). Har push pe nahi,
+   max har 15 min mein ek snapshot — taaki table zyada bada na ho. ── */
+function _gdSaveHistorySnapshot(payload){
+  try{
+    const last = localStorage.getItem('bf9_hist_last');
+    const now = Date.now();
+    if(last && (now - parseInt(last,10)) < 15*60*1000) return;
+    localStorage.setItem('bf9_hist_last', String(now));
+    fetch(SB_URL+'/rest/v1/bf_sync_history', {
+      method:'POST',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body: JSON.stringify({ data: payload })
+    }).then(()=>{ if(Math.random()<0.1) _gdTrimHistory(); }).catch(()=>{});
+  }catch(e){}
+}
+/* ── Purane snapshots trim karo — sirf latest 300 rakho ── */
+function _gdTrimHistory(){
+  fetch(SB_URL+'/rest/v1/bf_sync_history?select=id&order=created_at.desc&offset=300',{
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+  }).then(r=>r.json()).then(rows=>{
+    if(rows && rows.length){
+      const ids = rows.map(r=>r.id).join(',');
+      fetch(SB_URL+`/rest/v1/bf_sync_history?id=in.(${ids})`,{method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).catch(()=>{});
+    }
+  }).catch(()=>{});
 }
 
 /* ── Load from Supabase on startup ── */
@@ -4955,13 +5046,9 @@ async function _gdSmartSync(){
 
     // Case 2: Local has never synced → pull from cloud
     if(!localTime){
-      let restored = 0;
-      GD_KEYS.forEach(k=>{
-        if(cloud[k] !== undefined && cloud[k] !== '' && cloud[k] !== 'null'){
-          localStorage.setItem(k, cloud[k]);
-          restored++;
-        }
-      });
+      const drops2 = _findDataLossDrops(_countsOf('local'), _countsOf(cloud));
+      if(drops2.length){ _showGuardBanner(drops2,'pull-fresh-session'); _gdLoaded=true; gdSetDot('err'); return; }
+      const restored = _applyCloudData(cloud);
       localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
       _gdLoaded = true;
       gdSetDot('ok');
@@ -4970,29 +5057,16 @@ async function _gdSmartSync(){
     }
 
     // Case 3: Local is NEWER than cloud → push local to cloud
-    // BUT first verify local actually has meaningful data — agar local empty hai toh cloud se pull karo
+    // BUT first check — agar local cloud se kaafi kam entries dikha raha hai (kisi bhi
+    // critical key mein), toh pehle cloud se pull karo — push mat karo (data loss prevention)
     if(localTime >= cloudUpdatedAt){
-      const localDaybook = load('bf9_daybook');
-      const localBatches = load('bf9_batches');
-      const localInvoices = load('bf9_invoices');
-      const localHasData = (localDaybook && localDaybook.length > 0) ||
-                           (localBatches && localBatches.length > 0) ||
-                           (localInvoices && localInvoices.length > 0);
+      const localCounts3 = _countsOf('local');
+      const cloudCounts3 = _countsOf(cloud);
+      const pullDrops = _findDataLossDrops(cloudCounts3, localCounts3); // local < cloud kahin?
 
-      // Agar cloud mein data hai par local empty hai — cloud jeet-ta hai (data loss prevention)
-      const cloudDaybook = cloud['bf9_daybook'] ? JSON.parse(cloud['bf9_daybook']) : [];
-      const cloudHasData = cloudDaybook && cloudDaybook.length > 0;
-
-      if(!localHasData && cloudHasData){
-        // Local empty, cloud mein data hai — cloud se restore karo
-        console.warn('⚠️ Local data empty but cloud has data — pulling from cloud to prevent data loss');
-        let restored = 0;
-        GD_KEYS.forEach(k=>{
-          if(cloud[k] !== undefined && cloud[k] !== '' && cloud[k] !== 'null'){
-            localStorage.setItem(k, cloud[k]);
-            restored++;
-          }
-        });
+      if(pullDrops.length){
+        console.warn('⚠️ Local kam entries dikha raha hai cloud se — pull kar rahe hain, push nahi', pullDrops);
+        const restored = _applyCloudData(cloud);
         localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
         _gdLoaded = true;
         gdSetDot('ok');
@@ -5007,13 +5081,12 @@ async function _gdSmartSync(){
     }
 
     // Case 4: Cloud is NEWER than local → pull from cloud
-    let restored = 0;
-    GD_KEYS.forEach(k=>{
-      if(cloud[k] !== undefined && cloud[k] !== '' && cloud[k] !== 'null'){
-        localStorage.setItem(k, cloud[k]);
-        restored++;
-      }
-    });
+    const localCounts4 = _countsOf('local');
+    const cloudCounts4 = _countsOf(cloud);
+    const drops4 = _findDataLossDrops(localCounts4, cloudCounts4);
+    if(drops4.length){ _showGuardBanner(drops4,'pull-cloud-newer'); _gdLoaded=true; gdSetDot('err'); return; }
+
+    const restored = _applyCloudData(cloud);
     localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
     _gdLoaded = true;
     gdSetDot('ok');
@@ -5029,6 +5102,70 @@ async function _gdSmartSync(){
 }
 
 /* ── Force pull from Supabase (doosre device ka data lana) ── */
+/* ── Snapshot History modal — purani cloud snapshots dekho aur chuni hui restore karo ── */
+async function openSnapshotHistoryModal(){
+  if(!document.getElementById('snap-modal-bg')){
+    const m=document.createElement('div');
+    m.id='snap-modal-bg';
+    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:960;align-items:flex-end;justify-content:center;';
+    m.innerHTML='<div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:560px;max-height:88vh;overflow-y:auto">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
+      +'<div style="font-size:15px;font-weight:800;color:var(--navy2)">📜 Snapshot History</div>'
+      +'<button onclick="document.getElementById(\'snap-modal-bg\').style.display=\'none\'" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button></div>'
+      +'<div id="snap-list" style="display:flex;flex-direction:column;gap:8px"></div>'
+      +'</div>';
+    document.body.appendChild(m);
+  }
+  document.getElementById('snap-modal-bg').style.display='flex';
+  const el=document.getElementById('snap-list');
+  el.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">⏳ Load ho raha hai...</div>';
+  try{
+    const res=await fetch(SB_URL+'/rest/v1/bf_sync_history?select=id,data,created_at&order=created_at.desc&limit=30',{
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const rows=await res.json();
+    if(!rows.length){ el.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">Abhi koi snapshot nahi hai — thodi der baad try karo</div>'; return; }
+    const curCounts=_countsOf('local');
+    el.innerHTML=rows.map(r=>{
+      const snapCounts=_countsOf(r.data);
+      const dt=new Date(r.created_at).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+      const dbDiff = snapCounts['bf9_daybook'] - curCounts['bf9_daybook'];
+      const diffTxt = dbDiff>0?`<span style="color:var(--green-dark)">+${dbDiff} daybook</span>`:dbDiff<0?`<span style="color:var(--red-dark)">${dbDiff} daybook</span>`:'<span style="color:var(--muted)">same</span>';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r2)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:800;color:var(--navy2)">${dt}</div>
+          <div style="font-size:11px;color:var(--muted);font-weight:700">Daybook: ${snapCounts['bf9_daybook']} · ${diffTxt}</div>
+        </div>
+        <button onclick="restoreSnapshot('${r.id}')" style="padding:8px 12px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:800;cursor:pointer">Restore</button>
+      </div>`;
+    }).join('');
+  }catch(e){
+    el.innerHTML=`<div style="text-align:center;padding:16px;color:var(--red-dark);font-size:12px;font-weight:700">❌ ${esc(e.message)}</div>`;
+  }
+}
+async function restoreSnapshot(id){
+  try{
+    const res=await fetch(SB_URL+`/rest/v1/bf_sync_history?id=eq.${id}&select=data,created_at`,{
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    });
+    const rows=await res.json();
+    if(!rows.length){ toast('❌ Snapshot nahi mila'); return; }
+    const snap=rows[0].data;
+    const curCounts=_countsOf('local');
+    const snapCounts=_countsOf(snap);
+    const lines=CRITICAL_ARR_KEYS.map(k=>`${k.replace('bf9_','')}: ${curCounts[k]} → ${snapCounts[k]}`).join('\n');
+    if(!confirm(`⚠️ Ye snapshot (${new Date(rows[0].created_at).toLocaleString('en-IN')}) restore karoge?\nAbhi ka data replace ho jayega:\n\n${lines}\n\nPakka karna hai?`)) return;
+    _applyCloudData(snap);
+    localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
+    localStorage.setItem('bf9_gd_reloaded','1');
+    toast('✅ Restore ho gaya — reload ho raha hai...');
+    setTimeout(()=>location.reload(), 1000);
+  }catch(e){
+    toast('❌ '+e.message);
+  }
+}
+
 function gdForcePull(){
   if(!confirm('⚠️ Supabase se saara data overwrite hoga!\nLocal data replace ho jayega.\n\nAage badhna hai?')) return;
   _gdFetch(true);
