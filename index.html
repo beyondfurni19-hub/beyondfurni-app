@@ -1354,24 +1354,39 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   <div id="gd-overlay-msg" style="color:#fff;font-size:15px;font-weight:800;font-family:'Nunito',sans-serif">☁️ Supabase se data load ho raha hai...</div>
   <div style="color:#7a9bcc;font-size:11px;font-weight:700;font-family:'Nunito',sans-serif">Ek second ruko</div>
 </div>
-<style>@keyframes gdSpin{to{transform:rotate(360deg)}}</style>
+<style>
+@keyframes gdSpin{to{transform:rotate(360deg)}}
+@keyframes authFadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.auth-watermark-bg{
+  position:absolute;inset:-50%;width:200%;height:200%;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='100' viewBox='0 0 150 100'%3E%3Ctext x='-10' y='58' font-family='Arial,sans-serif' font-size='15' font-weight='900' letter-spacing='1' fill='%23ffffff' fill-opacity='0.18' transform='rotate(-28 75 50)'%3EBEYONDFURNI%3C/text%3E%3C/svg%3E");
+  background-repeat:repeat;
+  background-size:150px 100px;
+  pointer-events:none;
+}
+</style>
 
 <!-- Login Gate Overlay -->
-<div id="auth-overlay" style="display:flex;position:fixed;inset:0;background:linear-gradient(160deg,#0d1b35,#16294f);z-index:10000;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:20px;font-family:'Nunito',sans-serif">
-  <div style="width:100%;max-width:360px;background:#fff;border-radius:20px;padding:28px 24px;box-shadow:0 20px 60px rgba(0,0,0,.35)">
-    <div style="text-align:center;margin-bottom:20px">
-      <div style="font-size:34px;margin-bottom:6px">🏭</div>
-      <div style="font-size:19px;font-weight:900;color:#0d1b35">BeyondFurni ERP</div>
-      <div style="font-size:12px;color:#8a97ad;font-weight:700;margin-top:2px">Sirf authorized team members ke liye</div>
+<div id="auth-overlay" style="display:flex;position:fixed;inset:0;background:radial-gradient(circle at 30% 20%,#1c3564,#0a1830 65%);z-index:10000;flex-direction:column;align-items:center;justify-content:center;padding:20px;font-family:'Nunito',sans-serif;overflow:hidden">
+  <div class="auth-watermark-bg"></div>
+  <div style="position:relative;width:100%;max-width:380px;background:#fff;border-radius:22px;box-shadow:0 25px 70px rgba(0,0,0,.45);animation:authFadeIn .5s ease;overflow:hidden">
+    <div style="height:5px;background:linear-gradient(90deg,var(--orange),var(--orange2))"></div>
+    <div style="padding:32px 28px 26px">
+      <div style="text-align:center;margin-bottom:26px">
+        <div style="width:62px;height:62px;border-radius:16px;background:linear-gradient(135deg,#0d1b35,#1c3564);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 14px;box-shadow:0 10px 24px rgba(13,27,53,.3)">🏭</div>
+        <div style="font-size:21px;font-weight:900;color:#0d1b35;letter-spacing:-.3px">BeyondFurni ERP</div>
+        <div style="font-size:10px;color:#8a97ad;font-weight:800;margin-top:5px;text-transform:uppercase;letter-spacing:1.2px">Sirf Authorized Team Members Ke Liye</div>
+      </div>
+      <div class="fg"><label>Email</label>
+        <input class="finp" type="email" id="auth-email" placeholder="aapka@email.com" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('auth-password').focus()">
+      </div>
+      <div class="fg"><label>Password</label>
+        <input class="finp" type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')authLogin()">
+      </div>
+      <div id="auth-error" style="display:none;background:var(--red-bg);color:var(--red-dark);border-radius:var(--r2);padding:9px 12px;font-size:12px;font-weight:700;margin-bottom:12px"></div>
+      <button id="auth-login-btn" onclick="authLogin()" style="width:100%;padding:14px;background:linear-gradient(135deg,var(--orange),#ff8a3d);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 8px 18px rgba(240,112,32,.3)">🔐 Login</button>
+      <div style="text-align:center;margin-top:18px;font-size:10px;color:#b7c0d1;font-weight:800;letter-spacing:.4px">🔒 SECURED LOGIN · BEYONDFURNI ERP</div>
     </div>
-    <div class="fg"><label>Email</label>
-      <input class="finp" type="email" id="auth-email" placeholder="aapka@email.com" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('auth-password').focus()">
-    </div>
-    <div class="fg"><label>Password</label>
-      <input class="finp" type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')authLogin()">
-    </div>
-    <div id="auth-error" style="display:none;background:var(--red-bg);color:var(--red-dark);border-radius:var(--r2);padding:9px 12px;font-size:12px;font-weight:700;margin-bottom:12px"></div>
-    <button id="auth-login-btn" onclick="authLogin()" style="width:100%;padding:13px;background:var(--orange);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">🔐 Login</button>
   </div>
 </div>
 
