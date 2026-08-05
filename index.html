@@ -1356,6 +1356,25 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 </div>
 <style>@keyframes gdSpin{to{transform:rotate(360deg)}}</style>
 
+<!-- Login Gate Overlay -->
+<div id="auth-overlay" style="display:flex;position:fixed;inset:0;background:linear-gradient(160deg,#0d1b35,#16294f);z-index:10000;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:20px;font-family:'Nunito',sans-serif">
+  <div style="width:100%;max-width:360px;background:#fff;border-radius:20px;padding:28px 24px;box-shadow:0 20px 60px rgba(0,0,0,.35)">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:34px;margin-bottom:6px">🏭</div>
+      <div style="font-size:19px;font-weight:900;color:#0d1b35">BeyondFurni ERP</div>
+      <div style="font-size:12px;color:#8a97ad;font-weight:700;margin-top:2px">Sirf authorized team members ke liye</div>
+    </div>
+    <div class="fg"><label>Email</label>
+      <input class="finp" type="email" id="auth-email" placeholder="aapka@email.com" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('auth-password').focus()">
+    </div>
+    <div class="fg"><label>Password</label>
+      <input class="finp" type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')authLogin()">
+    </div>
+    <div id="auth-error" style="display:none;background:var(--red-bg);color:var(--red-dark);border-radius:var(--r2);padding:9px 12px;font-size:12px;font-weight:700;margin-bottom:12px"></div>
+    <button id="auth-login-btn" onclick="authLogin()" style="width:100%;padding:13px;background:var(--orange);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">🔐 Login</button>
+  </div>
+</div>
+
 <div class="app-layout">
 
 <!-- ════ SIDEBAR ════ -->
@@ -1449,6 +1468,15 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 
   <!-- Settings -->
   <div class="sb-section" style="margin-top:auto;border-top:1px solid #1e3060;padding-top:8px">
+    <div id="auth-user-badge" style="display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:6px">
+      <div style="width:30px;height:30px;border-radius:50%;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;flex-shrink:0" id="auth-user-avatar">?</div>
+      <div style="flex:1;min-width:0">
+        <div id="auth-user-name" style="font-size:12px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
+        <div id="auth-user-role" style="font-size:10px;color:#7a9bcc;font-weight:700;text-transform:capitalize">—</div>
+      </div>
+      <button id="auth-users-btn" onclick="openUsersModal()" title="Users Manage Karo" style="display:none;width:28px;height:28px;border-radius:8px;border:none;background:rgba(255,255,255,.08);color:#7a9bcc;font-size:14px;cursor:pointer;flex-shrink:0">👥</button>
+      <button onclick="authLogout()" title="Logout" style="width:28px;height:28px;border-radius:8px;border:none;background:rgba(255,255,255,.08);color:#f5a3a3;font-size:14px;cursor:pointer;flex-shrink:0">⏻</button>
+    </div>
     <button class="sbnav" data-tab="settings" onclick="sw('settings',this)">
       <span class="sb-ico">⚙️</span><span class="sb-lbl">Settings</span>
     </button>
@@ -4431,6 +4459,372 @@ const BT_STAGES=[
 ═══════════════════════════════════════════════ */
 const SB_URL  = 'https://nckyirexejnttsxmhbmd.supabase.co';
 const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ja3lpcmV4ZWpudHRzeG1oYm1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3ODMwNjgsImV4cCI6MjA5NTM1OTA2OH0.d8NKL-2q5f5NLDfOs0dWOYu1oxLb2TfwcQPxAv_hGn0';
+
+/* ═══════════════════════════════════════════════
+   LOGIN SYSTEM (Supabase Auth — email/password)
+   + IN-APP USER MANAGEMENT (via Edge Function 'admin-users')
+   Owner can add/remove users and set per-tab permission
+   (none / read / write) for each person — all from inside
+   the app, no Supabase dashboard needed after one-time setup.
+═══════════════════════════════════════════════ */
+const AUTH_SESSION_KEY = 'bf9_auth_session';
+const ADMIN_FN_URL = SB_URL+'/functions/v1/admin-users';
+
+function _authAllTabs(){
+  return [...document.querySelectorAll('.sbnav[data-tab]')].map(b=>({
+    id:b.getAttribute('data-tab'),
+    label:b.querySelector('.sb-lbl')?.textContent.trim()||b.getAttribute('data-tab')
+  }));
+}
+
+// Fallback ONLY for a user that has role:'accountant' but no explicit
+// `permissions` set yet (e.g. accounts made before the Users screen
+// existed). Once the owner sets real permissions from the Users
+// screen, this fallback is ignored for that person.
+const LEGACY_ACCOUNTANT_TABS=['home','daybook','invoice','ledger','history','cfo','ceo-report','analytics','whats-new'];
+
+let _authRole = null;
+let _authUserId = null;
+let _authPerms = null; // {tabId: 'none'|'read'|'write'} — null = full access
+
+function authGetSession(){
+  try{ return JSON.parse(localStorage.getItem(AUTH_SESSION_KEY)||'null'); }
+  catch(e){ return null; }
+}
+function authSaveSession(sess){
+  localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(sess));
+}
+function authClearSession(){
+  localStorage.removeItem(AUTH_SESSION_KEY);
+}
+
+function authShowError(msg){
+  const el=document.getElementById('auth-error');
+  if(!el) return;
+  el.textContent=msg;
+  el.style.display='block';
+}
+
+async function authLogin(){
+  const email=document.getElementById('auth-email').value.trim();
+  const password=document.getElementById('auth-password').value;
+  const errEl=document.getElementById('auth-error');
+  const btn=document.getElementById('auth-login-btn');
+  if(errEl) errEl.style.display='none';
+  if(!email||!password){ authShowError('⚠️ Email aur password dono bharo!'); return; }
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Login ho raha hai...'; }
+  try{
+    const res=await fetch(SB_URL+'/auth/v1/token?grant_type=password',{
+      method:'POST',
+      headers:{ 'apikey':SB_KEY, 'Content-Type':'application/json' },
+      body:JSON.stringify({email,password})
+    });
+    const data=await res.json();
+    if(!res.ok){
+      const msg=data?.error_description||data?.msg||'Login fail ho gaya';
+      authShowError('❌ '+(msg==='Invalid login credentials'?'Email ya password galat hai!':msg));
+      if(btn){ btn.disabled=false; btn.textContent='🔐 Login'; }
+      return;
+    }
+    const role=data.user?.user_metadata?.role||'staff';
+    const name=data.user?.user_metadata?.name||email.split('@')[0];
+    let permissions=data.user?.user_metadata?.permissions||null;
+    if(!permissions && role==='accountant') permissions=_tabsToPerm(LEGACY_ACCOUNTANT_TABS);
+    const sess={
+      access_token:data.access_token,
+      refresh_token:data.refresh_token,
+      expires_at:Date.now()+ (data.expires_in||3600)*1000,
+      email, name, role, permissions, userId:data.user?.id
+    };
+    authSaveSession(sess);
+    authEnterApp(sess);
+  }catch(e){
+    authShowError('❌ Connection error — internet check karo');
+    if(btn){ btn.disabled=false; btn.textContent='🔐 Login'; }
+  }
+}
+
+function _tabsToPerm(tabIds){
+  const p={};
+  _authAllTabs().forEach(t=>{ p[t.id]=tabIds.includes(t.id)?'write':'none'; });
+  return p;
+}
+
+async function authTryRefresh(sess){
+  try{
+    const res=await fetch(SB_URL+'/auth/v1/token?grant_type=refresh_token',{
+      method:'POST',
+      headers:{ 'apikey':SB_KEY, 'Content-Type':'application/json' },
+      body:JSON.stringify({refresh_token:sess.refresh_token})
+    });
+    const data=await res.json();
+    if(!res.ok) return null;
+    const newSess={
+      ...sess,
+      access_token:data.access_token,
+      refresh_token:data.refresh_token,
+      expires_at:Date.now()+ (data.expires_in||3600)*1000,
+      role:data.user?.user_metadata?.role||sess.role,
+      permissions:data.user?.user_metadata?.permissions!==undefined?data.user.user_metadata.permissions:sess.permissions,
+    };
+    authSaveSession(newSess);
+    return newSess;
+  }catch(e){ return null; }
+}
+
+/* ── Tab-level access: 'none' hides the tab, 'read' shows it but
+   locks every input/button inside it, 'write' (or unset) = normal ── */
+function authApplyPermissions(perms){
+  _authPerms=perms;
+  document.querySelectorAll('.sbnav[data-tab]').forEach(btn=>{
+    const tab=btn.getAttribute('data-tab');
+    const level=perms?perms[tab]:undefined;
+    btn.style.display=(level==='none')?'none':'';
+  });
+  // Users management button — owner only
+  const usersBtn=document.getElementById('auth-users-btn');
+  if(usersBtn) usersBtn.style.display=(_authRole==='owner')?'':'none';
+}
+
+function _tabLevel(tab){
+  if(!_authPerms) return 'write';
+  return _authPerms[tab]||'write';
+}
+
+let _roObservers={};
+function _applyReadOnlyLock(tab){
+  const screen=document.getElementById('s-'+tab);
+  if(!screen) return;
+  if(_roObservers[tab]){ _roObservers[tab].disconnect(); delete _roObservers[tab]; }
+  let banner=screen.querySelector(':scope > .readonly-banner');
+  const isReadOnly=_tabLevel(tab)==='read';
+  if(isReadOnly){
+    if(!banner){
+      banner=document.createElement('div');
+      banner.className='readonly-banner';
+      banner.style.cssText='background:#fff3cd;color:#8a6a00;padding:9px 14px;font-size:12px;font-weight:800;text-align:center;border-bottom:2px solid #ffd166;position:sticky;top:0;z-index:50';
+      banner.textContent='👁️ Read-Only — sirf dekh sakte ho, edit/save/delete allowed nahi hai';
+      screen.insertBefore(banner,screen.firstChild);
+    }
+    const lockNow=()=>{
+      screen.querySelectorAll('button,input,select,textarea').forEach(el=>{
+        if(el.closest('.readonly-banner')) return;
+        el.disabled=true;
+      });
+    };
+    lockNow();
+    const obs=new MutationObserver(lockNow);
+    obs.observe(screen,{childList:true,subtree:true});
+    _roObservers[tab]=obs;
+  } else if(banner){ banner.remove(); }
+}
+
+function authEnterApp(sess){
+  const overlay=document.getElementById('auth-overlay');
+  if(overlay) overlay.style.display='none';
+  _authRole=sess.role; _authUserId=sess.userId;
+  document.getElementById('auth-user-name').textContent=sess.name;
+  document.getElementById('auth-user-role').textContent=sess.role;
+  document.getElementById('auth-user-avatar').textContent=(sess.name||'?').substring(0,1).toUpperCase();
+  authApplyPermissions(sess.permissions);
+  // If current active tab is hidden for this user, jump to Dashboard
+  const activeTab=document.querySelector('.sbnav.active')?.getAttribute('data-tab');
+  if(activeTab && _tabLevel(activeTab)==='none'){
+    sw('home',document.querySelector('.sbnav[data-tab="home"]'));
+  } else if(activeTab){
+    _applyReadOnlyLock(activeTab);
+  }
+  init();
+  // Keep the session alive — refresh a bit before it expires
+  setInterval(async ()=>{
+    const cur=authGetSession();
+    if(!cur) return;
+    if(Date.now() > cur.expires_at - 5*60*1000){ await authTryRefresh(cur); }
+  }, 5*60*1000);
+}
+
+function authLogout(){
+  if(!confirm('Logout karna chahte ho?')) return;
+  authClearSession();
+  location.reload();
+}
+
+async function authBootstrap(){
+  let sess=authGetSession();
+  if(sess && Date.now() > sess.expires_at){
+    sess = await authTryRefresh(sess);
+  }
+  if(sess){
+    authEnterApp(sess);
+  }
+  // else: login overlay is already showing by default — do nothing,
+  // wait for authLogin() to be triggered by the user.
+}
+
+/* ═══════════════════════════════════════════════
+   USERS MANAGEMENT (owner-only) — add/remove people
+   and set per-tab permissions, entirely from inside
+   the app. Calls the 'admin-users' Edge Function,
+   which holds the service-role key server-side.
+═══════════════════════════════════════════════ */
+let _usersCache=[];
+let _userFormEditId=null;
+
+async function _authCallAdmin(action, payload){
+  const sess=authGetSession();
+  if(!sess) throw new Error('Login session nahi mili');
+  const res=await fetch(ADMIN_FN_URL,{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'apikey':SB_KEY,
+      'Authorization':'Bearer '+sess.access_token
+    },
+    body:JSON.stringify({action, ...payload})
+  });
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data?.error||'Server error (Edge Function set up hui hai?)');
+  return data;
+}
+
+function openUsersModal(){
+  if(_authRole!=='owner'){ toast('🔒 Sirf owner users manage kar sakta hai'); return; }
+  if(!document.getElementById('usr-modal-bg')){
+    const m=document.createElement('div');
+    m.id='usr-modal-bg';
+    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:950;align-items:flex-end;justify-content:center;';
+    m.innerHTML='<div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:560px;max-height:88vh;overflow-y:auto">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
+      +'<div style="font-size:15px;font-weight:800;color:var(--navy2)">👥 Team Members</div>'
+      +'<button onclick="closeUsersModal()" style="width:30px;height:30px;border:none;background:#f0f4fb;border-radius:8px;cursor:pointer;font-size:16px">✕</button></div>'
+      +'<div id="usr-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px"></div>'
+      +'<button class="btn-save" style="width:100%;text-align:center" onclick="openUserFormModal()">➕ Naya User Add Karo</button>'
+      +'</div>';
+    document.body.appendChild(m);
+  }
+  document.getElementById('usr-modal-bg').style.display='flex';
+  _loadUsersList();
+}
+function closeUsersModal(){
+  const m=document.getElementById('usr-modal-bg');
+  if(m) m.style.display='none';
+}
+async function _loadUsersList(){
+  const el=document.getElementById('usr-list');
+  el.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">⏳ Load ho raha hai...</div>';
+  try{
+    const {users}=await _authCallAdmin('list',{});
+    _usersCache=users||[];
+    if(!_usersCache.length){ el.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">Koi user nahi mila</div>'; return; }
+    el.innerHTML=_usersCache.map(u=>{
+      const restricted=u.permissions?Object.values(u.permissions).filter(v=>v!=='write').length:0;
+      const permNote=!u.permissions?'Full access':restricted===0?'Full access':`${restricted} tabs restricted`;
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r2)">
+        <div style="width:34px;height:34px;border-radius:50%;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;flex-shrink:0">${esc((u.name||u.email||'?').substring(0,1).toUpperCase())}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:800;color:var(--navy2)">${esc(u.name||'—')} ${u.id===_authUserId?'<span style="font-size:9px;color:var(--muted)">(aap)</span>':''}</div>
+          <div style="font-size:11px;color:var(--muted);font-weight:700">${esc(u.email)} · ${esc(u.role)} · ${permNote}</div>
+        </div>
+        <button onclick="openUserFormModal('${u.id}')" style="width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:#f8faff;cursor:pointer;font-size:13px">✏️</button>
+        ${u.id!==_authUserId?`<button onclick="deleteUserConfirm('${u.id}','${esc(u.name||u.email)}')" style="width:30px;height:30px;border-radius:8px;border:none;background:var(--red-bg);color:var(--red-dark);cursor:pointer;font-size:13px">🗑</button>`:''}
+      </div>`;
+    }).join('');
+  }catch(e){
+    el.innerHTML=`<div style="text-align:center;padding:16px;color:var(--red-dark);font-size:12px;font-weight:700">❌ ${esc(e.message)}</div>`;
+  }
+}
+
+function openUserFormModal(userId){
+  _userFormEditId=userId||null;
+  const existing=userId?_usersCache.find(u=>u.id===userId):null;
+  if(!document.getElementById('usrf-modal-bg')){
+    const m=document.createElement('div');
+    m.id='usrf-modal-bg';
+    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:970;align-items:flex-end;justify-content:center;';
+    document.body.appendChild(m);
+  }
+  const tabs=_authAllTabs();
+  const m=document.getElementById('usrf-modal-bg');
+  m.innerHTML='<div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto">'
+    +`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-size:15px;font-weight:800;color:var(--navy2)">${existing?'✏️ User Edit Karo':'➕ Naya User'}</div>
+        <button onclick="closeUserFormModal()" style="width:30px;height:30px;border:none;background:#f0f4fb;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
+      </div>`
+    +`<div class="fg"><label>Naam</label><input class="finp" type="text" id="usrf-name" value="${existing?esc(existing.name):''}" placeholder="Jaise: Rahul Sharma"></div>`
+    +`<div class="fg"><label>Email</label><input class="finp" type="email" id="usrf-email" value="${existing?esc(existing.email):''}" placeholder="email@example.com" ${existing?'disabled':''}></div>`
+    +`<div class="fg"><label>${existing?'Naya Password (khaali chodo agar change nahi karna)':'Password'}</label><input class="finp" type="text" id="usrf-password" placeholder="${existing?'••••••••':'Kam se kam 6 characters'}"></div>`
+    +`<div class="fg"><label>Role Label (sirf dikhane ke liye)</label>
+        <select class="finp" id="usrf-role">
+          <option value="owner" ${existing?.role==='owner'?'selected':''}>Owner</option>
+          <option value="cofounder" ${existing?.role==='cofounder'?'selected':''}>Co-founder</option>
+          <option value="accountant" ${!existing||existing?.role==='accountant'?'selected':''}>Accountant</option>
+          <option value="staff" ${existing?.role==='staff'?'selected':''}>Staff</option>
+        </select>
+      </div>`
+    +`<div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:14px 0 6px">Har Tab Ke Liye Access</div>`
+    +`<div id="usrf-perm-grid" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px">`
+    +tabs.map(t=>{
+        const cur=(existing&&existing.permissions&&existing.permissions[t.id])||'write';
+        return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">
+          <span style="font-size:12px;font-weight:700;color:var(--navy2)">${esc(t.label)}</span>
+          <select class="finp usrf-perm" data-tab="${t.id}" style="width:130px;padding:5px 8px;font-size:11px">
+            <option value="write" ${cur==='write'?'selected':''}>✅ Full (Read+Write)</option>
+            <option value="read" ${cur==='read'?'selected':''}>👁️ Read Only</option>
+            <option value="none" ${cur==='none'?'selected':''}>🚫 Hidden</option>
+          </select>
+        </div>`;
+      }).join('')
+    +`</div>`
+    +`<button class="btn-save" style="width:100%;text-align:center" onclick="saveUserForm()">💾 Save Karo</button>`
+    +'</div>';
+  m.style.display='flex';
+}
+function closeUserFormModal(){
+  const m=document.getElementById('usrf-modal-bg');
+  if(m) m.style.display='none';
+  _userFormEditId=null;
+}
+
+async function saveUserForm(){
+  const name=document.getElementById('usrf-name').value.trim();
+  const email=document.getElementById('usrf-email').value.trim();
+  const password=document.getElementById('usrf-password').value;
+  const role=document.getElementById('usrf-role').value;
+  if(!name){ toast('⚠️ Naam dalo!'); return; }
+  if(!_userFormEditId && (!email||!password)){ toast('⚠️ Email aur password dono zaroori hain!'); return; }
+  if(password && password.length<6){ toast('⚠️ Password kam se kam 6 characters ka ho!'); return; }
+  const permissions={};
+  document.querySelectorAll('.usrf-perm').forEach(sel=>{
+    permissions[sel.getAttribute('data-tab')]=sel.value;
+  });
+  try{
+    if(_userFormEditId){
+      const payload={id:_userFormEditId,name,role,permissions};
+      if(password) payload.password=password;
+      await _authCallAdmin('update',payload);
+      toast('✅ User update ho gaya!');
+    } else {
+      await _authCallAdmin('create',{email,password,name,role,permissions});
+      toast('✅ Naya user ban gaya!');
+    }
+    closeUserFormModal();
+    _loadUsersList();
+  }catch(e){
+    toast('❌ '+e.message);
+  }
+}
+
+async function deleteUserConfirm(id,name){
+  if(!confirm(`${name} ko remove karna chahte ho? Ye undo nahi ho sakta.`)) return;
+  try{
+    await _authCallAdmin('delete',{id});
+    toast('✅ User remove ho gaya');
+    _loadUsersList();
+  }catch(e){
+    toast('❌ '+e.message);
+  }
+}
+
 const GD_KEYS = [
   // Core floor plan & production
   'bf9_w','bf9_p','bf9_m','bf9_h','bf9_eod','bf9_eod_stages',
@@ -4773,6 +5167,10 @@ function esc(s){ return String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
 /* ═══════════════ NAV ═══════════════ */
 function sw(name,btn){
+  if(_tabLevel(name)==='none'){
+    toast('🔒 Ye section aapke liye available nahi hai');
+    return;
+  }
   document.querySelectorAll('.sc').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.sbnav').forEach(b=>b.classList.remove('active'));
   const screen=document.getElementById('s-'+name);
@@ -4780,6 +5178,7 @@ function sw(name,btn){
   // Highlight matching sidebar button
   const sbBtn=document.querySelector(`.sbnav[data-tab="${name}"]`);
   if(sbBtn) sbBtn.classList.add('active');
+  _applyReadOnlyLock(name);
   if(name==='home')     renderDashboard();
   if(name==='tracking') renderTracking();
   if(name==='stock')    { renderStock(); renderStockHistory(); loadSyncUI(); }
@@ -18946,8 +19345,9 @@ function invInit(){
 invInit();
 /* ══ END INVENTORY MODULE ══ */
 
-// All functions defined — now safe to init
-init();
+// All functions defined — now wait for login before initializing the app
+authBootstrap();
+
 </script>
 
 <!-- ════ INVENTORY MODALS (outside script tag) ════ -->
