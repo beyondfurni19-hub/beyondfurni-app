@@ -10,27 +10,27 @@
 <style>
 /* ═══════════════════ TOKENS ═══════════════════ */
 :root{
-  --navy:#0d1b35;--navy2:#1a3260;--navy3:#243d72;
-  --orange:#f07020;--orange2:#ffaa44;--orange-bg:rgba(240,112,32,.1);
+  --navy:#0e3a56;--navy2:#1b5d82;--navy3:#2c7da8;
+  --orange:#2b7fb3;--orange2:#add8e6;--orange-bg:rgba(43,127,179,.1);
   --green:#17b86a;--green-bg:#e6fff3;--green-dark:#0a4d2a;
   --red:#e83a3a;--red-bg:#fff3f3;--red-dark:#8a0000;
   --yellow:#f5c842;--yellow-bg:#fff8e6;--yellow-dark:#7a4d00;
   --blue:#3b7cf6;
-  --bg:#f0f4fb;--card:#fff;--text:#111827;--muted:#6b7a99;
-  --border:#e4e9f5;--border2:#d0d9ee;
-  --shadow:0 2px 14px rgba(13,27,53,.07);
-  --shadow2:0 4px 24px rgba(13,27,53,.13);
+  --bg:#eaf4fa;--card:#fff;--text:#111827;--muted:#6b7a99;
+  --border:#dceaf3;--border2:#c3dceb;
+  --shadow:0 2px 14px rgba(14,58,86,.07);
+  --shadow2:0 4px 24px rgba(14,58,86,.13);
   --r:16px;--r2:12px;--r3:10px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0%,#eaf4fa 35%,#f7fbfd 70%,#ffffff 100%) fixed;color:var(--text);min-height:100vh;overflow-x:hidden;}
 
 /* ═══════════════════ DASHBOARD ═══════════════════ */
 .dash-header{
-  background:linear-gradient(135deg,var(--navy) 0%,#1a3260 100%);
+  background:linear-gradient(135deg,var(--navy) 0%,#1b5d82 100%);
   border-radius:var(--r);padding:16px;margin-bottom:10px;
   display:flex;align-items:center;gap:14px;
-  border:1px solid #243d72;
+  border:1px solid #2c7da8;
 }
 .dash-logo-box{
   width:56px;height:48px;border:2.5px solid rgba(255,255,255,.3);
@@ -84,7 +84,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .dl-item i{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0;}
 .sales-row:last-child{border:none;}
 .sales-label{font-size:11px;font-weight:700;color:var(--muted);flex-shrink:0;width:120px;}
-.sales-bar-wrap{flex:1;height:8px;background:#f0f4fb;border-radius:4px;overflow:hidden;}
+.sales-bar-wrap{flex:1;height:8px;background:#eaf4fa;border-radius:4px;overflow:hidden;}
 .sales-bar{height:100%;border-radius:4px;background:var(--orange);transition:width .6s ease;}
 .sales-val{font-size:12px;font-weight:800;color:var(--text);flex-shrink:0;min-width:70px;text-align:right;}
 
@@ -119,7 +119,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .action-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
 .action-card{
   background:var(--navy);border-radius:var(--r2);padding:12px;
-  cursor:pointer;transition:all .15s;border:1px solid #243d72;
+  cursor:pointer;transition:all .15s;border:1px solid #2c7da8;
 }
 .action-card:active{transform:scale(.97);}
 .action-card.orange{background:linear-gradient(135deg,var(--orange),var(--orange2));}
@@ -158,7 +158,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   overflow-y:auto;overflow-x:hidden;
 }
 .sidebar::-webkit-scrollbar{width:3px;}
-.sidebar::-webkit-scrollbar-thumb{background:#243d72;}
+.sidebar::-webkit-scrollbar-thumb{background:#2c7da8;}
 
 /* Sidebar brand */
 .sb-brand{
@@ -196,7 +196,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   text-align:left;
 }
 .sbnav:hover{background:rgba(255,255,255,.06);}
-.sbnav.active{background:rgba(240,112,32,.15);border-right:3px solid var(--orange);}
+.sbnav.active{background:rgba(43,127,179,.15);border-right:3px solid var(--orange);}
 .sbnav .sb-ico{font-size:17px;flex-shrink:0;width:22px;text-align:center;}
 .sbnav .sb-lbl{font-size:12px;font-weight:700;color:#7a9bcc;flex:1;}
 .sbnav.active .sb-lbl{color:#fff;font-weight:800;}
@@ -205,7 +205,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   font-size:9px;font-weight:800;padding:1px 6px;min-width:18px;text-align:center;
 }
 .sbnav .sb-wip{
-  background:#243d72;color:#5577aa;border-radius:10px;
+  background:#2c7da8;color:#5577aa;border-radius:10px;
   font-size:8px;font-weight:800;padding:1px 6px;letter-spacing:.3px;
 }
 .sbnav.wip-nav{opacity:.6;cursor:default;}
@@ -403,7 +403,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   font-size:12px;font-weight:700;color:#b85000;
   cursor:pointer;transition:all .15s;
 }
-.trip-tag:active{background:#f07020;color:#fff;transform:scale(.96);}
+.trip-tag:active{background:#2b7fb3;color:#fff;transform:scale(.96);}
 .etrip-row{
   background:#fff8f0;border:1.5px solid #ffd0a0;
   border-radius:var(--r2);padding:11px;margin-bottom:8px;
@@ -411,7 +411,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .etrip-top{display:flex;align-items:center;gap:8px;margin-bottom:9px;}
 .etrip-num{
   width:24px;height:24px;border-radius:7px;
-  background:#f07020;color:#fff;
+  background:#2b7fb3;color:#fff;
   display:flex;align-items:center;justify-content:center;
   font-size:11px;font-weight:800;flex-shrink:0;
 }
@@ -426,17 +426,17 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   font-family:'Nunito',sans-serif;font-size:12px;font-weight:600;
   color:var(--text);background:#fffaf5;outline:none;width:100%;
 }
-.etrip-inp:focus{border-color:#f07020;background:#fff;}
+.etrip-inp:focus{border-color:#2b7fb3;background:#fff;}
 .trip-count-badge{
-  font-size:11px;font-weight:800;color:#f07020;
+  font-size:11px;font-weight:800;color:#2b7fb3;
   background:#fff4e6;padding:3px 9px;border-radius:10px;
 }
 
 /* ═══════════════════ PIPELINE STATUS ═══════════════════ */
 .pipeline-card{
-  background:linear-gradient(135deg,#0d1b35 0%,#1a3260 100%);
+  background:linear-gradient(135deg,#0e3a56 0%,#1b5d82 100%);
   border-radius:var(--r);padding:14px;margin-bottom:10px;
-  border:1px solid #243d72;box-shadow:0 4px 20px rgba(13,27,53,.2);
+  border:1px solid #2c7da8;box-shadow:0 4px 20px rgba(13,27,53,.2);
 }
 .pipeline-title{
   font-size:13px;font-weight:800;color:#fff;
@@ -472,7 +472,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .plan-mode-card.assembly{background:#e6fff3;border-color:#17b86a;}
 .plan-mode-card.fabrication{background:#e6f0ff;border-color:#3b7cf6;}
 .plan-mode-card.mixed{background:#fff8e6;border-color:#f5c842;}
-.plan-mode-card.idle{background:#f5f5f5;border-color:#d0d9ee;}
+.plan-mode-card.idle{background:#f5f5f5;border-color:#c3dceb;}
 .pmc-tag{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
 .pmc-title{font-size:15px;font-weight:800;margin-bottom:3px;}
 .pmc-sub{font-size:11px;opacity:.8;}
@@ -484,11 +484,11 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   color:#fff;border:none;border-radius:var(--r);
   font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;
   cursor:pointer;
-  box-shadow:0 5px 20px rgba(240,112,32,.35);
+  box-shadow:0 5px 20px rgba(43,127,179,.35);
   transition:all .2s;
   display:flex;align-items:center;justify-content:center;gap:8px;
 }
-.btn-gen:active{transform:scale(.98);box-shadow:0 2px 10px rgba(240,112,32,.3);}
+.btn-gen:active{transform:scale(.98);box-shadow:0 2px 10px rgba(43,127,179,.3);}
 
 /* ═══════════════════ PLAN OUTPUT ═══════════════════ */
 .plan-banner{
@@ -499,7 +499,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .plan-banner::after{
   content:'';position:absolute;right:-20px;top:-20px;
   width:100px;height:100px;border-radius:50%;
-  background:rgba(240,112,32,.1);
+  background:rgba(43,127,179,.1);
 }
 .pb-tag{font-size:10px;color:#7a9bcc;font-weight:800;text-transform:uppercase;letter-spacing:1px;}
 .pb-title{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:1px;margin:3px 0;}
@@ -1017,9 +1017,9 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 /* ═══════════════════ BATCH TRACKER ═══════════════════ */
 /* Batch select card in daily entry */
 .batch-select-card{
-  background:linear-gradient(135deg,#0d1b35,#1a3260);
+  background:linear-gradient(135deg,#0e3a56,#1b5d82);
   border-radius:var(--r);padding:14px;margin-bottom:10px;
-  border:1px solid #243d72;
+  border:1px solid #2c7da8;
 }
 .bsc-title{font-size:13px;font-weight:800;color:#fff;display:flex;align-items:center;gap:6px;margin-bottom:4px;}
 .bsc-sub{font-size:10px;color:#7a9bcc;margin-bottom:10px;}
@@ -1028,10 +1028,10 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   border-radius:var(--r2);padding:10px 12px;margin-bottom:8px;
   cursor:pointer;transition:all .18s;
 }
-.batch-select-item.selected{border-color:var(--orange);background:rgba(240,112,32,.15);}
+.batch-select-item.selected{border-color:var(--orange);background:rgba(43,127,179,.15);}
 .batch-select-item.selected .bsi-check{display:flex;}
 .bsi-top{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
-.bsi-id{font-family:'Bebas Neue';font-size:12px;letter-spacing:1px;color:var(--orange);background:rgba(240,112,32,.15);padding:2px 7px;border-radius:5px;}
+.bsi-id{font-family:'Bebas Neue';font-size:12px;letter-spacing:1px;color:var(--orange);background:rgba(43,127,179,.15);padding:2px 7px;border-radius:5px;}
 .bsi-party{font-size:13px;font-weight:800;color:#fff;flex:1;}
 .bsi-qty{font-family:'Bebas Neue';font-size:20px;color:#fff;}
 .bsi-check{width:22px;height:22px;border-radius:50%;background:var(--orange);color:#fff;display:none;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
@@ -1043,7 +1043,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);
   color:#fff;outline:none;cursor:pointer;
 }
-.bsi-stage-select option{background:#1a3260;color:#fff;}
+.bsi-stage-select option{background:#1b5d82;color:#fff;}
 .no-batch-hint{text-align:center;padding:14px;color:#7a9bcc;font-size:12px;font-weight:700;}
 .btn-new-batch{
   width:100%;padding:9px;background:rgba(255,255,255,.08);
@@ -1073,7 +1073,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .bt-card.bt-done{border-color:var(--green);opacity:.7;}
 
 .bt-hdr{padding:12px 14px 10px;display:flex;align-items:center;gap:10px;cursor:pointer;}
-.bt-id{font-family:'Bebas Neue';font-size:12px;letter-spacing:1px;color:var(--orange);background:var(--orange-bg);border:1px solid rgba(240,112,32,.25);padding:2px 8px;border-radius:6px;flex-shrink:0;}
+.bt-id{font-family:'Bebas Neue';font-size:12px;letter-spacing:1px;color:var(--orange);background:var(--orange-bg);border:1px solid rgba(43,127,179,.25);padding:2px 8px;border-radius:6px;flex-shrink:0;}
 .bt-party{font-size:14px;font-weight:900;color:var(--text);flex:1;}
 .bt-right{text-align:right;flex-shrink:0;}
 .bt-qty{font-family:'Bebas Neue';font-size:24px;color:var(--navy2);line-height:1;}
@@ -1084,7 +1084,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .bt-track{display:flex;align-items:center;padding:10px 14px 0;}
 .btn-node{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;border:2px solid var(--border);background:var(--bg);transition:all .2s;}
 .btn-node.n-done{background:var(--green);border-color:var(--green);}
-.btn-node.n-active{background:var(--orange);border-color:var(--orange);box-shadow:0 0 0 3px rgba(240,112,32,.2);}
+.btn-node.n-active{background:var(--orange);border-color:var(--orange);box-shadow:0 0 0 3px rgba(43,127,179,.2);}
 .btn-node.n-delayed{background:var(--red);border-color:var(--red);animation:bpulse 1.5s infinite;}
 @keyframes bpulse{0%,100%{box-shadow:0 0 0 0 rgba(232,58,58,.4)}50%{box-shadow:0 0 0 6px rgba(232,58,58,0)}}
 .bt-line{flex:1;height:3px;background:var(--border);border-radius:2px;}
@@ -1141,7 +1141,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .unk-notif{
   background:#fff;border:1.5px solid var(--orange);
   border-radius:var(--r2);padding:12px 14px;
-  box-shadow:0 4px 20px rgba(240,112,32,.25);
+  box-shadow:0 4px 20px rgba(43,127,179,.25);
   display:flex;align-items:flex-start;gap:10px;
   pointer-events:all;
   animation:slideInUp .25s ease;
@@ -1164,7 +1164,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 
 .inv-card{background:var(--card);border-radius:var(--r);border:1px solid var(--border);padding:14px;margin-bottom:8px;box-shadow:var(--shadow);}
 .inv-card-hdr{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
-.inv-num{font-family:'Bebas Neue';font-size:13px;letter-spacing:1px;color:var(--orange);background:var(--orange-bg);border:1px solid rgba(240,112,32,.25);padding:2px 9px;border-radius:6px;flex-shrink:0;}
+.inv-num{font-family:'Bebas Neue';font-size:13px;letter-spacing:1px;color:var(--orange);background:var(--orange-bg);border:1px solid rgba(43,127,179,.25);padding:2px 9px;border-radius:6px;flex-shrink:0;}
 .inv-party{font-size:13px;font-weight:900;flex:1;}
 .inv-total{font-family:'Bebas Neue';font-size:22px;color:var(--navy2);flex-shrink:0;}
 .inv-meta{font-size:10px;color:var(--muted);font-weight:700;margin-bottom:8px;}
@@ -1275,7 +1275,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .led-party-name{font-size:14px;font-weight:900;color:#fff;flex:1;}
 .led-bal-chip{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:800;}
 .led-table{width:100%;border-collapse:collapse;}
-.led-table th{background:#f0f4fb;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;padding:7px 10px;text-align:left;border-bottom:1px solid var(--border);}
+.led-table th{background:#eaf4fa;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;padding:7px 10px;text-align:left;border-bottom:1px solid var(--border);}
 .led-table td{padding:8px 10px;font-size:11px;border-bottom:1px solid var(--border);vertical-align:middle;}
 .led-table tr:last-child td{border:none;}
 .led-dr{color:var(--red);font-weight:800;}
@@ -1321,12 +1321,12 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .inv-mat-stock{text-align:right;flex-shrink:0;}
 .inv-mat-qty{font-family:'Bebas Neue';font-size:20px;color:var(--navy2);line-height:1;}
 .inv-mat-unit{font-size:9px;font-weight:700;color:var(--muted);}
-.inv-bar-wrap{height:4px;background:#e4e9f5;border-radius:2px;margin-top:4px;overflow:hidden;}
+.inv-bar-wrap{height:4px;background:#dceaf3;border-radius:2px;margin-top:4px;overflow:hidden;}
 .inv-bar{height:100%;border-radius:2px;transition:width .5s ease;}
 .inv-tag-ok{display:inline-flex;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:800;background:var(--green-bg);color:var(--green-dark);}
 .inv-tag-low{display:inline-flex;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:800;background:var(--yellow-bg);color:var(--yellow-dark);}
 .inv-tag-crit{display:inline-flex;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:800;background:var(--red-bg);color:var(--red-dark);}
-.inv-tabs{display:flex;gap:6px;margin-bottom:12px;background:#f0f4fb;padding:4px;border-radius:var(--r2);}
+.inv-tabs{display:flex;gap:6px;margin-bottom:12px;background:#eaf4fa;padding:4px;border-radius:var(--r2);}
 .inv-tab{flex:1;padding:8px 6px;border:none;border-radius:var(--r3);background:transparent;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;color:var(--muted);cursor:pointer;transition:all .15s;}
 .inv-tab.active{background:#fff;color:var(--navy2);box-shadow:0 1px 4px rgba(0,0,0,.1);}
 .inv-prod-req-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);}
@@ -1350,7 +1350,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 
 <!-- Google Drive Loading Overlay -->
 <div id="gd-overlay" style="display:none;position:fixed;inset:0;background:rgba(13,27,53,.92);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:16px">
-  <div style="width:52px;height:52px;border-radius:50%;border:4px solid rgba(255,255,255,.15);border-top-color:#f07020;animation:gdSpin .8s linear infinite"></div>
+  <div style="width:52px;height:52px;border-radius:50%;border:4px solid rgba(255,255,255,.15);border-top-color:#2b7fb3;animation:gdSpin .8s linear infinite"></div>
   <div id="gd-overlay-msg" style="color:#fff;font-size:15px;font-weight:800;font-family:'Nunito',sans-serif">☁️ Supabase se data load ho raha hai...</div>
   <div style="color:#7a9bcc;font-size:11px;font-weight:700;font-family:'Nunito',sans-serif">Ek second ruko</div>
 </div>
@@ -1367,14 +1367,14 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 </style>
 
 <!-- Login Gate Overlay -->
-<div id="auth-overlay" style="display:flex;position:fixed;inset:0;background:radial-gradient(circle at 30% 20%,#1c3564,#0a1830 65%);z-index:10000;flex-direction:column;align-items:center;justify-content:center;padding:20px;font-family:'Nunito',sans-serif;overflow:hidden">
+<div id="auth-overlay" style="display:flex;position:fixed;inset:0;background:radial-gradient(circle at 30% 20%,#1b5d82,#0a2a40 65%);z-index:10000;flex-direction:column;align-items:center;justify-content:center;padding:20px;font-family:'Nunito',sans-serif;overflow:hidden">
   <div class="auth-watermark-bg"></div>
   <div style="position:relative;width:100%;max-width:380px;background:#fff;border-radius:22px;box-shadow:0 25px 70px rgba(0,0,0,.45);animation:authFadeIn .5s ease;overflow:hidden">
     <div style="height:5px;background:linear-gradient(90deg,var(--orange),var(--orange2))"></div>
     <div style="padding:32px 28px 26px">
       <div style="text-align:center;margin-bottom:26px">
-        <div style="width:62px;height:62px;border-radius:16px;background:linear-gradient(135deg,#0d1b35,#1c3564);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 14px;box-shadow:0 10px 24px rgba(13,27,53,.3)">🏭</div>
-        <div style="font-size:21px;font-weight:900;color:#0d1b35;letter-spacing:-.3px">BeyondFurni ERP</div>
+        <div style="width:62px;height:62px;border-radius:16px;background:linear-gradient(135deg,#0e3a56,#1b5d82);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 14px;box-shadow:0 10px 24px rgba(13,27,53,.3)">🏭</div>
+        <div style="font-size:21px;font-weight:900;color:#0e3a56;letter-spacing:-.3px">BeyondFurni ERP</div>
         <div style="font-size:10px;color:#8a97ad;font-weight:800;margin-top:5px;text-transform:uppercase;letter-spacing:1.2px">Sirf Authorized Team Members Ke Liye</div>
       </div>
       <div class="fg"><label>Email</label>
@@ -1384,7 +1384,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         <input class="finp" type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')authLogin()">
       </div>
       <div id="auth-error" style="display:none;background:var(--red-bg);color:var(--red-dark);border-radius:var(--r2);padding:9px 12px;font-size:12px;font-weight:700;margin-bottom:12px"></div>
-      <button id="auth-login-btn" onclick="authLogin()" style="width:100%;padding:14px;background:linear-gradient(135deg,var(--orange),#ff8a3d);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 8px 18px rgba(240,112,32,.3)">🔐 Login</button>
+      <button id="auth-login-btn" onclick="authLogin()" style="width:100%;padding:14px;background:linear-gradient(135deg,var(--orange),#ff8a3d);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 8px 18px rgba(43,127,179,.3)">🔐 Login</button>
       <div style="text-align:center;margin-top:18px;font-size:10px;color:#b7c0d1;font-weight:800;letter-spacing:.4px">🔒 SECURED LOGIN · BEYONDFURNI ERP</div>
     </div>
   </div>
@@ -1804,7 +1804,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
       </div>
 
       <!-- Plan info strip -->
-      <div id="eod-plan-strip" style="background:linear-gradient(135deg,#0d1b35,#1a3260);border-radius:var(--r2);padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px">
+      <div id="eod-plan-strip" style="background:linear-gradient(135deg,#0e3a56,#1b5d82);border-radius:var(--r2);padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px">
         <div style="font-size:20px">🏭</div>
         <div style="flex:1">
           <div style="font-size:11px;font-weight:800;color:#7a9bcc;text-transform:uppercase;letter-spacing:.5px">Plan Selected</div>
@@ -1981,7 +1981,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   <!-- Google Sheets Sync (collapsed) -->
   <details style="margin-top:12px">
     <summary style="font-size:11px;font-weight:800;color:var(--muted);cursor:pointer;padding:8px 0">🔗 Live Inward Sync (Google Sheets)</summary>
-    <div class="card" id="sync-card" style="background:linear-gradient(135deg,#0d1b35,#1a3260);border-color:#243d72;margin-top:8px">
+    <div class="card" id="sync-card" style="background:linear-gradient(135deg,#0e3a56,#1b5d82);border-color:#2c7da8;margin-top:8px">
       <div class="card-hdr" style="margin-bottom:6px">
         <div class="card-title" style="color:#fff;font-size:13px">🔗 Live Inward Sync</div>
         <div style="display:flex;align-items:center;gap:5px">
@@ -2202,7 +2202,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
       <div style="overflow-x:auto">
         <table id="inv-table" style="width:100%;border-collapse:collapse;min-width:600px">
           <thead>
-            <tr style="background:#f0f4fb;border-bottom:2px solid var(--border2)">
+            <tr style="background:#eaf4fa;border-bottom:2px solid var(--border2)">
               <th style="padding:10px 12px;font-size:11px;font-weight:800;color:var(--muted);text-align:left;text-transform:uppercase;letter-spacing:.4px">Customer</th>
               <th style="padding:10px 12px;font-size:11px;font-weight:800;color:var(--muted);text-align:left;text-transform:uppercase;letter-spacing:.4px">Invoice No.</th>
               <th style="padding:10px 12px;font-size:11px;font-weight:800;color:var(--muted);text-align:left;text-transform:uppercase;letter-spacing:.4px">Date</th>
@@ -2343,7 +2343,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
       </div>
 
       <!-- Items table header -->
-      <div style="display:grid;grid-template-columns:28px 1fr 80px 60px 80px 80px 80px 80px 80px 28px;gap:4px;padding:6px 4px;background:#f0f4fb;border-radius:var(--r3);margin-bottom:6px">
+      <div style="display:grid;grid-template-columns:28px 1fr 80px 60px 80px 80px 80px 80px 80px 28px;gap:4px;padding:6px 4px;background:#eaf4fa;border-radius:var(--r3);margin-bottom:6px">
         <div style="font-size:9px;font-weight:800;color:var(--muted);text-align:center">No.</div>
         <div style="font-size:9px;font-weight:800;color:var(--muted)">Item & Description</div>
         <div style="font-size:9px;font-weight:800;color:var(--muted)">HSN/SAC</div>
@@ -2980,13 +2980,13 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <div id="cfo-form-wrap" style="display:none">
 
       <!-- Auto-Fetch Banner -->
-      <div id="cfo-fetch-banner" style="display:none;background:#0d1b35;border:1px solid #243d72;border-radius:var(--r2);padding:10px 12px;margin-bottom:12px">
+      <div id="cfo-fetch-banner" style="display:none;background:#0e3a56;border:1px solid #2c7da8;border-radius:var(--r2);padding:10px 12px;margin-bottom:12px">
       </div>
       <div style="display:flex;gap:6px;margin-bottom:12px">
         <button onclick="_cfoRefresh()" style="flex:1;padding:9px;background:rgba(59,124,246,.15);color:#3b7cf6;border:1px solid #3b7cf6;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">
           🔄 System se Refresh Karo
         </button>
-        <div style="flex:1;padding:9px;background:rgba(240,112,32,.08);border:1px dashed var(--orange);border-radius:var(--r2);font-size:10px;font-weight:700;color:var(--orange);display:flex;align-items:center;text-align:center">
+        <div style="flex:1;padding:9px;background:rgba(43,127,179,.08);border:1px dashed var(--orange);border-radius:var(--r2);font-size:10px;font-weight:700;color:var(--orange);display:flex;align-items:center;text-align:center">
           Revenue, Labour, Raw Material — auto fill hoga. Baaki manually bharo.
         </div>
       </div>
@@ -4462,10 +4462,10 @@ const STAGE_MODE_MAP={
 const BT_STAGES=[
   {id:'raw',     name:'Raw Material', short:'Raw', ico:'🪨', color:'#6b7a99', warnDays:2,  desc:'Material godown mein aaya'},
   {id:'fab',     name:'Fabrication',  short:'Fab', ico:'⚙️', color:'#3b7cf6', warnDays:4,  desc:'Cutting · Welding · Grinding'},
-  {id:'pc_sent', name:'PC Bheja',     short:'PC↑', ico:'🚚', color:'#f07020', warnDays:1,  desc:'Powder coating ke liye gaya'},
+  {id:'pc_sent', name:'PC Bheja',     short:'PC↑', ico:'🚚', color:'#2b7fb3', warnDays:1,  desc:'Powder coating ke liye gaya'},
   {id:'pc_back', name:'PC Se Aaya',   short:'PC↓', ico:'✨', color:'#7c3aed', warnDays:3,  desc:'Coated batch wapas aaya'},
   {id:'assembly',name:'Assembly',     short:'Asm', ico:'🔧', color:'#17b86a', warnDays:2,  desc:'Assembly + Packing'},
-  {id:'dispatch',name:'Dispatch',     short:'Done',ico:'📦', color:'#0d1b35', warnDays:0,  desc:'Party ko deliver kiya'},
+  {id:'dispatch',name:'Dispatch',     short:'Done',ico:'📦', color:'#0e3a56', warnDays:0,  desc:'Party ko deliver kiya'},
 ];
 
 /* ═══════════════════════════════════════════════
@@ -4711,7 +4711,7 @@ function openUsersModal(){
     m.innerHTML='<div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:560px;max-height:88vh;overflow-y:auto">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
       +'<div style="font-size:15px;font-weight:800;color:var(--navy2)">👥 Team Members</div>'
-      +'<button onclick="closeUsersModal()" style="width:30px;height:30px;border:none;background:#f0f4fb;border-radius:8px;cursor:pointer;font-size:16px">✕</button></div>'
+      +'<button onclick="closeUsersModal()" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button></div>'
       +'<div id="usr-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px"></div>'
       +'<button class="btn-save" style="width:100%;text-align:center" onclick="openUserFormModal()">➕ Naya User Add Karo</button>'
       +'</div>';
@@ -4763,7 +4763,7 @@ function openUserFormModal(userId){
   m.innerHTML='<div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto">'
     +`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <div style="font-size:15px;font-weight:800;color:var(--navy2)">${existing?'✏️ User Edit Karo':'➕ Naya User'}</div>
-        <button onclick="closeUserFormModal()" style="width:30px;height:30px;border:none;background:#f0f4fb;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
+        <button onclick="closeUserFormModal()" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
       </div>`
     +`<div class="fg"><label>Naam</label><input class="finp" type="text" id="usrf-name" value="${existing?esc(existing.name):''}" placeholder="Jaise: Rahul Sharma"></div>`
     +`<div class="fg"><label>Email</label><input class="finp" type="email" id="usrf-email" value="${existing?esc(existing.email):''}" placeholder="email@example.com" ${existing?'disabled':''}></div>`
@@ -5935,7 +5935,7 @@ function renderEodTrips(date){
     const note = et.note || '';
     return `<div style="background:${done?'var(--green-bg)':'#fff8f0'};border:1.5px solid ${done?'#bbf7d0':'#ffd0a0'};border-radius:var(--r2);padding:11px 12px;margin-bottom:8px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <div style="width:28px;height:28px;border-radius:8px;background:${done?'var(--green)':'#f07020'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0">${i+1}</div>
+        <div style="width:28px;height:28px;border-radius:8px;background:${done?'var(--green)':'#2b7fb3'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0">${i+1}</div>
         <div style="flex:1">
           <div style="font-size:13px;font-weight:800;color:${done?'var(--green-dark)':'#b85000'}">${esc(t.type)}</div>
           ${t.destination?`<div style="font-size:11px;color:var(--muted)">📍 ${esc(t.destination)}</div>`:''}
@@ -6054,7 +6054,7 @@ function renderEodMonthly(){
       <div style="overflow-x:auto">
         <table style="width:100%;border-collapse:collapse;font-size:11px">
           <thead>
-            <tr style="background:#f0f4fb">
+            <tr style="background:#eaf4fa">
               <th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;white-space:nowrap">Date</th>
               <th style="padding:6px 10px;text-align:center;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase">Att.</th>
               <th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase">Diya Tha (Plan)</th>
@@ -6125,16 +6125,16 @@ function downloadWorkerMonthlyPDF(wid){
   @page{margin:12mm;size:A4;}
   *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   body{font-family:Arial,sans-serif;font-size:10px;color:#1a2540;background:#fff;}
-  .hdr{background:#0d1b35;color:#fff;padding:14px 16px;margin-bottom:14px;border-radius:4px;}
+  .hdr{background:#0e3a56;color:#fff;padding:14px 16px;margin-bottom:14px;border-radius:4px;}
   .hdr h1{font-size:18px;font-weight:700;margin-bottom:3px;}
   .sub{font-size:9px;color:#a0c0ff;margin-top:2px;}
   .krow{display:flex;gap:8px;margin-bottom:14px;}
-  .kpi{background:#1a3260;color:#fff;border-radius:4px;padding:8px 14px;text-align:center;min-width:70px;}
-  .kv{font-size:20px;font-weight:700;color:#ffaa44;line-height:1.2;}
+  .kpi{background:#1b5d82;color:#fff;border-radius:4px;padding:8px 14px;text-align:center;min-width:70px;}
+  .kv{font-size:20px;font-weight:700;color:#6fb8de;line-height:1.2;}
   .kl{font-size:7px;color:#a0b8e0;text-transform:uppercase;}
   table{width:100%;border-collapse:collapse;font-size:9.5px;}
-  th{background:#1a3260;color:#fff;padding:6px 8px;text-align:left;font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
-  td{padding:6px 8px;border-bottom:.5px solid #e4e9f5;vertical-align:top;}
+  th{background:#1b5d82;color:#fff;padding:6px 8px;text-align:left;font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
+  td{padding:6px 8px;border-bottom:.5px solid #dceaf3;vertical-align:top;}
   tr:nth-child(even) td{background:#f8faff;}
   .ftr{border-top:.5px solid #dce5f5;padding-top:6px;margin-top:14px;display:flex;justify-content:space-between;font-size:8px;color:#999;}
 </style>
@@ -6232,7 +6232,7 @@ function downloadEodMonthlyPDF(){
 
     return `
     <div style="margin-bottom:18px;break-inside:avoid">
-      <div style="background:#0d1b35;color:#fff;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;border-radius:4px 4px 0 0">
+      <div style="background:#0e3a56;color:#fff;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;border-radius:4px 4px 0 0">
         <div>
           <span style="font-size:13px;font-weight:700">${esc(w.name)}</span>
           <span style="font-size:10px;color:#7a9bcc;margin-left:8px">${esc(w.role||'')}</span>
@@ -6266,17 +6266,17 @@ function downloadEodMonthlyPDF(){
   @page{margin:12mm;size:A4;}
   *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   body{font-family:Arial,sans-serif;font-size:10px;color:#1a2540;background:#fff;}
-  .hdr{background:#0d1b35;color:#fff;padding:12px 16px;margin-bottom:14px;border-radius:4px;}
+  .hdr{background:#0e3a56;color:#fff;padding:12px 16px;margin-bottom:14px;border-radius:4px;}
   .hdr h1{font-size:16px;font-weight:700;margin-bottom:3px;}
   .sub{font-size:9px;color:#a0c0ff;margin-top:2px;}
   table{width:100%;border-collapse:collapse;font-size:9.5px;margin-bottom:0;}
-  th{background:#1a3260;color:#fff;padding:5px 8px;text-align:left;font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
-  td{padding:5px 8px;border-bottom:.5px solid #e4e9f5;vertical-align:top;}
+  th{background:#1b5d82;color:#fff;padding:5px 8px;text-align:left;font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
+  td{padding:5px 8px;border-bottom:.5px solid #dceaf3;vertical-align:top;}
   tr:nth-child(even) td{background:#f8faff;}
   .ftr{border-top:.5px solid #dce5f5;padding-top:6px;margin-top:14px;display:flex;justify-content:space-between;font-size:8px;color:#999;}
   .krow{display:flex;gap:8px;margin-bottom:12px;}
-  .kpi{background:#1a3260;color:#fff;border-radius:4px;padding:7px 12px;text-align:center;min-width:70px;}
-  .kv{font-size:18px;font-weight:700;color:#ffaa44;line-height:1.2;}
+  .kpi{background:#1b5d82;color:#fff;border-radius:4px;padding:7px 12px;text-align:center;min-width:70px;}
+  .kv{font-size:18px;font-weight:700;color:#6fb8de;line-height:1.2;}
   .kl{font-size:7px;color:#a0b8e0;text-transform:uppercase;}
 </style>
 </head><body>
@@ -7139,18 +7139,18 @@ function printMonthlyPDF(){
   const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>BeyondFurni Monthly Report — ${mName}</title>
 <style>@page{margin:10mm;size:A4 landscape;}*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 body{font-family:Arial,sans-serif;font-size:10px;color:#111;}
-.hdr{background:#0d1b35;color:#fff;padding:11px 16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;}
+.hdr{background:#0e3a56;color:#fff;padding:11px 16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;}
 .hdr h1{font-size:16px;font-weight:700;}.sub{font-size:9px;color:#aabbcc;margin-top:2px;}
 .krow{display:flex;gap:7px;margin-bottom:11px;}
-.kpi{background:#1a3260;color:#fff;border-radius:5px;padding:7px 11px;text-align:center;min-width:80px;}
-.kv{font-size:18px;font-weight:700;color:#ffaa44;}.kl{font-size:7px;color:#aabbcc;text-transform:uppercase;}
+.kpi{background:#1b5d82;color:#fff;border-radius:5px;padding:7px 11px;text-align:center;min-width:80px;}
+.kv{font-size:18px;font-weight:700;color:#6fb8de;}.kl{font-size:7px;color:#aabbcc;text-transform:uppercase;}
 .info{background:#e6f0ff;border:1px solid #90b8f8;border-radius:5px;padding:6px 10px;font-size:9px;font-weight:700;color:#0a2060;margin-bottom:10px;}
-.st{font-size:10px;font-weight:700;color:#1a3260;text-transform:uppercase;border-left:3px solid #f07020;padding-left:6px;margin-bottom:6px;}
+.st{font-size:10px;font-weight:700;color:#1b5d82;text-transform:uppercase;border-left:3px solid #2b7fb3;padding-left:6px;margin-bottom:6px;}
 table{width:100%;border-collapse:collapse;font-size:9px;}
-th{background:#1a3260;color:#fff;padding:5px 7px;text-align:left;font-size:8px;font-weight:700;}
-td{padding:5px 7px;border-bottom:.5px solid #e4e9f5;vertical-align:middle;}
+th{background:#1b5d82;color:#fff;padding:5px 7px;text-align:left;font-size:8px;font-weight:700;}
+td{padding:5px 7px;border-bottom:.5px solid #dceaf3;vertical-align:middle;}
 tr:nth-child(even) td{background:#f5f8ff;}
-.ftr{border-top:.5px solid #e4e9f5;padding-top:5px;margin-top:10px;display:flex;justify-content:space-between;font-size:8px;color:#999;}
+.ftr{border-top:.5px solid #dceaf3;padding-top:5px;margin-top:10px;display:flex;justify-content:space-between;font-size:8px;color:#999;}
 </style></head><body>
 <div class="hdr"><div><div style="font-size:8px;color:#7a9bcc;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">BeyondFurni — Monthly Worker Performance Report</div><h1>${mName}</h1><div class="sub">Working days: ${mPlans.length} | Generated: ${new Date().toLocaleString('en-IN')}</div></div></div>
 <div style="padding:0 2px">
@@ -7236,7 +7236,7 @@ function generateKaamLogPDF(){
 
     return `
     <div style="margin-bottom:20px;border:1px solid #dce5f5;border-radius:8px;overflow:hidden;page-break-inside:avoid">
-      <div style="background:#1a3260;color:#fff;padding:8px 12px;display:flex;justify-content:space-between;align-items:center">
+      <div style="background:#1b5d82;color:#fff;padding:8px 12px;display:flex;justify-content:space-between;align-items:center">
         <div>
           <div style="font-size:13px;font-weight:700">${esc(w.name)}</div>
           <div style="font-size:9px;color:#aabbcc;margin-top:1px">${esc(w.role||'—')}</div>
@@ -7249,7 +7249,7 @@ function generateKaamLogPDF(){
       </div>
       <table style="width:100%;border-collapse:collapse">
         <thead>
-          <tr style="background:#f0f4fb">
+          <tr style="background:#eaf4fa">
             <th style="padding:5px 10px;font-size:8px;font-weight:700;color:#6b7a99;text-align:left;width:100px">Tarikh</th>
             <th style="padding:5px 10px;font-size:8px;font-weight:700;color:#6b7a99;text-align:left">Kaam / Status</th>
           </tr>
@@ -7266,7 +7266,7 @@ function generateKaamLogPDF(){
     @page{margin:12mm;size:A4;}
     *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     body{font-family:Arial,sans-serif;font-size:11px;color:#1a2540;background:#fff;}
-    .hdr{background:#0d1b35;color:#fff;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start;}
+    .hdr{background:#0e3a56;color:#fff;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start;}
     tr:nth-child(even) td{background:#f8faff;}
   </style>
   </head><body>
@@ -7364,22 +7364,22 @@ function printMeeting(){
   const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Morning Meeting — ${p.date}</title>
 <style>@page{margin:8mm;size:A4;}*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 body{font-family:Arial,sans-serif;font-size:10px;color:#111;}
-.hdr{background:#0d1b35;color:#fff;padding:10px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+.hdr{background:#0e3a56;color:#fff;padding:10px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
 .hdr h1{font-size:14px;font-weight:700;}.sub{font-size:8px;color:#aabbcc;margin-top:2px;}.gen{font-size:8px;color:#7a9bcc;text-align:right;}
 .absent{background:#fff3f3;border:1px solid #f8b8b8;border-radius:4px;padding:5px 9px;margin-bottom:6px;font-size:10px;font-weight:700;color:#8a0000;}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
-.wc{border:1.5px solid #e4e9f5;border-radius:8px;padding:8px;break-inside:avoid;}
-.wc-hdr{display:flex;align-items:center;gap:7px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #e4e9f5;}
-.wc-av{width:30px;height:30px;border-radius:8px;background:#1a3260;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;}
+.wc{border:1.5px solid #dceaf3;border-radius:8px;padding:8px;break-inside:avoid;}
+.wc-hdr{display:flex;align-items:center;gap:7px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #dceaf3;}
+.wc-av{width:30px;height:30px;border-radius:8px;background:#1b5d82;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;}
 .wc-name{font-size:11px;font-weight:700;}.wc-role{font-size:8px;color:#6b7a99;}
-.wc-cnt{margin-left:auto;font-size:8px;font-weight:700;background:#f0f4ff;color:#1a3260;padding:2px 5px;border-radius:10px;}
+.wc-cnt{margin-left:auto;font-size:8px;font-weight:700;background:#f0f4ff;color:#1b5d82;padding:2px 5px;border-radius:10px;}
 .wt{display:flex;align-items:flex-start;gap:5px;margin-bottom:3px;padding:3px 6px;border-radius:4px;background:#f8faff;}
-.wt.minor,.wt.trip{background:#fff8f0;border-left:2px solid #f07020;}
-.wt.main{border-left:2px solid #1a3260;}
-.wt-dot{width:5px;height:5px;border-radius:50%;background:#1a3260;flex-shrink:0;margin-top:3px;}
-.wt.minor .wt-dot,.wt.trip .wt-dot{background:#f07020;}
+.wt.minor,.wt.trip{background:#fff8f0;border-left:2px solid #2b7fb3;}
+.wt.main{border-left:2px solid #1b5d82;}
+.wt-dot{width:5px;height:5px;border-radius:50%;background:#1b5d82;flex-shrink:0;margin-top:3px;}
+.wt.minor .wt-dot,.wt.trip .wt-dot{background:#2b7fb3;}
 .wt-txt{font-size:9px;font-weight:600;flex:1;}.wt-time{font-size:8px;color:#6b7a99;white-space:nowrap;}
-.ftr{border-top:.5px solid #e4e9f5;padding-top:5px;margin-top:8px;display:flex;justify-content:space-between;font-size:7px;color:#999;}
+.ftr{border-top:.5px solid #dceaf3;padding-top:5px;margin-top:8px;display:flex;justify-content:space-between;font-size:7px;color:#999;}
 </style></head><body>
 <div class="hdr"><div>
   <div style="font-size:7px;color:#7a9bcc;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">BeyondFurni — Morning Meeting</div>
@@ -7438,8 +7438,8 @@ function renderPemBody(){
     <div class="pem-sec-title">👷 Worker Assignments</div>`;
 
   p.asgn.forEach((a, i) => {
-    const phaseColors = {fab:'#1a3260', asm:'#0d6040', gen:'#5577aa'};
-    const bg = phaseColors[a.phase] || '#1a3260';
+    const phaseColors = {fab:'#1b5d82', asm:'#0d6040', gen:'#5577aa'};
+    const bg = phaseColors[a.phase] || '#1b5d82';
     const kaam = a.manualKaam || a.task || '';
     // Current attendance from EOD if available, else from plan's own att field
     const eodWd = curPlan && EOD[curPlan.date]?.workerData?.[a.wid];
@@ -7699,7 +7699,7 @@ function buildPdf(p){
     try{
       const fullB = BATCHES.find(x=>x.id===b.id) || b;
       let stageTxt = '—';
-      let stageColor = '#1a3260';
+      let stageColor = '#1b5d82';
       let stageBg = '#e6f0ff';
       if(fullB.stages){
         let last=-1;
@@ -7739,18 +7739,18 @@ function buildPdf(p){
   pdfContent=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>BeyondFurni Floor Plan — ${p.date}</title>
 <style>@page{margin:10mm;size:A4;}*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 body{font-family:Arial,sans-serif;font-size:10px;color:#1a2540;}
-.hdr{background:#0d1b35;color:#fff;padding:11px 14px;margin-bottom:10px;}
+.hdr{background:#0e3a56;color:#fff;padding:11px 14px;margin-bottom:10px;}
 .hdr h1{font-size:14px;font-weight:700;}.sub{font-size:8px;color:#a0c0ff;margin-top:2px;}
 .krow{display:flex;gap:5px;margin-bottom:9px;flex-wrap:wrap;}
-.kpi{background:#1a3260;color:#fff;border-radius:4px;padding:6px 9px;text-align:center;min-width:65px;}
-.kv{font-size:16px;font-weight:700;color:#ffaa44;}.kl{font-size:7px;color:#a0b8e0;text-transform:uppercase;}
+.kpi{background:#1b5d82;color:#fff;border-radius:4px;padding:6px 9px;text-align:center;min-width:65px;}
+.kv{font-size:16px;font-weight:700;color:#6fb8de;}.kl{font-size:7px;color:#a0b8e0;text-transform:uppercase;}
 .abox{padding:5px 8px;border-radius:3px;margin-bottom:5px;font-size:9px;}
 .warn{background:#fff8e6;border:1px solid #f5c842;color:#7a4d00;}
 .ok{background:#e6fff3;border:1px solid #17b86a;color:#0a4d2a;}
 .info{background:#e6f0ff;border:1px solid #90b8f8;color:#0a2060;}
-.sec{margin-bottom:10px;}.st{font-size:9px;font-weight:700;color:#1a3260;text-transform:uppercase;border-left:3px solid #f07020;padding-left:6px;margin-bottom:5px;}
+.sec{margin-bottom:10px;}.st{font-size:9px;font-weight:700;color:#1b5d82;text-transform:uppercase;border-left:3px solid #2b7fb3;padding-left:6px;margin-bottom:5px;}
 table{width:100%;border-collapse:collapse;font-size:9px;}
-th{background:#1a3260;color:#fff;padding:5px 6px;text-align:left;font-size:8px;font-weight:700;}
+th{background:#1b5d82;color:#fff;padding:5px 6px;text-align:left;font-size:8px;font-weight:700;}
 td{padding:4px 6px;border-bottom:.5px solid #dce5f5;}tr:nth-child(even) td{background:#f5f8ff;}
 .div{height:.5px;background:#dce5f5;margin:8px 0;}
 .ftr{border-top:.5px solid #dce5f5;padding-top:6px;margin-top:10px;display:flex;justify-content:space-between;font-size:8px;color:#999;}
@@ -8089,7 +8089,7 @@ function renderBatchSelectCard(){
           ${BT_STAGES.slice(0,ai+1).reverse().map((s,ri,arr)=>`<option value="${s.id}" ${ri===0?'selected':''}>${s.ico} ${s.name}</option>`).join('')}
         </select>`:''}
       </div>
-      ${b.deliveryDate?`<div style="font-size:10px;color:#ffaa44;margin-top:5px;font-weight:700">📅 Delivery: ${btFmt(b.deliveryDate)}</div>`:''}
+      ${b.deliveryDate?`<div style="font-size:10px;color:#6fb8de;margin-top:5px;font-weight:700">📅 Delivery: ${btFmt(b.deliveryDate)}</div>`:''}
     </div>`;
   }).join('');
 }
@@ -8305,7 +8305,7 @@ function openBtEditModal(bid){
     m.innerHTML='<div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
       +'<div style="font-size:15px;font-weight:800;color:var(--navy2)">✏️ Batch Edit Karo</div>'
-      +'<button onclick="closeBtEditModal()" style="width:30px;height:30px;border:none;background:#f0f4fb;border-radius:8px;cursor:pointer;font-size:16px">✕</button></div>'
+      +'<button onclick="closeBtEditModal()" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button></div>'
       +'<input type="hidden" id="bt-edit-id">'
       +'<div class="fg"><label>Party Ka Naam</label><input class="finp" type="text" id="bt-edit-party" placeholder="Party naam..."></div>'
       +'<div class="g2">'
@@ -8369,8 +8369,8 @@ function btOpenDelivery(bid){
     modal.innerHTML='<div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 36px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
       +'<div style="font-size:15px;font-weight:800;color:var(--navy2)">🚚 Delivery Record Karo</div>'
-      +'<button onclick="btCloseDelivery()" style="width:30px;height:30px;border:none;background:#f0f4fb;border-radius:8px;cursor:pointer;font-size:16px">✕</button></div>'
-      +'<div id="bt-deliv-info" style="background:#f0f4fb;border-radius:var(--r2);padding:10px 12px;margin-bottom:12px;font-size:12px;font-weight:700;color:var(--navy2)"></div>'
+      +'<button onclick="btCloseDelivery()" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button></div>'
+      +'<div id="bt-deliv-info" style="background:#eaf4fa;border-radius:var(--r2);padding:10px 12px;margin-bottom:12px;font-size:12px;font-weight:700;color:var(--navy2)"></div>'
       +'<div class="fg"><label>Kitne Pcs Deliver Kiye? *</label>'
       +'<input class="finp" type="number" id="bt-del-qty" min="1" placeholder="0" oninput="btCalcDelAmt()"></div>'
       +'<div class="fg"><label>Kisko Deliver Kiya? (Party naam)</label>'
@@ -8554,7 +8554,7 @@ function renderBtCard(b){
       action+=` <button onclick="btOpenDelivery('${b.id}')" style="padding:5px 8px;border-radius:10px;background:var(--green-bg);color:var(--green-dark);border:1px solid rgba(23,184,106,.3);font-family:'Nunito';font-size:10px;font-weight:800;cursor:pointer;flex-shrink:0">🚚 Deliver</button>`;
     }
     if(isAct&&s.id==='dispatch'&&ord){
-      action+=` <button onclick="createInvoiceFromBatch('${b.id}')" style="padding:5px 8px;border-radius:10px;background:var(--orange-bg);color:var(--orange);border:1px solid rgba(240,112,32,.3);font-family:'Nunito';font-size:10px;font-weight:800;cursor:pointer;flex-shrink:0">🧾 Invoice</button>`;
+      action+=` <button onclick="createInvoiceFromBatch('${b.id}')" style="padding:5px 8px;border-radius:10px;background:var(--orange-bg);color:var(--orange);border:1px solid rgba(43,127,179,.3);font-family:'Nunito';font-size:10px;font-weight:800;cursor:pointer;flex-shrink:0">🧾 Invoice</button>`;
     }
     rows+=`<div class="bt-srow ${rowCls}">
       <span class="sr-ico2">${s.ico}</span>
@@ -8576,7 +8576,7 @@ function renderBtCard(b){
     const pending=b.qty-delivered;
     const pct=b.qty>0?Math.round(delivered/b.qty*100):0;
     const bal=total-(ord.advance||0)-((b.deliveries||[]).reduce((s,d)=>s+(d.payment||0),0));
-    orderBar=`<div style="background:#f0f4fb;border-radius:var(--r2);padding:10px 12px;margin:8px 14px 0;">
+    orderBar=`<div style="background:#eaf4fa;border-radius:var(--r2);padding:10px 12px;margin:8px 14px 0;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
         <div style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Order Details</div>
         <span style="font-size:11px;font-weight:800;color:var(--navy2)">₹${total.toLocaleString('en-IN')}</span>
@@ -8595,7 +8595,7 @@ function renderBtCard(b){
           <div style="font-size:13px;font-weight:900;color:#b85000">₹${Math.max(0,bal).toLocaleString('en-IN')}</div>
         </div>
       </div>
-      <div style="height:5px;background:#e4e9f5;border-radius:3px;overflow:hidden;margin-bottom:4px">
+      <div style="height:5px;background:#dceaf3;border-radius:3px;overflow:hidden;margin-bottom:4px">
         <div style="height:100%;background:${pct>=100?'var(--green)':'var(--orange)'};border-radius:3px;width:${pct}%;transition:width .4s"></div>
       </div>
       <div style="font-size:10px;color:var(--muted);font-weight:700">${pct}% delivered${pending>0?` · ${pending} pcs baaki`:''}</div>
@@ -9510,7 +9510,7 @@ function openInvDetail(invId){
       <!-- Items table -->
       <div style="background:var(--card);border-radius:var(--r2);border:1px solid var(--border);overflow:hidden;margin-bottom:12px">
         <table style="width:100%;border-collapse:collapse">
-          <thead><tr style="background:#f0f4fb">
+          <thead><tr style="background:#eaf4fa">
             <th style="padding:8px 10px;font-size:10px;font-weight:800;color:var(--muted);text-align:left">Item</th>
             <th style="padding:8px 10px;font-size:10px;font-weight:800;color:var(--muted);text-align:center">Qty</th>
             <th style="padding:8px 10px;font-size:10px;font-weight:800;color:var(--muted);text-align:right">Rate</th>
@@ -9585,21 +9585,21 @@ function generateChallan(invId){
     body{font-family:Arial,sans-serif;font-size:12px;color:#111;padding:20px;}
     .wrap{max-width:800px;margin:0 auto;border:2px solid #111;}
     .hdr{display:flex;justify-content:space-between;align-items:flex-start;padding:14px 18px;border-bottom:2px solid #111;}
-    .co-name{font-size:20px;font-weight:900;color:#0d1b35;}
+    .co-name{font-size:20px;font-weight:900;color:#0e3a56;}
     .co-info{font-size:10px;color:#444;line-height:1.7;margin-top:4px;}
     .doc-title{font-size:22px;font-weight:900;text-align:center;padding:10px;border-bottom:1px solid #ddd;letter-spacing:3px;text-transform:uppercase;background:#f8f9ff;}
     .meta-row{display:flex;border-bottom:1px solid #ddd;}
     .meta-box{flex:1;padding:10px 16px;font-size:11px;line-height:1.8;border-right:1px solid #ddd;}
     .meta-box:last-child{border-right:none;}
     .meta-label{font-size:9px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:3px;}
-    .meta-val{font-size:13px;font-weight:800;color:#0d1b35;}
+    .meta-val{font-size:13px;font-weight:800;color:#0e3a56;}
     .addr-row{display:flex;border-bottom:1px solid #ddd;}
     .addr-box{flex:1;padding:12px 16px;font-size:11px;}
     .addr-box:first-child{border-right:1px solid #ddd;}
     .addr-lbl{font-size:9px;font-weight:800;text-transform:uppercase;color:#888;margin-bottom:5px;}
     .addr-name{font-size:13px;font-weight:800;margin-bottom:3px;}
     table{width:100%;border-collapse:collapse;}
-    th{background:#0d1b35;color:#fff;padding:8px 10px;font-size:10px;font-weight:700;border:1px solid #0d1b35;text-align:left;}
+    th{background:#0e3a56;color:#fff;padding:8px 10px;font-size:10px;font-weight:700;border:1px solid #0e3a56;text-align:left;}
     .footer-row{display:flex;justify-content:space-between;align-items:flex-end;padding:14px 18px;border-top:1px solid #ddd;}
     .sign-line{border-top:1px solid #999;margin-top:50px;padding-top:4px;font-weight:700;font-size:11px;}
     @media print{body{padding:0;}}
@@ -9616,7 +9616,7 @@ function generateChallan(invId){
       </div>
       <div style="text-align:right">
         <div style="font-size:9px;color:#888;font-weight:700;text-transform:uppercase">Ref. Invoice</div>
-        <div style="font-size:16px;font-weight:900;color:#f07020">${esc(inv.num)}</div>
+        <div style="font-size:16px;font-weight:900;color:#2b7fb3">${esc(inv.num)}</div>
       </div>
     </div>
     <div class="doc-title">Delivery Challan</div>
@@ -9690,8 +9690,8 @@ function openBoxLabelModal(invId){
     m.innerHTML='<div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:500px">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
       +'<div style="font-size:15px;font-weight:800;color:var(--navy2)">🏷️ Box Labels Banao</div>'
-      +'<button onclick="closeBoxLabelModal()" style="width:30px;height:30px;border:none;background:#f0f4fb;border-radius:8px;cursor:pointer;font-size:16px">✕</button></div>'
-      +'<div id="bxl-total-info" style="background:#f0f4fb;border-radius:var(--r2);padding:10px 12px;margin-bottom:12px;font-size:12px;font-weight:700;color:var(--navy2)"></div>'
+      +'<button onclick="closeBoxLabelModal()" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button></div>'
+      +'<div id="bxl-total-info" style="background:#eaf4fa;border-radius:var(--r2);padding:10px 12px;margin-bottom:12px;font-size:12px;font-weight:700;color:var(--navy2)"></div>'
       +'<div class="fg"><label>Ek Carton Mein Kitne Pieces?</label>'
       +'<input class="finp" type="number" id="bxl-per-carton" min="1" placeholder="e.g. 10" oninput="_bxlPreview()"></div>'
       +'<div id="bxl-preview" style="font-size:12px;font-weight:700;color:var(--muted);margin:-6px 0 14px 2px"></div>'
@@ -9758,24 +9758,24 @@ function generateBoxLabel(invId, pcsPerCarton){
         <div style="font-size:13px;font-weight:900;color:#fff;letter-spacing:2px;">📦 SHIPPING LABEL</div>
         <div style="text-align:right;">
           <div style="font-size:8px;color:#7a9bcc;font-weight:700;letter-spacing:2px;margin-bottom:1px;">INVOICE</div>
-          <div style="font-size:20px;font-weight:900;color:#f07020;letter-spacing:.5px;line-height:1;">${esc(inv.num)}</div>
+          <div style="font-size:20px;font-weight:900;color:#2b7fb3;letter-spacing:.5px;line-height:1;">${esc(inv.num)}</div>
           <div style="font-size:10px;color:#aabbcc;margin-top:2px;">${_fmtDate(inv.date)}</div>
         </div>
       </div>
 
       <div class="lb-ctn">
         <div style="display:flex;align-items:center;gap:14px;">
-          <div style="background:#f07020;color:#fff;border-radius:8px;padding:6px 20px;font-size:26px;font-weight:900;letter-spacing:1px;line-height:1;">
+          <div style="background:#2b7fb3;color:#fff;border-radius:8px;padding:6px 20px;font-size:26px;font-weight:900;letter-spacing:1px;line-height:1;">
             CTN ${c} <span style="font-size:14px;font-weight:700;opacity:.8;">of ${totalCartons}</span>
           </div>
           <div>
             <div style="font-size:9px;font-weight:800;color:#888;text-transform:uppercase;letter-spacing:1px;">Pieces in this carton</div>
-            <div style="font-size:28px;font-weight:900;color:#0d1b35;line-height:1.1;">${pcsThisCarton} <span style="font-size:13px;font-weight:700;color:#888;">pcs</span></div>
+            <div style="font-size:28px;font-weight:900;color:#0e3a56;line-height:1.1;">${pcsThisCarton} <span style="font-size:13px;font-weight:700;color:#888;">pcs</span></div>
           </div>
         </div>
         <div style="text-align:right;">
           <div style="font-size:9px;font-weight:800;color:#888;text-transform:uppercase;letter-spacing:1px;">Total Order</div>
-          <div style="font-size:18px;font-weight:900;color:#0d1b35;">${totalQty} pcs</div>
+          <div style="font-size:18px;font-weight:900;color:#0e3a56;">${totalQty} pcs</div>
           <div style="font-size:10px;color:#aaa;margin-top:1px;">${totalCartons} cartons × ${CARTON_SIZE} pcs</div>
         </div>
       </div>
@@ -9783,9 +9783,9 @@ function generateBoxLabel(invId, pcsPerCarton){
       <div class="lb-mid">
         <div class="lb-ship">
           <div style="font-size:9px;font-weight:800;text-transform:uppercase;color:#888;letter-spacing:2px;margin-bottom:8px;">📦 Ship To</div>
-          <div style="font-size:30px;font-weight:900;color:#0d1b35;line-height:1.25;margin-bottom:12px;">${esc(inv.party)}</div>
+          <div style="font-size:30px;font-weight:900;color:#0e3a56;line-height:1.25;margin-bottom:12px;">${esc(inv.party)}</div>
           ${shipAddr?`<div style="font-size:17px;color:#222;line-height:1.9;font-weight:700;margin-bottom:10px;">${esc(shipAddr)}</div>`:''}
-          ${partyPhone?`<div style="font-size:19px;font-weight:900;color:#0d1b35;margin-top:8px;">📞 ${esc(partyPhone)}</div>`:''}
+          ${partyPhone?`<div style="font-size:19px;font-weight:900;color:#0e3a56;margin-top:8px;">📞 ${esc(partyPhone)}</div>`:''}
           ${partyEmail?`<div style="font-size:13px;color:#555;margin-top:5px;">✉ ${esc(partyEmail)}</div>`:''}
           ${partyGst?`<div style="font-size:12px;color:#777;margin-top:6px;">GSTIN: ${esc(partyGst)}</div>`:''}
         </div>
@@ -9794,7 +9794,7 @@ function generateBoxLabel(invId, pcsPerCarton){
       <div class="lb-bot">
         <div>
           <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#888;letter-spacing:1.5px;margin-bottom:4px;">Contents</div>
-          <div style="font-size:12px;font-weight:700;color:#0d1b35;">${itemsSummary}</div>
+          <div style="font-size:12px;font-weight:700;color:#0e3a56;">${itemsSummary}</div>
         </div>
       </div>
 
@@ -9808,7 +9808,7 @@ function generateBoxLabel(invId, pcsPerCarton){
     const second = labels[i+1] || `<div class="label-inner label-empty">
       <div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;opacity:.18;">
         <div style="font-size:60px;">📦</div>
-        <div style="font-size:16px;font-weight:900;color:#0d1b35;letter-spacing:2px;">INTENTIONALLY BLANK</div>
+        <div style="font-size:16px;font-weight:900;color:#0e3a56;letter-spacing:2px;">INTENTIONALLY BLANK</div>
       </div>
     </div>`;
     pages+=`<div class="page">
@@ -9841,7 +9841,7 @@ function generateBoxLabel(invId, pcsPerCarton){
     .label-inner{
       width:100%;
       height:100%;
-      border:2.5px solid #0d1b35;
+      border:2.5px solid #0e3a56;
       border-radius:10px;
       overflow:hidden;
       font-family:Arial,sans-serif;
@@ -9850,11 +9850,11 @@ function generateBoxLabel(invId, pcsPerCarton){
       flex-direction:column;
     }
     /* Top bar */
-    .lb-top{background:#0d1b35;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+    .lb-top{background:#0e3a56;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
     /* Carton badge row */
-    .lb-ctn{background:#fff9f0;border-bottom:2px solid #f07020;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+    .lb-ctn{background:#fff9f0;border-bottom:2px solid #2b7fb3;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
     /* Middle section — grows to fill ALL remaining space, customer details only */
-    .lb-mid{flex:1;display:flex;align-items:stretch;border-bottom:1.5px solid #e4e9f5;min-height:0;}
+    .lb-mid{flex:1;display:flex;align-items:stretch;border-bottom:1.5px solid #dceaf3;min-height:0;}
     .lb-ship{padding:18px 20px;width:100%;}
     /* Bottom contents bar */
     .lb-bot{background:#f8faff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
@@ -9996,7 +9996,7 @@ function openPartialPayModal(invId){
 
   modal.innerHTML=`
     <div style="background:#fff;border-radius:22px 22px 0 0;padding:18px 16px 32px;width:100%;max-width:520px;animation:slideUp .22s ease;max-height:90vh;overflow-y:auto">
-      <div style="width:40px;height:4px;background:#e4e9f5;border-radius:2px;margin:0 auto 14px"></div>
+      <div style="width:40px;height:4px;background:#dceaf3;border-radius:2px;margin:0 auto 14px"></div>
       <div style="font-size:17px;font-weight:900;color:var(--navy2);margin-bottom:2px">💰 Payment Record Karo</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Invoice: <b>${esc(inv.num)}</b> · <b>${esc(inv.party)}</b></div>
 
@@ -11181,7 +11181,7 @@ function renderAssetList(){
           <span>Depreciation: ${depPct}%</span>
           <span>${a.depMethod?.toUpperCase()||'WDV'} @ ${a.depRate||0}%/yr</span>
         </div>
-        <div style="height:6px;background:#f0f4fb;border-radius:3px;overflow:hidden">
+        <div style="height:6px;background:#eaf4fa;border-radius:3px;overflow:hidden">
           <div style="height:100%;width:${depPct}%;background:#ef4444;border-radius:3px"></div>
         </div>
       </div>
@@ -11284,7 +11284,7 @@ function assetCalcBook(){
     const tempAsset = {cost:parseFloat(document.getElementById('asset-cost').value)||0, gst:parseFloat(document.getElementById('asset-gst').value)||0, purchaseDate:document.getElementById('asset-purchase-date').value, depMethod:method, depRate:rate, depLife:life};
     const bv = _assetBookValue(tempAsset, d);
     const dep = yr===1 ? cost-bv : 0;
-    rows += `<div style="display:flex;justify-content:space-between;font-size:10px;padding:3px 0;border-bottom:1px solid #f0f4fb">
+    rows += `<div style="display:flex;justify-content:space-between;font-size:10px;padding:3px 0;border-bottom:1px solid #eaf4fa">
       <span style="font-weight:700">Year ${yr} (${d.getFullYear()})</span>
       <span style="color:#16a34a;font-weight:800">₹${_fmtAmt(bv)}</span>
     </div>`;
@@ -11425,12 +11425,12 @@ function _renderLedDashboard(){
   el.innerHTML=`
     <!-- KPI Row -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-      <div style="background:linear-gradient(135deg,#1a3260,var(--navy));border-radius:var(--r);padding:14px;color:#fff">
+      <div style="background:linear-gradient(135deg,#1b5d82,var(--navy));border-radius:var(--r);padding:14px;color:#fff">
         <div style="font-size:10px;color:#7a9bcc;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Total Receivable</div>
         <div style="font-family:'Bebas Neue';font-size:28px;color:#f87171;margin-top:4px">₹${_fmtAmt(totalReceivable)}</div>
         <div style="font-size:10px;color:#aabbcc;margin-top:2px">${customers.filter(c=>_custBalance(c.id)>0).length} customers outstanding</div>
       </div>
-      <div style="background:linear-gradient(135deg,#1a3260,var(--navy));border-radius:var(--r);padding:14px;color:#fff">
+      <div style="background:linear-gradient(135deg,#1b5d82,var(--navy));border-radius:var(--r);padding:14px;color:#fff">
         <div style="font-size:10px;color:#7a9bcc;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Total Payable</div>
         <div style="font-family:'Bebas Neue';font-size:28px;color:#fb923c;margin-top:4px">₹${_fmtAmt(totalPayable)}</div>
         <div style="font-size:10px;color:#aabbcc;margin-top:2px">${suppliers.filter(c=>_custBalance(c.id)>0).length} suppliers due</div>
@@ -11542,7 +11542,7 @@ function _renderAgeing(partyType){
 
     <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
       <table style="width:100%;border-collapse:collapse;font-size:12px">
-        <thead><tr style="background:#f0f4fb;border-bottom:2px solid var(--border2)">
+        <thead><tr style="background:#eaf4fa;border-bottom:2px solid var(--border2)">
           <th style="padding:9px 12px;font-size:10px;font-weight:800;color:var(--muted);text-align:left">Party</th>
           <th style="padding:9px 12px;font-size:10px;font-weight:800;color:var(--muted);text-align:left">Last Entry</th>
           <th style="padding:9px 12px;font-size:10px;font-weight:800;color:var(--muted);text-align:center">Din Se</th>
@@ -11644,12 +11644,12 @@ function _downloadLedgerPDF(custId){
     @page{margin:12mm;size:A4;}
     *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     body{font-family:Arial,sans-serif;font-size:11px;color:#1a2540;}
-    .hdr{background:#0d1b35;color:#fff;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start;}
+    .hdr{background:#0e3a56;color:#fff;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start;}
     table{width:100%;border-collapse:collapse;font-size:10px;}
-    th{background:#1a3260;color:#fff;padding:7px 10px;text-align:left;font-size:9px;font-weight:700;}
-    td{padding:6px 10px;border-bottom:0.5px solid #e4e9f5;}
+    th{background:#1b5d82;color:#fff;padding:7px 10px;text-align:left;font-size:9px;font-weight:700;}
+    td{padding:6px 10px;border-bottom:0.5px solid #dceaf3;}
     tr:nth-child(even) td{background:#f8faff;}
-    .bal-box{margin-top:14px;padding:12px 16px;border-radius:8px;background:#f0f4ff;border:2px solid #1a3260;display:flex;justify-content:space-between;align-items:center;}
+    .bal-box{margin-top:14px;padding:12px 16px;border-radius:8px;background:#f0f4ff;border:2px solid #1b5d82;display:flex;justify-content:space-between;align-items:center;}
   </style>
   </head><body>
 
@@ -11824,7 +11824,7 @@ function _renderSupplierTable(filtered, el){
 
   el.innerHTML=`<div style="background:var(--card);border-radius:var(--r);border:1px solid var(--border);overflow:hidden;box-shadow:var(--shadow)">
     <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:560px">
-      <thead><tr style="background:#f0f4fb;border-bottom:2px solid var(--border2)">
+      <thead><tr style="background:#eaf4fa;border-bottom:2px solid var(--border2)">
         <th style="padding:10px 8px;font-size:11px;font-weight:800;color:var(--muted);text-align:center;width:40px">#</th>
         <th style="padding:10px 12px;font-size:11px;font-weight:800;color:var(--muted);text-align:left;text-transform:uppercase">Naam</th>
         <th style="padding:10px 12px;font-size:11px;font-weight:800;color:var(--muted);text-align:left;text-transform:uppercase">Contact</th>
@@ -11891,7 +11891,7 @@ function _renderPartyTable(filtered, el, listType){
 
   el.innerHTML=`<div style="background:var(--card);border-radius:var(--r);border:1px solid var(--border);overflow:hidden;box-shadow:var(--shadow)">
     <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:480px">
-      <thead><tr style="background:#f0f4fb;border-bottom:2px solid var(--border2)">
+      <thead><tr style="background:#eaf4fa;border-bottom:2px solid var(--border2)">
         <th style="padding:10px 12px;font-size:11px;font-weight:800;color:var(--muted);text-align:left;text-transform:uppercase">Naam</th>
         <th style="padding:10px 12px;font-size:11px;font-weight:800;color:var(--muted);text-align:left;text-transform:uppercase">Contact</th>
         <th style="padding:10px 12px;font-size:11px;font-weight:800;color:var(--muted);text-align:left;text-transform:uppercase">Type</th>
@@ -12289,7 +12289,7 @@ function renderDashboard(){
       return INVOICES.filter(i=>(i.date||'').slice(0,7)===ms).reduce((s,i)=>s+i.grandTotal,0);
     });
     _anMakeChart('dash-trend-chart','bar',trendLabels,[{
-      data:trendData, backgroundColor:'#f07020', hoverBackgroundColor:'#ffaa44',
+      data:trendData, backgroundColor:'#2b7fb3', hoverBackgroundColor:'#6fb8de',
       borderRadius:6, maxBarThickness:34
     }],{
       plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>'₹'+_fmtAmt(c.parsed.y)}} },
@@ -13124,11 +13124,11 @@ function eodDownloadPDF(){
     *{margin:0;padding:0;box-sizing:border-box;}
     body{font-family:Arial,sans-serif;font-size:12px;color:#111;padding:20px;}
     .wrap{max-width:800px;margin:0 auto;}
-    .hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:3px solid #0d1b35;margin-bottom:16px;}
-    h1{font-size:22px;font-weight:900;color:#0d1b35;margin-bottom:4px;}
-    h2{font-size:14px;font-weight:800;color:#0d1b35;margin:16px 0 8px;}
+    .hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:3px solid #0e3a56;margin-bottom:16px;}
+    h1{font-size:22px;font-weight:900;color:#0e3a56;margin-bottom:4px;}
+    h2{font-size:14px;font-weight:800;color:#0e3a56;margin:16px 0 8px;}
     table{width:100%;border-collapse:collapse;margin-bottom:16px;}
-    th{background:#0d1b35;color:#fff;padding:8px 12px;text-align:left;font-size:11px;}
+    th{background:#0e3a56;color:#fff;padding:8px 12px;text-align:left;font-size:11px;}
     td{padding:8px 12px;border-bottom:1px solid #eee;font-size:12px;}
     .badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:800;}
     @media print{body{padding:0;}@page{size:A4;margin:10mm;}}
@@ -13141,7 +13141,7 @@ function eodDownloadPDF(){
         <div style="font-size:11px;color:#555">${s.addr1?esc(s.addr1):''}${s.phone?' | 📞 '+esc(s.phone):''}</div>
       </div>
       <div style="text-align:right">
-        <div style="font-size:20px;font-weight:900;color:#f07020">EOD REPORT</div>
+        <div style="font-size:20px;font-weight:900;color:#2b7fb3">EOD REPORT</div>
         <div style="font-size:12px;color:#555;margin-top:4px">${date}</div>
         <div style="font-size:11px;color:#555">${curPlan.shift} Shift | Supervisor: ${esc(curPlan.sup)}</div>
         <span class="badge" style="background:${eod.closed?'#e6fff3':'#fff8e6'};color:${eod.closed?'#0a4d2a':'#7a4d00'};margin-top:6px">
@@ -13163,7 +13163,7 @@ function eodDownloadPDF(){
     </table>
 
     ${eod.note?`<div style="background:#fff8e6;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;margin-bottom:12px"><b>📝 Note:</b> ${esc(eod.note)}</div>`:''}
-    ${eod.extraNote?`<div style="background:#f8faff;border:1px solid #e4e9f5;border-radius:8px;padding:10px 14px"><b>💬 Extra:</b> ${esc(eod.extraNote)}</div>`:''}
+    ${eod.extraNote?`<div style="background:#f8faff;border:1px solid #dceaf3;border-radius:8px;padding:10px 14px"><b>💬 Extra:</b> ${esc(eod.extraNote)}</div>`:''}
 
     <div style="margin-top:20px;padding-top:12px;border-top:1px solid #eee;font-size:10px;color:#888;text-align:center">
       ${esc(s.name||'Beyondfurni')} | Generated: ${new Date().toLocaleString('en-IN')}
@@ -13502,7 +13502,7 @@ function renderAttWorkerDetail(w){
       </div>
 
       <!-- Salary Card -->
-      <div style="background:linear-gradient(135deg,var(--navy),#1a3260);border-radius:var(--r2);padding:14px;margin:10px 0">
+      <div style="background:linear-gradient(135deg,var(--navy),#1b5d82);border-radius:var(--r2);padding:14px;margin:10px 0">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
           <div style="font-size:13px;font-weight:800;color:#fff">💰 Salary</div>
           <button onclick="openSalarySettings()" style="padding:5px 12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:var(--r3);color:#7a9bcc;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">⚙️ Rules</button>
@@ -13511,11 +13511,11 @@ function renderAttWorkerDetail(w){
         <!-- Type toggle -->
         <div style="display:flex;gap:6px;margin-bottom:10px">
           <button onclick="setSalaryType('${w.empId}','perday');renderAttWorkerDetail(ATT_DATA[_attPeriod].workers.find(x=>x.name==='${esc(w.name)}'))"
-            style="flex:1;padding:7px;border-radius:var(--r3);border:2px solid ${sal.type==='perday'?'var(--orange)':'rgba(255,255,255,.2)'};background:${sal.type==='perday'?'rgba(240,112,32,.2)':'transparent'};color:${sal.type==='perday'?'var(--orange)':'#7a9bcc'};font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">
+            style="flex:1;padding:7px;border-radius:var(--r3);border:2px solid ${sal.type==='perday'?'var(--orange)':'rgba(255,255,255,.2)'};background:${sal.type==='perday'?'rgba(43,127,179,.2)':'transparent'};color:${sal.type==='perday'?'var(--orange)':'#7a9bcc'};font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">
             Per Day
           </button>
           <button onclick="setSalaryType('${w.empId}','fix');renderAttWorkerDetail(ATT_DATA[_attPeriod].workers.find(x=>x.name==='${esc(w.name)}'))"
-            style="flex:1;padding:7px;border-radius:var(--r3);border:2px solid ${sal.type==='fix'?'var(--orange)':'rgba(255,255,255,.2)'};background:${sal.type==='fix'?'rgba(240,112,32,.2)':'transparent'};color:${sal.type==='fix'?'var(--orange)':'#7a9bcc'};font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">
+            style="flex:1;padding:7px;border-radius:var(--r3);border:2px solid ${sal.type==='fix'?'var(--orange)':'rgba(255,255,255,.2)'};background:${sal.type==='fix'?'rgba(43,127,179,.2)':'transparent'};color:${sal.type==='fix'?'var(--orange)':'#7a9bcc'};font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">
             Fix Monthly
           </button>
         </div>
@@ -13640,7 +13640,7 @@ function renderAttWorkerDetail(w){
       </div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden">
         <table style="width:100%;border-collapse:collapse" id="att-daily-table">
-          <thead style="background:#f0f4fb">
+          <thead style="background:#eaf4fa">
             <tr>
               <th style="padding:8px 10px;font-size:10px;font-weight:800;color:var(--muted);text-align:left">Date</th>
               <th style="padding:8px 10px;font-size:10px;font-weight:800;color:var(--muted);text-align:center">Time In</th>
@@ -14165,28 +14165,28 @@ function generateSalarySlip(workerName){
     *{margin:0;padding:0;box-sizing:border-box;}
     body{font-family:Arial,sans-serif;font-size:12px;color:#111;background:#f5f5f5;padding:20px;}
     .slip{max-width:720px;margin:0 auto;background:#fff;border:1px solid #ddd;border-radius:8px;overflow:hidden;}
-    .hdr{background:#0d1b35;padding:16px 20px;display:flex;justify-content:space-between;align-items:flex-start;}
+    .hdr{background:#0e3a56;padding:16px 20px;display:flex;justify-content:space-between;align-items:flex-start;}
     .co-name{font-size:18px;font-weight:900;color:#fff;}
     .co-info{font-size:10px;color:#7a9bcc;margin-top:3px;line-height:1.6;}
-    .slip-title{text-align:right;color:#f07020;font-size:20px;font-weight:900;letter-spacing:1px;}
+    .slip-title{text-align:right;color:#2b7fb3;font-size:20px;font-weight:900;letter-spacing:1px;}
     .slip-period{font-size:11px;color:#7a9bcc;margin-top:3px;}
-    .worker-band{background:#f8faff;padding:12px 20px;display:flex;gap:20px;border-bottom:2px solid #e4e9f5;}
+    .worker-band{background:#f8faff;padding:12px 20px;display:flex;gap:20px;border-bottom:2px solid #dceaf3;}
     .winfo{flex:1;}
-    .wname{font-size:16px;font-weight:900;color:#0d1b35;}
+    .wname{font-size:16px;font-weight:900;color:#0e3a56;}
     .wid{font-size:11px;color:#888;}
     .stats-row{display:flex;gap:0;border-bottom:1px solid #eee;}
     .stat{flex:1;padding:10px 14px;border-right:1px solid #eee;text-align:center;}
     .stat:last-child{border:none;}
-    .stat-val{font-size:18px;font-weight:900;color:#0d1b35;}
+    .stat-val{font-size:18px;font-weight:900;color:#0e3a56;}
     .stat-lbl{font-size:9px;color:#888;text-transform:uppercase;margin-top:2px;}
     .section{padding:12px 20px;}
     .section-title{font-size:11px;font-weight:800;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid #eee;}
     table{width:100%;border-collapse:collapse;}
-    th{background:#f0f4fb;font-size:10px;font-weight:800;color:#888;padding:7px 12px;text-align:left;}
+    th{background:#eaf4fa;font-size:10px;font-weight:800;color:#888;padding:7px 12px;text-align:left;}
     td{padding:7px 12px;border-bottom:1px solid #f0f0f0;font-size:12px;}
     .earn{color:#16a34a;font-weight:800;}
     .deduct{color:#dc2626;font-weight:800;}
-    .net-row{background:#0d1b35;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;}
+    .net-row{background:#0e3a56;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;}
     .net-lbl{color:#7a9bcc;font-size:13px;font-weight:800;}
     .net-amt{color:#4ade80;font-size:28px;font-weight:900;}
     .footer{padding:10px 20px;text-align:center;font-size:10px;color:#aaa;border-top:1px solid #eee;}
@@ -14782,7 +14782,7 @@ function _dbRenderCatBreakdown(allEntries, period){
                 <div style="font-size:12px;font-weight:800;color:var(--text)">${cat.label}</div>
                 <div style="font-size:12px;font-weight:900;color:${amtColor}">\u20B9${_fmtAmt(amt)}</div>
               </div>
-              <div style="height:6px;background:#f0f4fb;border-radius:3px;overflow:hidden">
+              <div style="height:6px;background:#eaf4fa;border-radius:3px;overflow:hidden">
                 <div style="height:100%;width:${pct.toFixed(1)}%;background:${cat.color};border-radius:3px"></div>
               </div>
               <div style="display:flex;justify-content:space-between;margin-top:2px">
@@ -14848,7 +14848,7 @@ function _dbRenderEntries(entries){
     const dayLabel = d.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
     return `
       <div style="margin-bottom:12px">
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:#f0f4fb;border-radius:var(--r2);margin-bottom:6px">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:#eaf4fa;border-radius:var(--r2);margin-bottom:6px">
           <div style="font-size:12px;font-weight:800;color:var(--navy2)">${dayLabel}</div>
           <div style="display:flex;gap:10px">
             ${dayExp>0?`<span style="font-size:11px;font-weight:800;color:var(--red)">-₹${_fmtAmt(dayExp)}</span>`:''}
@@ -15502,7 +15502,7 @@ function _anRenderFinancial(months){
       <div class="an-row"><div style="font-size:12px;font-weight:700">Total Billed</div><div style="font-size:13px;font-weight:900;color:var(--navy2)">₹${totalBilled.toLocaleString('en-IN')}</div></div>
       <div class="an-row"><div style="font-size:12px;font-weight:700">Paid</div><div style="font-size:13px;font-weight:900;color:var(--green-dark)">₹${totalPaid.toLocaleString('en-IN')}</div></div>
       <div class="an-row"><div style="font-size:12px;font-weight:700">Pending</div><div style="font-size:13px;font-weight:900;color:var(--red)">₹${totalPending.toLocaleString('en-IN')}</div></div>
-      <div style="height:8px;background:#f0f4fb;border-radius:4px;margin-top:8px;overflow:hidden">
+      <div style="height:8px;background:#eaf4fa;border-radius:4px;margin-top:8px;overflow:hidden">
         <div style="height:100%;width:${totalBilled>0?Math.round(totalPaid/totalBilled*100):0}%;background:var(--green);border-radius:4px"></div>
       </div>
       <div style="font-size:10px;color:var(--muted);font-weight:700;margin-top:4px">${totalBilled>0?Math.round(totalPaid/totalBilled*100):0}% collected</div>
@@ -16490,16 +16490,16 @@ function _dbDownloadReport(){
       running+=isInc?e.amount:-e.amount;
       return `<tr style="border-bottom:0.5px solid #f0f0f0"><td style="white-space:nowrap;font-size:10px;color:#555">${date}</td><td>${cat.icon} ${cat.label}</td><td style="font-size:10px;color:#555">${e.supplier?'[S] '+e.supplier:''}</td><td style="font-size:10px;color:#555">${e.note||''}</td><td style="font-size:10px;color:#555;white-space:nowrap">${modeLabel[e.mode]||e.mode||''}</td><td style="text-align:right;color:#16a34a;font-weight:700">${isInc?'Rs.'+_fmtAmt(e.amount):''}</td><td style="text-align:right;color:#dc2626;font-weight:700">${!isInc?'Rs.'+_fmtAmt(e.amount):''}</td><td style="text-align:right;font-weight:800;color:${running>=0?'#16a34a':'#dc2626'};white-space:nowrap">Rs.${_fmtAmt(Math.abs(running))}</td></tr>`;
     }).join('');
-    return `<tr style="background:#eef2ff"><td colspan="8" style="padding:5px 8px;font-size:10px;font-weight:800;color:#1a3260">${dayLabel}</td></tr>${rows}`;
+    return `<tr style="background:#eef2ff"><td colspan="8" style="padding:5px 8px;font-size:10px;font-weight:800;color:#1b5d82">${dayLabel}</td></tr>${rows}`;
   }).join('');
 
   const nc=netFlow>=0,ec='#dc2626',gc='#16a34a',nb=nc?'#f0fdf4':'#fff5f5',sb=nc?'#86efac':'#fca5a5';
   const html2=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Day Book -- ${periodLabel}</title>
-  <style>@page{margin:12mm;size:A4;}*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}body{font-family:Arial,sans-serif;font-size:11px;color:#1a2540;}.hdr{background:#0d1b35;color:#fff;padding:14px 18px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start;}.sum{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}.sbox{padding:12px;border-radius:8px;}h2{font-size:11px;font-weight:800;color:#1a3260;margin:12px 0 7px;border-bottom:2px solid #e4e9f5;padding-bottom:4px;text-transform:uppercase;letter-spacing:.5px;}table{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:12px;}thead tr{background:#1a3260;color:#fff;}th{padding:7px 8px;text-align:left;font-size:9px;font-weight:700;}td{padding:5px 8px;vertical-align:middle;}tr:nth-child(even) td{background:#f8faff;}.bal{padding:12px 16px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;margin-top:12px;}.foot{margin-top:14px;padding-top:8px;border-top:1px solid #eee;font-size:9px;color:#999;text-align:center;}</style>
+  <style>@page{margin:12mm;size:A4;}*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}body{font-family:Arial,sans-serif;font-size:11px;color:#1a2540;}.hdr{background:#0e3a56;color:#fff;padding:14px 18px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start;}.sum{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}.sbox{padding:12px;border-radius:8px;}h2{font-size:11px;font-weight:800;color:#1b5d82;margin:12px 0 7px;border-bottom:2px solid #dceaf3;padding-bottom:4px;text-transform:uppercase;letter-spacing:.5px;}table{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:12px;}thead tr{background:#1b5d82;color:#fff;}th{padding:7px 8px;text-align:left;font-size:9px;font-weight:700;}td{padding:5px 8px;vertical-align:middle;}tr:nth-child(even) td{background:#f8faff;}.bal{padding:12px 16px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;margin-top:12px;}.foot{margin-top:14px;padding-top:8px;border-top:1px solid #eee;font-size:9px;color:#999;text-align:center;}</style>
   </head><body>
   <div class="hdr"><div><div style="font-size:9px;color:#7a9bcc;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">S.R. Enterprises -- BeyondFurni</div><div style="font-size:20px;font-weight:700">Day Book Report</div><div style="font-size:10px;color:#aabbcc;margin-top:3px">Period: <b>${periodLabel}</b> . ${entries.length} Entries</div></div><div style="text-align:right"><div style="font-size:12px;font-weight:700;color:#fff">${s.name||'BeyondFurni'}</div><div style="font-size:9px;color:#aabbcc;margin-top:3px">${s.addr1||'Nashik, Maharashtra'}</div><div style="font-size:9px;color:#aabbcc;margin-top:2px">Generated: ${new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div></div></div>
   <div class="sum"><div class="sbox" style="border:1.5px solid #86efac;background:#f0fdf4"><div style="font-size:9px;font-weight:800;color:#166534;text-transform:uppercase">Total Income</div><div style="font-size:24px;font-weight:900;color:${gc};margin-top:5px">Rs.${_fmtAmt(totalInc)}</div><div style="font-size:9px;color:#555;margin-top:2px">${entries.filter(e=>e.type==='income').length} entries</div></div><div class="sbox" style="border:1.5px solid #fca5a5;background:#fff5f5"><div style="font-size:9px;font-weight:800;color:#991b1b;text-transform:uppercase">Total Expense</div><div style="font-size:24px;font-weight:900;color:${ec};margin-top:5px">Rs.${_fmtAmt(totalExp)}</div><div style="font-size:9px;color:#555;margin-top:2px">${entries.filter(e=>e.type==='expense').length} entries</div></div><div class="sbox" style="border:1.5px solid ${sb};background:${nb}"><div style="font-size:9px;font-weight:800;color:#555;text-transform:uppercase">Net Cash Flow</div><div style="font-size:24px;font-weight:900;color:${nc?gc:ec};margin-top:5px">${nc?'+':''}Rs.${_fmtAmt(Math.abs(netFlow))}</div><div style="font-size:9px;color:#555;margin-top:2px">${nc?'Surplus':'Deficit'}</div></div></div>
-  ${catRows?`<h2>Category-wise Expense Breakdown</h2><table><thead><tr><th></th><th>Category</th><th>CFO Field</th><th style="text-align:right">Amount</th><th style="text-align:right">Share</th></tr></thead><tbody>${catRows}</tbody><tfoot><tr style="background:#1a3260;color:#fff"><td colspan="3" style="padding:7px 8px;font-weight:800">Total Expenses</td><td style="padding:7px 8px;text-align:right;font-weight:900">Rs.${_fmtAmt(totalExp)}</td><td style="padding:7px 8px;text-align:right">100%</td></tr></tfoot></table>`:''}
+  ${catRows?`<h2>Category-wise Expense Breakdown</h2><table><thead><tr><th></th><th>Category</th><th>CFO Field</th><th style="text-align:right">Amount</th><th style="text-align:right">Share</th></tr></thead><tbody>${catRows}</tbody><tfoot><tr style="background:#1b5d82;color:#fff"><td colspan="3" style="padding:7px 8px;font-weight:800">Total Expenses</td><td style="padding:7px 8px;text-align:right;font-weight:900">Rs.${_fmtAmt(totalExp)}</td><td style="padding:7px 8px;text-align:right">100%</td></tr></tfoot></table>`:''}
   ${supRows?`<h2>Supplier-wise Payments</h2><table><thead><tr><th></th><th>Supplier / Party</th><th style="text-align:right">Total Paid</th></tr></thead><tbody>${supRows}</tbody></table>`:''}
   <h2>Entry-wise Detail (Running Balance)</h2><table><thead><tr><th>Date</th><th>Category</th><th>Supplier</th><th>Note</th><th>Mode</th><th style="text-align:right">In Rs.</th><th style="text-align:right">Out Rs.</th><th style="text-align:right">Balance</th></tr></thead><tbody>${detailRows}</tbody></table>
   <div class="bal" style="background:${nb};border:2px solid ${sb}"><div><div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase">Closing Balance -- ${periodLabel}</div><div style="font-size:11px;color:#1a2540;margin-top:2px">${nc?'Surplus':'Deficit'}</div></div><div style="font-size:28px;font-weight:900;color:${nc?gc:ec}">${nc?'+':''}Rs.${_fmtAmt(Math.abs(netFlow))}</div></div>
@@ -16730,12 +16730,12 @@ function downloadCEOReportPDF(){
 @page{margin:12mm;size:A4 portrait;}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 body{font-family:Arial,sans-serif;font-size:10px;color:#111;background:#fff;}
-.print-hdr{background:#0d1b35;color:#fff;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start;}
+.print-hdr{background:#0e3a56;color:#fff;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start;}
 .print-hdr h1{font-size:18px;font-weight:700;margin-bottom:2px;}
 .print-hdr .sub{font-size:9px;color:#aabbcc;}
 table{width:100%;border-collapse:collapse;font-size:9px;margin-bottom:8px;}
-th{background:#1a3260;color:#fff;padding:5px 8px;text-align:left;font-size:8px;font-weight:700;white-space:nowrap;}
-td{padding:5px 8px;border-bottom:0.5px solid #e4e9f5;vertical-align:top;word-break:break-word;}
+th{background:#1b5d82;color:#fff;padding:5px 8px;text-align:left;font-size:8px;font-weight:700;white-space:nowrap;}
+td{padding:5px 8px;border-bottom:0.5px solid #dceaf3;vertical-align:top;word-break:break-word;}
 tr:nth-child(even) td{background:#f8faff;}
 *{overflow:visible !important;}
 div[style*="margin-bottom:1.2rem"]{margin-bottom:8px !important;}
@@ -16744,7 +16744,7 @@ div[style*="margin-bottom:12px"]{margin-bottom:7px !important;}
 div[style*="padding:18px 22px"]{padding:10px 14px !important;}
 div[style*="padding:22px"]{padding:12px !important;}
 div[style*="font-size:60px"]{font-size:40px !important;}
-.ftr{border-top:0.5px solid #e4e9f5;padding-top:6px;margin-top:10px;display:flex;justify-content:space-between;font-size:8px;color:#999;}
+.ftr{border-top:0.5px solid #dceaf3;padding-top:6px;margin-top:10px;display:flex;justify-content:space-between;font-size:8px;color:#999;}
 </style></head><body>
 <div class="print-hdr">
   <div>
@@ -16933,10 +16933,10 @@ function renderCEOReport(){
 
   // ── HTML Helpers ──
   let html='';
-  const sec=(n,t,s,ico)=>`<div style="margin:20px 0 12px;padding-bottom:8px;border-bottom:2px solid #0d1b35;display:flex;align-items:center;gap:10px"><div style="background:#0d1b35;color:#fff;font-size:10px;font-weight:900;padding:3px 8px;border-radius:4px;font-family:monospace">${n}</div><div><div style="font-size:15px;font-weight:900;color:#0d1b35">${ico} ${t}</div><div style="font-size:10px;color:#6b7280;margin-top:1px">${s}</div></div></div>`;
+  const sec=(n,t,s,ico)=>`<div style="margin:20px 0 12px;padding-bottom:8px;border-bottom:2px solid #0e3a56;display:flex;align-items:center;gap:10px"><div style="background:#0e3a56;color:#fff;font-size:10px;font-weight:900;padding:3px 8px;border-radius:4px;font-family:monospace">${n}</div><div><div style="font-size:15px;font-weight:900;color:#0e3a56">${ico} ${t}</div><div style="font-size:10px;color:#6b7280;margin-top:1px">${s}</div></div></div>`;
   const kpi=(val,lbl,sub,color,bg,trend)=>`<div style="background:${bg||'#f8faff'};border:1px solid ${color}22;border-top:3px solid ${color};border-radius:8px;padding:12px 14px"><div style="font-size:20px;font-weight:900;color:${color};line-height:1">${val}</div>${trend?`<div style="font-size:10px;color:${trend.startsWith('+')?'#16a34a':'#dc2626'};font-weight:700;margin-top:2px">${trend}</div>`:''}<div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;margin-top:4px">${lbl}</div><div style="font-size:9px;color:#9ca3af;margin-top:1px">${sub}</div></div>`;
   const chip=(txt,color)=>`<span style="font-size:9px;padding:2px 8px;border-radius:20px;background:${color}15;color:${color};border:1px solid ${color}33;font-weight:700">${txt}</span>`;
-  const tblHead=cols=>`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#0d1b35">${cols.map(c=>`<th style="padding:7px 10px;text-align:left;font-size:9px;color:#aabbcc;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;font-weight:700">${c}</th>`).join('')}</tr></thead><tbody>`;
+  const tblHead=cols=>`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#0e3a56">${cols.map(c=>`<th style="padding:7px 10px;text-align:left;font-size:9px;color:#aabbcc;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;font-weight:700">${c}</th>`).join('')}</tr></thead><tbody>`;
   const tblRow=(cells,hl)=>`<tr style="background:${hl?'#f0f8ff':'#fff'};border-bottom:1px solid #e5e7eb">${cells.map(c=>`<td style="padding:7px 10px;color:${c[1]||'#111'};font-weight:${c[2]?700:400};font-size:11px;white-space:nowrap">${c[0]}</td>`).join('')}</tr>`;
   const bar=(pct,color,h)=>`<div style="background:#e5e7eb;border-radius:4px;height:${h||8}px;overflow:hidden"><div style="width:${Math.min(pct,100)}%;height:100%;background:${color};border-radius:4px"></div></div>`;
   const trend=(cur,prev,higher_better,suffix)=>{if(!prev)return'';const d=cur-prev;const p=prev>0?(d/prev*100):0;const good=higher_better?d>0:d<0;return`<span style="font-size:10px;font-weight:700;color:${good?'#16a34a':'#dc2626'}">${d>0?'▲':'▼'} ${Math.abs(p).toFixed(1)}%${suffix||''}</span>`;};
@@ -16946,7 +16946,7 @@ function renderCEOReport(){
   // ════════════════════════════════════════════════
   const grade=netMargin>=20?'A':netMargin>=14?'B':netMargin>=8?'C':'D';
   const gradeC=netMargin>=20?'#16a34a':netMargin>=14?'#2563eb':netMargin>=8?'#d97706':'#dc2626';
-  html+=`<div style="background:linear-gradient(135deg,#0d1b35 0%,#1a3260 100%);border-radius:10px;padding:20px 24px;margin-bottom:16px;color:#fff">
+  html+=`<div style="background:linear-gradient(135deg,#0e3a56 0%,#1b5d82 100%);border-radius:10px;padding:20px 24px;margin-bottom:16px;color:#fff">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
       <div>
         <div style="font-size:10px;color:#7a9bcc;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Monthly Business Review</div>
@@ -17039,13 +17039,13 @@ function renderCEOReport(){
   html+='</tbody></table></div>';
 
   // Expense breakdown visual
-  html+=`<div style="margin-top:12px"><div style="font-size:11px;font-weight:700;color:#0d1b35;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">Cost Structure — ${mLabel}</div>`;
+  html+=`<div style="margin-top:12px"><div style="font-size:11px;font-weight:700;color:#0e3a56;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">Cost Structure — ${mLabel}</div>`;
   html+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">`;
   [{n:'Raw Material',v:rawmat,c:'#7c3aed'},{n:'Labour',v:labour,c:'#2563eb'},{n:'PC + Outsource',v:pc,c:'#0891b2'},{n:'Packaging',v:pack,c:'#6366f1'},{n:'Transport',v:trans,c:'#d97706'},{n:'Rent + Light',v:rent,c:'#f59e0b'},{n:'Interest/EMI',v:intExp,c:'#dc2626'},{n:'Admin + Repair',v:admn,c:'#9ca3af'}].filter(e=>e.v>0).forEach(e=>{
     const pR=rev>0?(e.v/rev*100):0;
     html+=`<div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="font-size:11px;font-weight:700;color:#0d1b35">${e.n}</span>
+        <span style="font-size:11px;font-weight:700;color:#0e3a56">${e.n}</span>
         <span style="font-size:10px;font-weight:700;color:${e.c}">${pR.toFixed(0)}%</span>
       </div>
       <div style="font-size:15px;font-weight:900;color:${e.c};margin-bottom:6px">₹${fmtL(e.v)}</div>
@@ -17057,12 +17057,12 @@ function renderCEOReport(){
   // ── 3-Month Trend ──
   if(trendData.length>=2){
     html+=`<div style="margin-top:14px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:14px">
-      <div style="font-size:11px;font-weight:700;color:#0d1b35;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">📈 3-Month Trend</div>`;
+      <div style="font-size:11px;font-weight:700;color:#0e3a56;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">📈 3-Month Trend</div>`;
     html+=tblHead(['Month','Revenue','Gross Margin','Net Margin','Net Profit','Units Sold']);
     trendData.forEach((t,i)=>{
       const isC=i===trendData.length-1;
       html+=tblRow([
-        [t.label,'#0d1b35',isC],
+        [t.label,'#0e3a56',isC],
         ['₹'+fmtL(t.r),gc(t.r,400000,200000),isC],
         [pct(t.gm),gc(t.gm,40,30),isC],
         [pct(t.nm),gc(t.nm,14,8),isC],
@@ -17088,7 +17088,7 @@ function renderCEOReport(){
 
   // Aging analysis
   html+=`<div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:12px">
-    <div style="font-size:11px;font-weight:700;color:#0d1b35;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Receivables Aging Analysis</div>
+    <div style="font-size:11px;font-weight:700;color:#0e3a56;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Receivables Aging Analysis</div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
       ${[{l:'0-30 Days',v:aging.d30,c:'#16a34a',s:'Current'},{l:'31-60 Days',v:aging.d60,c:'#d97706',s:'Follow up'},{l:'61-90 Days',v:aging.d90,c:'#f97316',s:'Urgent'},{l:'90+ Days',v:aging.d90plus,c:'#dc2626',s:'Critical'}].map(a=>`
         <div style="text-align:center;padding:10px;background:${a.c}08;border:1px solid ${a.c}22;border-radius:6px">
@@ -17101,13 +17101,13 @@ function renderCEOReport(){
 
   // Party-wise table
   if(partyOutstanding.length){
-    html+=`<div style="font-size:11px;font-weight:700;color:#0d1b35;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">Party-wise Outstanding</div>`;
+    html+=`<div style="font-size:11px;font-weight:700;color:#0e3a56;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">Party-wise Outstanding</div>`;
     html+=tblHead(['Party','Outstanding','Invoiced (This Month)','Collected (This Month)','Overdue Days','Status']);
     partyOutstanding.slice(0,10).forEach(c=>{
       const st=c.bal===0?'✅ Clear':c.oldestUnpaid>60?'🔴 Overdue':c.oldestUnpaid>30?'🟡 Follow up':'🟢 Recent';
       const sc=c.bal===0?'#16a34a':c.oldestUnpaid>60?'#dc2626':c.oldestUnpaid>30?'#d97706':'#16a34a';
       html+=tblRow([
-        [c.name,'#0d1b35',true],
+        [c.name,'#0e3a56',true],
         ['₹'+fmt(c.bal),c.bal>0?'#dc2626':'#16a34a',true],
         [c.mInvAmt>0?'₹'+fmt(c.mInvAmt):'—','#6b7280'],
         [c.mColl>0?'₹'+fmt(c.mColl):'—',c.mColl>0?'#16a34a':'#9ca3af'],
@@ -17128,13 +17128,13 @@ function renderCEOReport(){
   const prodBarC=prodBarPct>=85?'#16a34a':prodBarPct>=60?'#d97706':'#dc2626';
   html+=`<div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:12px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-      <div style="font-size:13px;font-weight:800;color:#0d1b35">Units Sold vs Production Target</div>
+      <div style="font-size:13px;font-weight:800;color:#0e3a56">Units Sold vs Production Target</div>
       <div style="font-size:22px;font-weight:900;color:${prodBarC}">${prodBarPct}%</div>
     </div>
     ${bar(prodBarPct,prodBarC,14)}
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px">
       <div style="text-align:center;padding:10px;background:#f8faff;border-radius:6px">
-        <div style="font-size:20px;font-weight:900;color:#0d1b35">${prodTarget}</div>
+        <div style="font-size:20px;font-weight:900;color:#0e3a56">${prodTarget}</div>
         <div style="font-size:9px;color:#6b7280;text-transform:uppercase;font-weight:700;margin-top:2px">Monthly Target<br>(Daily Entry Sum)</div>
       </div>
       <div style="text-align:center;padding:10px;background:#f8faff;border-radius:6px">
@@ -17152,14 +17152,14 @@ function renderCEOReport(){
   // EOD discipline
   html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px">
     <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:14px">
-      <div style="font-size:11px;font-weight:700;color:#0d1b35;margin-bottom:8px">EOD Discipline</div>
+      <div style="font-size:11px;font-weight:700;color:#0e3a56;margin-bottom:8px">EOD Discipline</div>
       <div style="font-size:28px;font-weight:900;color:${gc(closedDays/Math.max(workingDays,1)*100,90,70)}">${closedDays}<span style="font-size:16px;color:#9ca3af">/${workingDays}</span></div>
       <div style="font-size:10px;color:#6b7280;margin-top:4px">Days EOD closed vs planned</div>
       ${bar(workingDays>0?closedDays/workingDays*100:0,gc(closedDays/Math.max(workingDays,1)*100,90,70),8)}
     </div>
     <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:14px">
-      <div style="font-size:11px;font-weight:700;color:#0d1b35;margin-bottom:8px">Batch Summary</div>
-      ${(()=>{const mb=(BATCHES||[]).filter(b=>!b.deleted&&inM(b.date||b.createdAt));const done=mb.filter(b=>b.status==='done'||b.completed).length;return`<div style="font-size:28px;font-weight:900;color:#0d1b35">${done}<span style="font-size:16px;color:#9ca3af">/${mb.length}</span></div><div style="font-size:10px;color:#6b7280;margin-top:4px">Batches completed this month</div>${bar(mb.length>0?done/mb.length*100:0,'#16a34a',8)}`;})()}
+      <div style="font-size:11px;font-weight:700;color:#0e3a56;margin-bottom:8px">Batch Summary</div>
+      ${(()=>{const mb=(BATCHES||[]).filter(b=>!b.deleted&&inM(b.date||b.createdAt));const done=mb.filter(b=>b.status==='done'||b.completed).length;return`<div style="font-size:28px;font-weight:900;color:#0e3a56">${done}<span style="font-size:16px;color:#9ca3af">/${mb.length}</span></div><div style="font-size:10px;color:#6b7280;margin-top:4px">Batches completed this month</div>${bar(mb.length>0?done/mb.length*100:0,'#16a34a',8)}`;})()}
     </div>
   </div>`;
 
@@ -17172,9 +17172,9 @@ function renderCEOReport(){
     const rate=ws.total>0?Math.round((ws.present+ws.half*0.5)/ws.total*100):0;
     const rc=gc(rate,90,75);
     html+=`<div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:12px;display:flex;align-items:center;gap:10px">
-      <div style="width:40px;height:40px;background:#0d1b35;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#fff;flex-shrink:0">${ws.name.slice(0,2).toUpperCase()}</div>
+      <div style="width:40px;height:40px;background:#0e3a56;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#fff;flex-shrink:0">${ws.name.slice(0,2).toUpperCase()}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:12px;font-weight:800;color:#0d1b35">${ws.name}</div>
+        <div style="font-size:12px;font-weight:800;color:#0e3a56">${ws.name}</div>
         <div style="font-size:9px;color:#9ca3af">${ws.role}</div>
         <div style="font-size:10px;color:#6b7280;margin-top:3px">✅${ws.present} ⚡${ws.half} ❌${ws.absent}</div>
         ${bar(rate,rc,5)}
@@ -17199,7 +17199,7 @@ function renderCEOReport(){
   problems.forEach(p=>{
     html+=`<div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:12px">
       <div style="background:#f8faff;padding:10px 16px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:8px">
-        <span style="font-size:18px">${p.ico}</span><span style="font-size:13px;font-weight:800;color:#0d1b35">${p.prob}</span>
+        <span style="font-size:18px">${p.ico}</span><span style="font-size:13px;font-weight:800;color:#0e3a56">${p.prob}</span>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
         <div style="padding:10px 16px;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb">
@@ -17286,7 +17286,7 @@ function renderCEOReport(){
   kpis.forEach(k=>{
     const c=k.s==='green'?'#16a34a':k.s==='amber'?'#d97706':'#dc2626';
     const badge=k.s==='green'?'🟢 Good':k.s==='amber'?'🟡 Watch':'🔴 Fix';
-    html+=tblRow([[k.kpi,'#0d1b35',true],[k.val,c,true],[k.r,'#dc2626'],[k.a,'#d97706'],[k.g,'#16a34a'],[badge,c],[k.trend,'#6b7280'],[k.why,'#9ca3af']]);
+    html+=tblRow([[k.kpi,'#0e3a56',true],[k.val,c,true],[k.r,'#dc2626'],[k.a,'#d97706'],[k.g,'#16a34a'],[badge,c],[k.trend,'#6b7280'],[k.why,'#9ca3af']]);
   });
   html+='</tbody></table></div>';
 
@@ -17305,11 +17305,11 @@ function renderCEOReport(){
    {a:'Interest',cur:'₹'+fmtL(intExp),t:'<₹20K',act:'High-rate loan identify — extra payment karo',s:intExp<=20000?'🟢':intExp<=40000?'🟡':'🔴',imp:`₹${fmtL(intExp*0.25)}/month`},
    {a:'EOD',cur:closedDays+'/'+workingDays,t:'100%',act:'Har din EOD close karo — habit banao',s:closedDays>=workingDays*0.9?'🟢':closedDays>=workingDays*0.7?'🟡':'🔴',imp:'Data accuracy'},
    {a:'Raw Material',cur:rev>0?pct(rawmat/rev*100):'—',t:'<45% rev',act:'Advance bulk order plan karo',s:(rev>0&&rawmat/rev<=0.45)?'🟢':(rev>0&&rawmat/rev<=0.55)?'🟡':'🔴',imp:`₹${fmtL(rawmat*0.05)}/month`},
-  ].forEach(k=>html+=tblRow([[k.a,'#0d1b35',true],[k.cur,'#6b7280'],[k.t,'#16a34a',true],[k.act,'#374151'],[k.s,'#111'],[k.imp,'#6b7280']]));
+  ].forEach(k=>html+=tblRow([[k.a,'#0e3a56',true],[k.cur,'#6b7280'],[k.t,'#16a34a',true],[k.act,'#374151'],[k.s,'#111'],[k.imp,'#6b7280']]));
   html+='</tbody></table></div>';
 
   // Action Plan
-  html+=`<div style="margin-top:12px;font-size:11px;font-weight:700;color:#0d1b35;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">This Week Action Plan</div>`;
+  html+=`<div style="margin-top:12px;font-size:11px;font-weight:700;color:#0e3a56;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">This Week Action Plan</div>`;
   html+=tblHead(['Din','Action','Exactly Kaise','Time','Expected Result']);
   const wacts=[];
   if(netMargin<14)wacts.push(['Aaj 🔴','Vendor call — bulk rate maango',`"${Math.round(totalUnits||50)}+ units/month deta hoon — 5% rate do." Record karo response.`,'30 min','COGS 3-5% reduce']);
@@ -17319,7 +17319,7 @@ function renderCEOReport(){
   wacts.push(['Is Hafte 🟡','Raw material advance order','Next month ka estimate banao — bulk order karo vendor pe.','1 hr','COGS predictable + no stock-out']);
   wacts.push(['Weekend ✅','CEO Report 10 min review','Metrics check karo — action liya tha kaam aaya? Next 1 priority decide.','10 min','Weekly accountability loop']);
   wacts.push(['Next Monday ✅','Numbers dobara check karo','Kya change hua? Pattern identify karo. Compound karo.','15 min','Data-driven growth']);
-  wacts.forEach(a=>html+=tblRow([[a[0],'#16a34a',true],[a[1],'#0d1b35',true],[a[2],'#6b7280'],[a[3],'#9ca3af'],[a[4],'#16a34a']]));
+  wacts.forEach(a=>html+=tblRow([[a[0],'#16a34a',true],[a[1],'#0e3a56',true],[a[2],'#6b7280'],[a[3],'#9ca3af'],[a[4],'#16a34a']]));
   html+='</tbody></table></div>';
 
   // ════════════════════════════════════════════════
@@ -17366,7 +17366,7 @@ function renderCEOReport(){
       <div style="flex-shrink:0;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:${c};border:2px solid ${c};background:${r.now?stageC+'15':'#fff'}">${r.n}</div>
       <div style="flex:1;background:${r.now?'#f0f4ff':'#fff'};border:1px solid ${r.now?stageC:'#e5e7eb'};border-radius:8px;padding:12px">
         <div style="display:flex;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:4px">
-          <div><div style="font-size:9px;color:#9ca3af;text-transform:uppercase">${r.p}</div><div style="font-size:13px;font-weight:800;color:#0d1b35">${r.t}</div></div>
+          <div><div style="font-size:9px;color:#9ca3af;text-transform:uppercase">${r.p}</div><div style="font-size:13px;font-weight:800;color:#0e3a56">${r.t}</div></div>
           <div style="text-align:right"><div style="font-size:12px;font-weight:800;color:${c}">${r.rev}</div><div style="font-size:9px;color:${c}">${r.done?'✓ Done':r.now?'▶ Current':'Upcoming'}</div></div>
         </div>
         <div style="font-size:10px;color:#1e40af;background:#eff6ff;border-radius:4px;padding:5px 8px;margin-bottom:7px">${r.why}</div>
@@ -17377,7 +17377,7 @@ function renderCEOReport(){
   });
 
   // ── Closing Card ──
-  html+=`<div style="background:linear-gradient(135deg,#0d1b35 0%,#1a3260 100%);border-radius:10px;padding:22px;text-align:center;margin-top:16px;color:#fff">
+  html+=`<div style="background:linear-gradient(135deg,#0e3a56 0%,#1b5d82 100%);border-radius:10px;padding:22px;text-align:center;margin-top:16px;color:#fff">
     <div style="font-size:18px;font-weight:900;margin-bottom:10px">Tu kar sakta hai. Data yahi bol raha hai. 🏭</div>
     <div style="font-size:11px;color:#aabbcc;line-height:2;margin-bottom:14px">
       Revenue ₹${fmtL(rev)}/month | ${netProfit>0?`Net Profit ₹${fmtL(netProfit)} — profitable manufacturing`:'Data track ho raha hai — yahi step 1 hai'}<br>
@@ -17875,7 +17875,7 @@ function _cfoCalc(){
           <span style="font-size:12px;font-weight:800">Current Month Progress</span>
           <span style="font-size:12px;font-weight:800;color:${barColor}">${d.units} / ${beUnits} units</span>
         </div>
-        <div style="height:16px;background:#f0f4fb;border-radius:8px;overflow:hidden">
+        <div style="height:16px;background:#eaf4fa;border-radius:8px;overflow:hidden">
           <div style="height:100%;width:${pct}%;background:${barColor};border-radius:8px;transition:width .6s ease"></div>
         </div>
         <div style="display:flex;justify-content:space-between;margin-top:4px">
@@ -19372,7 +19372,7 @@ authBootstrap();
   <div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:500px;animation:slideUp .25s ease;max-height:90vh;overflow-y:auto;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div style="font-size:15px;font-weight:800;color:var(--navy2)">📦 Stock Adjust Karo</div>
-      <button onclick="invCloseAdjModal()" style="width:30px;height:30px;border:none;background:#f0f4fb;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
+      <button onclick="invCloseAdjModal()" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
     </div>
     <div class="fg"><label>Material</label>
       <select class="finp" id="inv-adj-mat" onchange="invOnAdjMatChange()"><option value="">-- chunno --</option></select>
@@ -19400,7 +19400,7 @@ authBootstrap();
   <div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:500px;animation:slideUp .25s ease;max-height:90vh;overflow-y:auto;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div style="font-size:15px;font-weight:800;color:var(--navy2)">➕ Naya Material Add Karo</div>
-      <button onclick="invCloseAddMatModal()" style="width:30px;height:30px;border:none;background:#f0f4fb;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
+      <button onclick="invCloseAddMatModal()" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
     </div>
     <div class="fg"><label>Material Name</label><input class="finp" type="text" id="inv-nm-name" placeholder="e.g. New Part"></div>
     <div class="g2">
@@ -19431,7 +19431,7 @@ authBootstrap();
   <div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:500px;animation:slideUp .25s ease;max-height:90vh;overflow-y:auto;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div style="font-size:15px;font-weight:800;color:var(--navy2)" id="inv-em-title">✏️ Edit Material</div>
-      <button onclick="invCloseEditMatModal()" style="width:30px;height:30px;border:none;background:#f0f4fb;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
+      <button onclick="invCloseEditMatModal()" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
     </div>
     <input type="hidden" id="inv-em-id">
     <div class="fg"><label>Name</label><input class="finp" type="text" id="inv-em-name"></div>
@@ -19466,7 +19466,7 @@ authBootstrap();
   <div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:500px;animation:slideUp .25s ease;max-height:90vh;overflow-y:auto;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div style="font-size:15px;font-weight:800;color:var(--navy2)">➕ Naya Material — Is Product Ki BOM Ke Liye</div>
-      <button onclick="closeBomQuickAddMat()" style="width:30px;height:30px;border:none;background:#f0f4fb;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
+      <button onclick="closeBomQuickAddMat()" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
     </div>
     <div class="fg"><label>Material Name</label><input class="finp" type="text" id="bqm-name" placeholder="e.g. XL Box Packaging"></div>
     <div class="g2">
