@@ -16924,32 +16924,51 @@ async function _dbHandleFiles(e){
   toast(`✅ ${allNew.length} entries import ho gayi${filesTxt}!${totalDupes>0?' '+totalDupes+' duplicate skip.':''}${totalSkipped>0?' '+totalSkipped+' rows skip.':''}`, 6000);
 }
 
+// Locate header row anywhere in the first ~15 rows (statement exports have title/period rows above it)
+function _dbFindHeaderRow(rows){
+  const limit = Math.min(rows.length, 15);
+  for(let i=0;i<limit;i++){
+    const h = (rows[i]||[]).map(c=>String(c||'').replace(/"/g,'').trim().toLowerCase());
+    const hasDate = h.some(c=>c.includes('date'));
+    const hasType = h.some(c=>c.includes('type'));
+    const hasAmt  = h.some(c=>c.includes('amount in')||c==='in'||c.includes('deposit')||c.includes('credit')||c==='cr') &&
+                    h.some(c=>c.includes('amount out')||c==='out'||c.includes('withdrawal')||c.includes('debit')||c==='dr');
+    if(hasDate && (hasType || hasAmt)) return i;
+  }
+  return 0; // fallback — assume first row
+}
+
 function _dbParseRows(rows){
   const imported = [];
   const skipped = [];
   if(!rows.length || rows.length < 2) return { imported, skipped };
 
-  const header = rows[0].map(h=>String(h||'').replace(/"/g,'').trim().toLowerCase());
+  const headerRowIdx = _dbFindHeaderRow(rows);
+  const header = (rows[headerRowIdx]||[]).map(h=>String(h||'').replace(/"/g,'').trim().toLowerCase());
   const dateIdx = header.findIndex(h=>h.includes('date'));
   const typeIdx = header.findIndex(h=>h.includes('type'));
-  const descIdx = header.findIndex(h=>h.includes('desc'));
-  const amtInIdx= header.findIndex(h=>h.includes('amount in')||h==='in');
-  const amtOutIdx=header.findIndex(h=>h.includes('amount out')||h==='out');
+  const descIdx = header.findIndex(h=>h.includes('desc')||h.includes('narration')||h.includes('particular'));
+  const amtInIdx= header.findIndex(h=>h.includes('amount in')||h==='in'||h.includes('deposit')||h.includes('credit')||h==='cr');
+  const amtOutIdx=header.findIndex(h=>h.includes('amount out')||h==='out'||h.includes('withdrawal')||h.includes('debit')||h==='dr');
   const catIdx  = header.findIndex(h=>h.includes('categ'));
   const remIdx  = header.findIndex(h=>h.includes('remark'));
+  const modeIdx = header.findIndex(h=>h.includes('mode'));
 
-  if(dateIdx<0||typeIdx<0){ skipped.push('header'); return { imported, skipped }; }
+  // Need a date column, plus either an explicit Type column or both In/Out amount columns to infer type
+  if(dateIdx<0 || (typeIdx<0 && (amtInIdx<0||amtOutIdx<0))){ skipped.push('header'); return { imported, skipped }; }
 
-  rows.slice(1).forEach((cols,li)=>{
+  rows.slice(headerRowIdx+1).forEach((cols,li)=>{
     const dateRaw = String(cols[dateIdx]??'').trim();
-    const typeRaw = String(cols[typeIdx]??'').trim().toLowerCase();
-    const desc    = String(cols[descIdx]??'').trim();
-    const amtIn   = parseFloat(cols[amtInIdx])||0;
-    const amtOut  = parseFloat(cols[amtOutIdx])||0;
-    const origCat = String(cols[catIdx]??'').replace(/"/g,'').trim();
+    const typeRaw = typeIdx>=0 ? String(cols[typeIdx]??'').trim().toLowerCase() : '';
+    const desc    = descIdx>=0 ? String(cols[descIdx]??'').trim() : '';
+    const amtIn   = amtInIdx>=0 ? (parseFloat(cols[amtInIdx])||0) : 0;
+    const amtOut  = amtOutIdx>=0 ? (parseFloat(cols[amtOutIdx])||0) : 0;
+    const origCat = catIdx>=0 ? String(cols[catIdx]??'').replace(/"/g,'').trim() : '';
     const remark  = remIdx>=0 ? String(cols[remIdx]??'').trim() : '';
+    const modeRaw = modeIdx>=0 ? String(cols[modeIdx]??'').trim().toLowerCase() : '';
 
-    if(!dateRaw||!typeRaw){ skipped.push(li+2); return; }
+    // Rows like "Opening Balance" have no date — skip quietly, not counted as an error
+    if(!dateRaw){ return; }
 
     // Parse date: Excel serial number, DD-MM-YYYY, DD/MM/YYYY, or YYYY-MM-DD
     let dateISO = '';
@@ -16964,16 +16983,19 @@ function _dbParseRows(rows){
     } else if(dateRaw.match(/^\d{4}-\d{2}-\d{2}$/)){
       dateISO = dateRaw;
     } else {
-      skipped.push(li+2); return;
+      skipped.push(li+headerRowIdx+2); return;
     }
 
-    const isIncome = typeRaw.includes('income') || typeRaw.includes('in');
-    const amount   = isIncome ? amtIn : amtOut;
-    if(amount <= 0){ skipped.push(li+2); return; }
+    // Determine income vs expense — prefer explicit Type column, else infer from which amount column is non-zero
+    const isIncome = typeIdx>=0
+      ? (typeRaw.includes('income') || typeRaw.includes('in'))
+      : (amtIn > 0 && amtOut <= 0);
+    const amount = isIncome ? amtIn : amtOut;
+    if(amount <= 0){ skipped.push(li+headerRowIdx+2); return; }
 
     // Smart category mapping
     const { cat, type } = _dbSmartMap(desc, origCat, isIncome ? 'income':'expense', remark);
-    const mode = _dbDetectMode(desc+' '+remark);
+    const mode = ['cash','upi','cheque','bank'].includes(modeRaw) ? modeRaw : _dbDetectMode(desc+' '+remark);
 
     imported.push({
       id:          'db_imp_'+Date.now()+'_'+li+'_'+Math.random().toString(36).slice(2,7),
