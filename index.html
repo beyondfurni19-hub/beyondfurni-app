@@ -2786,7 +2786,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
   <div style="background:#fff;border-radius:var(--r) var(--r) 0 0;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;padding:20px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div style="font-size:16px;font-weight:900;color:var(--navy2)" id="db-modal-title">📔 Naya Kharcha</div>
-      <button onclick="_dbCloseModal()" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:#f0f4ff;cursor:pointer;font-size:16px">✕</button>
+      <button onclick="_dbCloseModalOrQueue()" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:#f0f4ff;cursor:pointer;font-size:16px">✕</button>
     </div>
 
     <!-- Type Toggle -->
@@ -2869,23 +2869,30 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
     </div>
 
     <div id="db-receipt-step-pick">
-      <div style="font-size:12px;color:var(--muted);font-weight:700;margin-bottom:12px">PhonePe/GPay payment ka screenshot upload karo — amount, date, party sab khud fill ho jayenge (fir bhi save se pehle check kar lena).</div>
+      <div style="font-size:12px;color:var(--muted);font-weight:700;margin-bottom:12px">Ek ya kayi PhonePe/GPay screenshots ek saath chuno — sab ke liye baari-baari confirm screen aayegi, entry karke agla khud khul jayega.</div>
       <label for="db-receipt-file" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:2px dashed var(--border2);border-radius:var(--r2);padding:32px 16px;cursor:pointer;background:#f8faff">
         <div style="font-size:32px">📷</div>
-        <div style="font-size:13px;font-weight:800;color:var(--navy2)">Screenshot Chuno ya Photo Kheecho</div>
+        <div style="font-size:13px;font-weight:800;color:var(--navy2)">Screenshots Chuno (Multiple bhi chal sakte)</div>
         <div style="font-size:10px;color:var(--muted)">JPG / PNG</div>
       </label>
-      <input type="file" id="db-receipt-file" accept="image/*" capture="environment" style="display:none" onchange="_dbReceiptFileChosen(this)">
+      <input type="file" id="db-receipt-file" accept="image/*" multiple style="display:none" onchange="_dbReceiptFileChosen(this)">
+    </div>
+
+    <div id="db-receipt-step-queue" style="display:none">
+      <div style="font-size:13px;font-weight:800;color:var(--navy2);margin-bottom:10px" id="db-receipt-queue-count"></div>
+      <div id="db-receipt-queue-thumbs" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:16px;max-height:220px;overflow-y:auto"></div>
+      <button onclick="_dbStartQueue()" style="width:100%;padding:13px;background:var(--orange);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">🚀 Sabko Scan Karo</button>
+      <button onclick="_dbReceiptReset()" style="width:100%;padding:10px;margin-top:8px;background:#f0f4ff;color:var(--navy2);border:1px solid var(--border);border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">↩️ Dobara Chuno</button>
     </div>
 
     <div id="db-receipt-step-scan" style="display:none">
+      <div id="db-receipt-queue-label" style="font-size:12px;font-weight:800;color:var(--orange);margin-bottom:8px"></div>
       <img id="db-receipt-preview" style="width:100%;max-height:260px;object-fit:contain;border-radius:var(--r2);border:1px solid var(--border);margin-bottom:14px;background:#f8faff">
       <div id="db-receipt-status" style="text-align:center;padding:10px;font-size:12px;font-weight:800;color:var(--muted)"></div>
       <div id="db-receipt-progress-wrap" style="background:#f0f4ff;border-radius:20px;height:8px;overflow:hidden;margin:8px 0 16px">
         <div id="db-receipt-progress-bar" style="background:var(--orange);height:100%;width:0%;transition:width .2s"></div>
       </div>
-      <button id="db-receipt-scan-btn" onclick="_dbRunReceiptOCR()" style="width:100%;padding:13px;background:var(--orange);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">🔍 Scan Karo</button>
-      <button onclick="_dbReceiptReset()" style="width:100%;padding:10px;margin-top:8px;background:#f0f4ff;color:var(--navy2);border:1px solid var(--border);border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">↩️ Dusra Screenshot Chuno</button>
+      <button onclick="_dbCancelQueue()" style="width:100%;padding:10px;background:var(--red-bg);color:var(--red-dark);border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">✕ Bulk Upload Rok Do</button>
     </div>
   </div>
 </div>
@@ -14939,12 +14946,19 @@ function _dbOpenAdd(){
 }
 
 /* ═══════════════════════════════════════════════
-   RECEIPT SCAN (OCR) — upload a PhonePe/GPay screenshot,
-   auto-extract amount/date/party/note, then hand off to
-   the normal Add Entry form so the user always reviews
-   and confirms before saving (no blind auto-save).
+   RECEIPT SCAN (OCR) — bulk upload — upload many
+   PhonePe/GPay screenshots at once (e.g. a whole day's
+   worth from a WhatsApp group), auto-extract fields for
+   each, and step through them one at a time. Every single
+   one still gets the normal Add Entry confirm screen —
+   nothing auto-saves blindly — but after Save/Skip the
+   next one opens automatically so it's a fast one-after-
+   another flow instead of repeating the upload steps.
 ═══════════════════════════════════════════════ */
-let _dbReceiptFile=null;
+let _dbQueue=[];        // File[] waiting to be processed
+let _dbQueueIdx=0;      // index of the one currently being scanned/reviewed
+let _dbQueueActive=false;
+let _dbQueueStats={saved:0,skipped:0,failed:0};
 
 function openDbReceiptModal(){
   document.getElementById('db-receipt-modal').style.display='flex';
@@ -14954,34 +14968,72 @@ function closeDbReceiptModal(){
   document.getElementById('db-receipt-modal').style.display='none';
 }
 function _dbReceiptReset(){
-  _dbReceiptFile=null;
+  _dbQueue=[]; _dbQueueIdx=0;
   document.getElementById('db-receipt-file').value='';
   document.getElementById('db-receipt-step-pick').style.display='';
+  document.getElementById('db-receipt-step-queue').style.display='none';
   document.getElementById('db-receipt-step-scan').style.display='none';
   document.getElementById('db-receipt-status').textContent='';
   document.getElementById('db-receipt-progress-bar').style.width='0%';
-  const btn=document.getElementById('db-receipt-scan-btn');
-  btn.disabled=false; btn.textContent='🔍 Scan Karo';
-}
-function _dbReceiptFileChosen(input){
-  const file=input.files[0];
-  if(!file) return;
-  _dbReceiptFile=file;
-  const url=URL.createObjectURL(file);
-  document.getElementById('db-receipt-preview').src=url;
-  document.getElementById('db-receipt-step-pick').style.display='none';
-  document.getElementById('db-receipt-step-scan').style.display='';
 }
 
-async function _dbRunReceiptOCR(){
-  if(!_dbReceiptFile){ toast('⚠️ Pehle screenshot chuno!'); return; }
-  const btn=document.getElementById('db-receipt-scan-btn');
+function _dbReceiptFileChosen(input){
+  const files=[...(input.files||[])];
+  if(!files.length) return;
+  _dbQueue=files;
+  document.getElementById('db-receipt-step-pick').style.display='none';
+  document.getElementById('db-receipt-step-queue').style.display='';
+  document.getElementById('db-receipt-queue-count').textContent=
+    `📸 ${files.length} screenshot${files.length>1?'s':''} chuni gayi — ek-ek karke process hongi`;
+  const thumbsEl=document.getElementById('db-receipt-queue-thumbs');
+  thumbsEl.innerHTML=files.map(f=>{
+    const url=URL.createObjectURL(f);
+    return `<img src="${url}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;border:1px solid var(--border)">`;
+  }).join('');
+}
+
+function _dbStartQueue(){
+  if(!_dbQueue.length) return;
+  _dbQueueIdx=0;
+  _dbQueueActive=true;
+  _dbQueueStats={saved:0,skipped:0,failed:0};
+  closeDbReceiptModal();
+  _dbProcessQueueItem();
+}
+
+function _dbCancelQueue(){
+  if(!confirm('Bulk upload rokna chahte ho? Jitni entries ho chuki hain wo save rahengi.')) return;
+  _dbFinishQueue();
+}
+
+function _dbFinishQueue(){
+  _dbQueueActive=false;
+  const s=_dbQueueStats;
+  closeDbReceiptModal();
+  _dbCloseModal();
+  renderDaybook();
+  toast(`✅ Bulk upload khatam — ${s.saved} entries save hui${s.skipped?`, ${s.skipped} skip ki`:''}${s.failed?`, ${s.failed} scan nahi ho payi`:''}`);
+  _dbQueue=[]; _dbQueueIdx=0;
+}
+
+async function _dbProcessQueueItem(){
+  if(_dbQueueIdx>=_dbQueue.length){ _dbFinishQueue(); return; }
+
+  const file=_dbQueue[_dbQueueIdx];
+  const total=_dbQueue.length;
+  document.getElementById('db-receipt-modal').style.display='flex';
+  document.getElementById('db-receipt-step-pick').style.display='none';
+  document.getElementById('db-receipt-step-queue').style.display='none';
+  document.getElementById('db-receipt-step-scan').style.display='';
+  document.getElementById('db-receipt-queue-label').textContent=`📬 Bulk Upload — ${_dbQueueIdx+1} / ${total}`;
+  document.getElementById('db-receipt-preview').src=URL.createObjectURL(file);
   const statusEl=document.getElementById('db-receipt-status');
   const barEl=document.getElementById('db-receipt-progress-bar');
-  btn.disabled=true; btn.textContent='⏳ Scan ho raha hai...';
+  barEl.style.width='0%';
   statusEl.textContent='Text padha ja raha hai...';
+
   try{
-    const result=await Tesseract.recognize(_dbReceiptFile,'eng',{
+    const result=await Tesseract.recognize(file,'eng',{
       logger:m=>{
         if(m.status==='recognizing text'){
           const pct=Math.round((m.progress||0)*100);
@@ -14994,17 +15046,47 @@ async function _dbRunReceiptOCR(){
     });
     const text=result?.data?.text||'';
     if(!text.trim()){
-      toast('❌ Kuch text nahi mil paya — clearer screenshot try karo');
-      btn.disabled=false; btn.textContent='🔍 Scan Karo';
-      return;
+      _dbQueueStats.failed++;
+      toast(`⚠️ ${_dbQueueIdx+1}/${total} mein text nahi mila — skip ho gaya`);
+      _dbQueueIdx++;
+      return _dbProcessQueueItem();
     }
     const parsed=_dbParseReceiptText(text);
     closeDbReceiptModal();
     _dbApplyReceiptToForm(parsed);
+    _dbShowQueueBannerOnEntryForm(_dbQueueIdx+1,total);
   }catch(e){
-    toast('❌ Scan fail ho gaya: '+e.message);
-    btn.disabled=false; btn.textContent='🔍 Scan Karo';
+    _dbQueueStats.failed++;
+    toast(`⚠️ ${_dbQueueIdx+1}/${total} scan fail — skip ho gaya`);
+    _dbQueueIdx++;
+    _dbProcessQueueItem();
   }
+}
+
+function _dbShowQueueBannerOnEntryForm(pos,total){
+  const modal=document.getElementById('db-modal');
+  const inner=modal?.querySelector('div');
+  if(!inner) return;
+  let banner=document.getElementById('db-queue-banner');
+  if(!banner){
+    banner=document.createElement('div');
+    banner.id='db-queue-banner';
+    banner.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:8px;background:#fff3e0;border:1.5px solid var(--orange);border-radius:var(--r2);padding:8px 12px;margin-bottom:14px';
+    inner.insertBefore(banner, inner.firstChild);
+  }
+  banner.innerHTML=`<span style="font-size:11px;font-weight:800;color:#7a3d00">📬 Bulk Upload — Receipt ${pos} / ${total}</span>
+    <button onclick="_dbQueueSkipCurrent()" style="padding:5px 10px;background:#fff;border:1px solid var(--orange);border-radius:8px;font-size:11px;font-weight:800;color:var(--orange);cursor:pointer">⏭ Skip Karo</button>`;
+}
+function _dbRemoveQueueBanner(){
+  document.getElementById('db-queue-banner')?.remove();
+}
+
+function _dbQueueSkipCurrent(){
+  _dbQueueStats.skipped++;
+  _dbQueueIdx++;
+  _dbRemoveQueueBanner();
+  _dbCloseModal();
+  _dbProcessQueueItem();
 }
 
 function _dbParseReceiptText(raw){
@@ -15387,6 +15469,15 @@ function _dbOpenEdit(id){
 
 function _dbCloseModal(){
   document.getElementById('db-modal').style.display='none';
+}
+function _dbCloseModalOrQueue(){
+  if(_dbQueueActive){
+    if(!confirm('Bulk upload beech mein rokna chahte ho? Jitni entries ho chuki hain wo save rahengi.')) return;
+    _dbRemoveQueueBanner();
+    _dbFinishQueue();
+    return;
+  }
+  _dbCloseModal();
 }
 
 function _dbSetType(type){
@@ -16473,6 +16564,12 @@ function _dbSaveEntry(){
     save('bf9_daybook', DAYBOOK);
     _dbCloseModal();
     renderDaybook();
+    if(_dbQueueActive){
+      _dbQueueStats.saved++;
+      _dbQueueIdx++;
+      _dbRemoveQueueBanner();
+      _dbProcessQueueItem();
+    }
   };
 
   const {warnings, blocks} = _dbRunDiscipline(amount, date, category, note, supplier, _dbMode);
@@ -19712,3 +19809,4 @@ authBootstrap();
 
 </body>
 </html>
+      
