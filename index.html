@@ -15012,9 +15012,15 @@ function _dbParseReceiptText(raw){
   const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
   const out={amount:null,date:null,party:'',note:'',mode:'upi',raw:text};
 
-  // Amount — first ₹ or Rs figure (biggest number near top is usually the txn amount)
-  const amtMatch=text.match(/[₹Rs]\s*([\d,]+(?:\.\d{1,2})?)/i);
-  if(amtMatch) out.amount=parseFloat(amtMatch[1].replace(/,/g,''));
+  // Amount — ₹ or "Rs" figure; fallback to any comma-grouped currency-style
+  // number (e.g. "4,543") since OCR often mangles/drops the ₹ glyph.
+  const amtMatch=text.match(/₹\s*([\d,]+(?:\.\d{1,2})?)/) || text.match(/\bRs\.?\s*([\d,]+(?:\.\d{1,2})?)/i);
+  if(amtMatch){
+    out.amount=parseFloat(amtMatch[1].replace(/,/g,''));
+  } else {
+    const fallback=text.match(/\b(\d{1,3}(?:,\d{2,3})+(?:\.\d{1,2})?)\b/);
+    if(fallback) out.amount=parseFloat(fallback[1].replace(/,/g,''));
+  }
 
   // Date — "6 August 2026" style (day Month year), optionally with time after
   const dateMatch=text.match(/(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})/i);
@@ -15026,7 +15032,14 @@ function _dbParseReceiptText(raw){
 
   // Paid to — line after "Paid to"
   const paidToIdx=lines.findIndex(l=>/paid\s*to/i.test(l));
-  if(paidToIdx>=0 && lines[paidToIdx+1]) out.paidTo=lines[paidToIdx+1].replace(/[*]{4,}\d*/g,'').trim();
+  if(paidToIdx>=0 && lines[paidToIdx+1]){
+    let p=lines[paidToIdx+1];
+    p=p.replace(/[*]{4,}\d*/g,'');                          // masked account numbers
+    p=p.replace(/₹\s*[\d,]+(?:\.\d{1,2})?/g,'');             // amount merged in by OCR
+    p=p.replace(/\brs\.?\s*[\d,]+(?:\.\d{1,2})?\b/gi,'');
+    p=p.replace(/[^\w\s&().\/-]/g,' ');                      // stray OCR glyphs like »
+    out.paidTo=p.replace(/\s+/g,' ').trim();
+  }
 
   // Banking name — same line or next, after "Banking name"
   const bankLine=lines.find(l=>/banking\s*name/i.test(l));
@@ -19677,3 +19690,4 @@ authBootstrap();
 
 </body>
 </html>
+  
