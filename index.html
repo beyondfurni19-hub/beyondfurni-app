@@ -2752,7 +2752,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
       </select>
       <button onclick="_dbOpenAdd()" style="padding:9px 16px;background:var(--orange);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">+ Entry Daalo</button>
       <button onclick="openDbReceiptModal()" style="padding:9px 14px;background:#5b21b6;color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">📷 Receipt Se</button>
-      <button onclick="_dbImportExcel()" style="padding:9px 14px;background:var(--navy);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">📥 CSV Import</button>
+      <button onclick="_dbImportExcel()" style="padding:9px 14px;background:var(--navy);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">📥 Import (Excel/CSV)</button>
       <button onclick="_dbOpenCatManager()" style="padding:9px 14px;background:#f0f4ff;color:var(--navy2);border:1px solid var(--border2);border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🏷️ Categories</button>
       <button onclick="_dbDownloadReport()" style="padding:9px 14px;background:var(--green);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">⬇️ Report</button>
       <button onclick="openDbStatement()" style="padding:9px 14px;background:#1d4ed8;color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🏦 Statement</button>
@@ -16830,36 +16830,106 @@ function _dbDownloadReport(){
 }
 
 function _dbImportExcel(){
-  // Hidden file input
+  // Hidden file input — ab multiple CSV/XLSX/XLS files ek saath select ho sakte hain
   let inp = document.getElementById('_db_csv_inp');
   if(!inp){
     inp = document.createElement('input');
-    inp.type='file'; inp.id='_db_csv_inp'; inp.accept='.csv';
+    inp.type='file'; inp.id='_db_csv_inp'; inp.accept='.csv,.xlsx,.xls'; inp.multiple = true;
     inp.style.display='none';
-    inp.onchange = _dbHandleCSV;
+    inp.onchange = _dbHandleFiles;
     document.body.appendChild(inp);
   }
   inp.value='';
   inp.click();
 }
 
-function _dbHandleCSV(e){
-  const file = e.target.files[0];
-  if(!file){ return; }
-  const reader = new FileReader();
-  reader.onload = ev => {
-    try { _dbParseAndImport(ev.target.result); }
-    catch(err){ toast('❌ Error: '+err.message); }
-  };
-  reader.readAsText(file,'utf-8');
+function _dbReadAsText(file){
+  return new Promise((res,rej)=>{
+    const r = new FileReader();
+    r.onload = ev => res(ev.target.result);
+    r.onerror = () => rej(new Error('Read fail: '+file.name));
+    r.readAsText(file,'utf-8');
+  });
+}
+function _dbReadAsArrayBuffer(file){
+  return new Promise((res,rej)=>{
+    const r = new FileReader();
+    r.onload = ev => res(ev.target.result);
+    r.onerror = () => rej(new Error('Read fail: '+file.name));
+    r.readAsArrayBuffer(file);
+  });
 }
 
-function _dbParseAndImport(text){
-  const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
-  if(lines.length < 2){ toast('❌ CSV empty hai'); return; }
+// Excel date serial number → ISO yyyy-mm-dd
+function _dbExcelSerialToISO(n){
+  const d = new Date(Math.round((n - 25569) * 86400 * 1000));
+  const y = d.getUTCFullYear(), m = String(d.getUTCMonth()+1).padStart(2,'0'), day = String(d.getUTCDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
 
-  // Parse header
-  const header = lines[0].split(',').map(h=>h.replace(/"/g,'').trim().toLowerCase());
+async function _dbHandleFiles(e){
+  const files = Array.from(e.target.files||[]);
+  if(!files.length) return;
+
+  // Duplicate-check set — existing Daybook se shuru, phir har file import hone ke saath grow karta hai
+  // taaki alag-alag files ke beech ki duplicate entries bhi pakdi jaayen (same date)
+  const seen = new Set(DAYBOOK.map(en=>`${en.date}|${en.amount}|${(en.note||'').slice(0,20)}`));
+  let allNew = [];
+  let totalDupes = 0, totalSkipped = 0;
+  const fileSummary = [];
+
+  for(const file of files){
+    try{
+      const ext = file.name.split('.').pop().toLowerCase();
+      let rows;
+      if(ext === 'csv'){
+        const text = await _dbReadAsText(file);
+        rows = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n')
+          .filter(l=>l.trim()!=='').map(l=>_dbSplitCSV(l));
+      } else {
+        if(!window.XLSX){ toast('❌ XLSX library load nahi hui — page refresh karo'); continue; }
+        const ab = await _dbReadAsArrayBuffer(file);
+        const wb = XLSX.read(new Uint8Array(ab), {type:'array'});
+        const sheetName = wb.SheetNames[0];
+        rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {header:1, defval:''})
+          .filter(r=>r.some(c=>String(c).trim()!==''))
+          .map(r=>r.map(c=>c===undefined||c===null?'':c));
+      }
+
+      const { imported, skipped } = _dbParseRows(rows);
+      let addedThisFile = 0, dupesThisFile = 0;
+      imported.forEach(en=>{
+        const key = `${en.date}|${en.amount}|${(en.note||'').slice(0,20)}`;
+        if(seen.has(key)){ dupesThisFile++; return; }
+        seen.add(key);
+        allNew.push(en);
+        addedThisFile++;
+      });
+      totalDupes += dupesThisFile;
+      totalSkipped += skipped.length;
+      fileSummary.push(`${file.name}: ${addedThisFile} nayi, ${dupesThisFile} duplicate${skipped.length?', '+skipped.length+' skip':''}`);
+    }catch(err){
+      fileSummary.push(`${file.name}: ❌ ${err.message}`);
+    }
+  }
+
+  if(allNew.length){
+    DAYBOOK = [...DAYBOOK, ...allNew];
+    save('bf9_daybook', DAYBOOK);
+    renderDaybook();
+  }
+
+  console.log('Daybook import summary:\n'+fileSummary.join('\n'));
+  const filesTxt = files.length>1 ? ` (${files.length} files)` : '';
+  toast(`✅ ${allNew.length} entries import ho gayi${filesTxt}!${totalDupes>0?' '+totalDupes+' duplicate skip.':''}${totalSkipped>0?' '+totalSkipped+' rows skip.':''}`, 6000);
+}
+
+function _dbParseRows(rows){
+  const imported = [];
+  const skipped = [];
+  if(!rows.length || rows.length < 2) return { imported, skipped };
+
+  const header = rows[0].map(h=>String(h||'').replace(/"/g,'').trim().toLowerCase());
   const dateIdx = header.findIndex(h=>h.includes('date'));
   const typeIdx = header.findIndex(h=>h.includes('type'));
   const descIdx = header.findIndex(h=>h.includes('desc'));
@@ -16868,29 +16938,28 @@ function _dbParseAndImport(text){
   const catIdx  = header.findIndex(h=>h.includes('categ'));
   const remIdx  = header.findIndex(h=>h.includes('remark'));
 
-  if(dateIdx<0||typeIdx<0){ toast('❌ CSV mein Date aur Type column chahiye'); return; }
+  if(dateIdx<0||typeIdx<0){ skipped.push('header'); return { imported, skipped }; }
 
-  const imported = [];
-  const skipped = [];
-
-  lines.slice(1).forEach((line,li)=>{
-    if(!line.trim()) return;
-    // Handle quoted commas
-    const cols = _dbSplitCSV(line);
-    const dateRaw = (cols[dateIdx]||'').trim();
-    const typeRaw = (cols[typeIdx]||'').trim().toLowerCase();
-    const desc    = (cols[descIdx]||'').trim();
+  rows.slice(1).forEach((cols,li)=>{
+    const dateRaw = String(cols[dateIdx]??'').trim();
+    const typeRaw = String(cols[typeIdx]??'').trim().toLowerCase();
+    const desc    = String(cols[descIdx]??'').trim();
     const amtIn   = parseFloat(cols[amtInIdx])||0;
     const amtOut  = parseFloat(cols[amtOutIdx])||0;
-    const origCat = (cols[catIdx]||'').replace(/"/g,'').trim();
-    const remark  = remIdx>=0?(cols[remIdx]||'').trim():'';
+    const origCat = String(cols[catIdx]??'').replace(/"/g,'').trim();
+    const remark  = remIdx>=0 ? String(cols[remIdx]??'').trim() : '';
 
     if(!dateRaw||!typeRaw){ skipped.push(li+2); return; }
 
-    // Parse date DD-MM-YYYY or YYYY-MM-DD
+    // Parse date: Excel serial number, DD-MM-YYYY, DD/MM/YYYY, or YYYY-MM-DD
     let dateISO = '';
-    if(dateRaw.match(/^\d{2}-\d{2}-\d{4}$/)){
+    if(/^\d+(\.\d+)?$/.test(dateRaw) && Number(dateRaw) > 20000){
+      dateISO = _dbExcelSerialToISO(Number(dateRaw));
+    } else if(dateRaw.match(/^\d{2}-\d{2}-\d{4}$/)){
       const [d,m,y] = dateRaw.split('-');
+      dateISO = `${y}-${m}-${d}`;
+    } else if(dateRaw.match(/^\d{2}\/\d{2}\/\d{4}$/)){
+      const [d,m,y] = dateRaw.split('/');
       dateISO = `${y}-${m}-${d}`;
     } else if(dateRaw.match(/^\d{4}-\d{2}-\d{2}$/)){
       dateISO = dateRaw;
@@ -16907,7 +16976,7 @@ function _dbParseAndImport(text){
     const mode = _dbDetectMode(desc+' '+remark);
 
     imported.push({
-      id:          'db_imp_'+Date.now()+'_'+li,
+      id:          'db_imp_'+Date.now()+'_'+li+'_'+Math.random().toString(36).slice(2,7),
       date:        dateISO,
       type,
       category:    cat,
@@ -16921,17 +16990,7 @@ function _dbParseAndImport(text){
     });
   });
 
-  if(!imported.length){ toast('⚠️ Koi valid entry nahi mili CSV mein'); return; }
-
-  // Duplicate check — same date+amount+note
-  const existing = new Set(DAYBOOK.map(e=>`${e.date}|${e.amount}|${e.note?.slice(0,20)}`));
-  const fresh = imported.filter(e=>!existing.has(`${e.date}|${e.amount}|${e.note?.slice(0,20)}`));
-  const dupes = imported.length - fresh.length;
-
-  DAYBOOK = [...DAYBOOK, ...fresh];
-  save('bf9_daybook', DAYBOOK);
-  renderDaybook();
-  toast(`✅ ${fresh.length} entries import ho gayi!${dupes>0?' ('+dupes+' duplicates skip)':''}${skipped.length>0?' ('+skipped.length+' rows skip)':''}`, 5000);
+  return { imported, skipped };
 }
 
 function _dbSplitCSV(line){
@@ -19809,4 +19868,3 @@ authBootstrap();
 
 </body>
 </html>
-      
