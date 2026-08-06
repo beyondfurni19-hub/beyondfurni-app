@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
 /* ═══════════════════ TOKENS ═══════════════════ */
 :root{
@@ -2750,6 +2751,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
         <option value="">Sab Entries</option>
       </select>
       <button onclick="_dbOpenAdd()" style="padding:9px 16px;background:var(--orange);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">+ Entry Daalo</button>
+      <button onclick="openDbReceiptModal()" style="padding:9px 14px;background:#5b21b6;color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">📷 Receipt Se</button>
       <button onclick="_dbImportExcel()" style="padding:9px 14px;background:var(--navy);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">📥 CSV Import</button>
       <button onclick="_dbOpenCatManager()" style="padding:9px 14px;background:#f0f4ff;color:var(--navy2);border:1px solid var(--border2);border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🏷️ Categories</button>
       <button onclick="_dbDownloadReport()" style="padding:9px 14px;background:var(--green);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">⬇️ Report</button>
@@ -2857,6 +2859,37 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
     <div id="db-edit-id" style="display:none"></div>
   </div>
 </div>
+
+<!-- Receipt Scan Modal (OCR) -->
+<div id="db-receipt-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:650;align-items:flex-end;justify-content:center">
+  <div style="background:#fff;border-radius:var(--r) var(--r) 0 0;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;padding:20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-size:16px;font-weight:900;color:var(--navy2)">📷 Receipt Se Entry Banao</div>
+      <button onclick="closeDbReceiptModal()" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:#f0f4ff;cursor:pointer;font-size:16px">✕</button>
+    </div>
+
+    <div id="db-receipt-step-pick">
+      <div style="font-size:12px;color:var(--muted);font-weight:700;margin-bottom:12px">PhonePe/GPay payment ka screenshot upload karo — amount, date, party sab khud fill ho jayenge (fir bhi save se pehle check kar lena).</div>
+      <label for="db-receipt-file" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:2px dashed var(--border2);border-radius:var(--r2);padding:32px 16px;cursor:pointer;background:#f8faff">
+        <div style="font-size:32px">📷</div>
+        <div style="font-size:13px;font-weight:800;color:var(--navy2)">Screenshot Chuno ya Photo Kheecho</div>
+        <div style="font-size:10px;color:var(--muted)">JPG / PNG</div>
+      </label>
+      <input type="file" id="db-receipt-file" accept="image/*" capture="environment" style="display:none" onchange="_dbReceiptFileChosen(this)">
+    </div>
+
+    <div id="db-receipt-step-scan" style="display:none">
+      <img id="db-receipt-preview" style="width:100%;max-height:260px;object-fit:contain;border-radius:var(--r2);border:1px solid var(--border);margin-bottom:14px;background:#f8faff">
+      <div id="db-receipt-status" style="text-align:center;padding:10px;font-size:12px;font-weight:800;color:var(--muted)"></div>
+      <div id="db-receipt-progress-wrap" style="background:#f0f4ff;border-radius:20px;height:8px;overflow:hidden;margin:8px 0 16px">
+        <div id="db-receipt-progress-bar" style="background:var(--orange);height:100%;width:0%;transition:width .2s"></div>
+      </div>
+      <button id="db-receipt-scan-btn" onclick="_dbRunReceiptOCR()" style="width:100%;padding:13px;background:var(--orange);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">🔍 Scan Karo</button>
+      <button onclick="_dbReceiptReset()" style="width:100%;padding:10px;margin-top:8px;background:#f0f4ff;color:var(--navy2);border:1px solid var(--border);border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">↩️ Dusra Screenshot Chuno</button>
+    </div>
+  </div>
+</div>
+
 
 <!-- ════ DAY BOOK CATEGORY MANAGER MODAL ════ -->
 <div id="db-cat-manager" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:650;align-items:flex-end;justify-content:center">
@@ -3258,15 +3291,6 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
       </button>
       <input type="file" id="_restore_inp" accept=".json" style="display:none" onchange="_importAllData(this)">
       <div id="_restore_status" style="display:none;margin-top:10px;padding:10px 12px;border-radius:var(--r2);font-size:12px;font-weight:800;"></div>
-    </div>
-
-    <!-- Cloud Snapshot History -->
-    <div style="background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:var(--r2);padding:14px;margin-bottom:10px;">
-      <div style="font-size:13px;font-weight:900;color:#5b21b6;margin-bottom:4px;">📜 Snapshot History (Cloud)</div>
-      <div style="font-size:11px;color:#555;margin-bottom:12px;line-height:1.6;">Har thodi der mein automatic ek safe copy cloud pe save hoti hai. Agar kabhi data kam dikhe, yahan se purani snapshot dekh ke restore kar sakte ho.</div>
-      <button onclick="openSnapshotHistoryModal()" style="width:100%;padding:12px;background:#7c3aed;color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;">
-        📜 Snapshot History Dekho
-      </button>
     </div>
 
     <!-- How to move safely -->
@@ -4877,59 +4901,6 @@ let _gdSyncing   = false;
 let _gdPushTimer = null;
 let _gdLoaded    = false;
 
-/* ══════════════════════════════════════════════════════════
-   DATA-LOSS GUARD — koi bhi wholesale sync (push ya pull) jo
-   critical records ko achanak kam kar de, use auto-block karta
-   hai. Isse woh bug dobara nahi hoga jisme fresh/stale session
-   ne accha local data cloud ke khaali/purane data se overwrite
-   kar diya tha.
-══════════════════════════════════════════════════════════ */
-const CRITICAL_ARR_KEYS = ['bf9_daybook','bf9_batches','bf9_invoices','bf9_orders','bf9_customers','bf9_ledger','bf9_att','bf9_stxn','bf9_trips','bf9_assets','bf9_advances'];
-const GUARD_DROP_PCT = 0.15; // 15% se zyada gira toh block
-
-function _arrCount(jsonStr){
-  try{ const v = JSON.parse(jsonStr); return Array.isArray(v) ? v.length : 0; }catch(e){ return 0; }
-}
-function _countsOf(src){ // src: 'local' ya {key: jsonString} object (cloud data)
-  const out={};
-  CRITICAL_ARR_KEYS.forEach(k=>{
-    out[k] = _arrCount(src==='local' ? localStorage.getItem(k) : src[k]);
-  });
-  return out;
-}
-function _findDataLossDrops(fromCounts, toCounts){
-  const drops=[];
-  CRITICAL_ARR_KEYS.forEach(k=>{
-    if(fromCounts[k]>=5 && toCounts[k] < fromCounts[k]*(1-GUARD_DROP_PCT)){
-      drops.push({key:k, from:fromCounts[k], to:toCounts[k]});
-    }
-  });
-  return drops;
-}
-function _applyCloudData(cloud){
-  let restored=0;
-  GD_KEYS.forEach(k=>{
-    if(cloud[k]!==undefined && cloud[k]!=='' && cloud[k]!=='null'){
-      localStorage.setItem(k, cloud[k]);
-      restored++;
-    }
-  });
-  return restored;
-}
-function _showGuardBanner(drops, direction){
-  const msg = drops.map(d=>`${d.key.replace('bf9_','')}: ${d.from}→${d.to}`).join(' · ');
-  console.warn('🛑 SYNC BLOCKED — possible data loss ('+direction+'):', msg);
-  let el = document.getElementById('gd-guard-banner');
-  if(!el){
-    el = document.createElement('div');
-    el.id='gd-guard-banner';
-    el.style.cssText='position:fixed;top:0;left:0;right:0;background:#fee2e2;color:#991b1b;padding:10px 14px;font-size:12px;font-weight:800;z-index:9999;text-align:center;border-bottom:2px solid #ef4444;font-family:Nunito,sans-serif;';
-    document.body.prepend(el);
-  }
-  el.textContent = `⚠️ Auto-sync ROKA gaya (data-loss risk): ${msg}. Settings → Snapshot History se check karo, khud reload mat karo.`;
-  el.style.display='block';
-}
-
 /* ── localStorage helpers (unchanged) ── */
 function load(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; }}
 function save(k,v){
@@ -4973,40 +4944,11 @@ async function gdPush(){
     _gdSyncing = false;
     gdSetDot('ok');
     localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
-    _gdSaveHistorySnapshot(payload);
   } catch(e) {
     _gdSyncing = false;
     gdSetDot('err');
     console.warn('Supabase push failed:', e);
   }
-}
-
-/* ── Versioned snapshot history (apna khud ka point-in-time backup,
-   kyunki Supabase Free plan mein PITR nahi hota). Har push pe nahi,
-   max har 15 min mein ek snapshot — taaki table zyada bada na ho. ── */
-function _gdSaveHistorySnapshot(payload){
-  try{
-    const last = localStorage.getItem('bf9_hist_last');
-    const now = Date.now();
-    if(last && (now - parseInt(last,10)) < 15*60*1000) return;
-    localStorage.setItem('bf9_hist_last', String(now));
-    fetch(SB_URL+'/rest/v1/bf_sync_history', {
-      method:'POST',
-      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
-      body: JSON.stringify({ data: payload })
-    }).then(()=>{ if(Math.random()<0.1) _gdTrimHistory(); }).catch(()=>{});
-  }catch(e){}
-}
-/* ── Purane snapshots trim karo — sirf latest 300 rakho ── */
-function _gdTrimHistory(){
-  fetch(SB_URL+'/rest/v1/bf_sync_history?select=id&order=created_at.desc&offset=300',{
-    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
-  }).then(r=>r.json()).then(rows=>{
-    if(rows && rows.length){
-      const ids = rows.map(r=>r.id).join(',');
-      fetch(SB_URL+`/rest/v1/bf_sync_history?id=in.(${ids})`,{method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).catch(()=>{});
-    }
-  }).catch(()=>{});
 }
 
 /* ── Load from Supabase on startup ── */
@@ -5046,9 +4988,13 @@ async function _gdSmartSync(){
 
     // Case 2: Local has never synced → pull from cloud
     if(!localTime){
-      const drops2 = _findDataLossDrops(_countsOf('local'), _countsOf(cloud));
-      if(drops2.length){ _showGuardBanner(drops2,'pull-fresh-session'); _gdLoaded=true; gdSetDot('err'); return; }
-      const restored = _applyCloudData(cloud);
+      let restored = 0;
+      GD_KEYS.forEach(k=>{
+        if(cloud[k] !== undefined && cloud[k] !== '' && cloud[k] !== 'null'){
+          localStorage.setItem(k, cloud[k]);
+          restored++;
+        }
+      });
       localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
       _gdLoaded = true;
       gdSetDot('ok');
@@ -5057,16 +5003,29 @@ async function _gdSmartSync(){
     }
 
     // Case 3: Local is NEWER than cloud → push local to cloud
-    // BUT first check — agar local cloud se kaafi kam entries dikha raha hai (kisi bhi
-    // critical key mein), toh pehle cloud se pull karo — push mat karo (data loss prevention)
+    // BUT first verify local actually has meaningful data — agar local empty hai toh cloud se pull karo
     if(localTime >= cloudUpdatedAt){
-      const localCounts3 = _countsOf('local');
-      const cloudCounts3 = _countsOf(cloud);
-      const pullDrops = _findDataLossDrops(cloudCounts3, localCounts3); // local < cloud kahin?
+      const localDaybook = load('bf9_daybook');
+      const localBatches = load('bf9_batches');
+      const localInvoices = load('bf9_invoices');
+      const localHasData = (localDaybook && localDaybook.length > 0) ||
+                           (localBatches && localBatches.length > 0) ||
+                           (localInvoices && localInvoices.length > 0);
 
-      if(pullDrops.length){
-        console.warn('⚠️ Local kam entries dikha raha hai cloud se — pull kar rahe hain, push nahi', pullDrops);
-        const restored = _applyCloudData(cloud);
+      // Agar cloud mein data hai par local empty hai — cloud jeet-ta hai (data loss prevention)
+      const cloudDaybook = cloud['bf9_daybook'] ? JSON.parse(cloud['bf9_daybook']) : [];
+      const cloudHasData = cloudDaybook && cloudDaybook.length > 0;
+
+      if(!localHasData && cloudHasData){
+        // Local empty, cloud mein data hai — cloud se restore karo
+        console.warn('⚠️ Local data empty but cloud has data — pulling from cloud to prevent data loss');
+        let restored = 0;
+        GD_KEYS.forEach(k=>{
+          if(cloud[k] !== undefined && cloud[k] !== '' && cloud[k] !== 'null'){
+            localStorage.setItem(k, cloud[k]);
+            restored++;
+          }
+        });
         localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
         _gdLoaded = true;
         gdSetDot('ok');
@@ -5081,12 +5040,13 @@ async function _gdSmartSync(){
     }
 
     // Case 4: Cloud is NEWER than local → pull from cloud
-    const localCounts4 = _countsOf('local');
-    const cloudCounts4 = _countsOf(cloud);
-    const drops4 = _findDataLossDrops(localCounts4, cloudCounts4);
-    if(drops4.length){ _showGuardBanner(drops4,'pull-cloud-newer'); _gdLoaded=true; gdSetDot('err'); return; }
-
-    const restored = _applyCloudData(cloud);
+    let restored = 0;
+    GD_KEYS.forEach(k=>{
+      if(cloud[k] !== undefined && cloud[k] !== '' && cloud[k] !== 'null'){
+        localStorage.setItem(k, cloud[k]);
+        restored++;
+      }
+    });
     localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
     _gdLoaded = true;
     gdSetDot('ok');
@@ -5102,70 +5062,6 @@ async function _gdSmartSync(){
 }
 
 /* ── Force pull from Supabase (doosre device ka data lana) ── */
-/* ── Snapshot History modal — purani cloud snapshots dekho aur chuni hui restore karo ── */
-async function openSnapshotHistoryModal(){
-  if(!document.getElementById('snap-modal-bg')){
-    const m=document.createElement('div');
-    m.id='snap-modal-bg';
-    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:960;align-items:flex-end;justify-content:center;';
-    m.innerHTML='<div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:560px;max-height:88vh;overflow-y:auto">'
-      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
-      +'<div style="font-size:15px;font-weight:800;color:var(--navy2)">📜 Snapshot History</div>'
-      +'<button onclick="document.getElementById(\'snap-modal-bg\').style.display=\'none\'" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button></div>'
-      +'<div id="snap-list" style="display:flex;flex-direction:column;gap:8px"></div>'
-      +'</div>';
-    document.body.appendChild(m);
-  }
-  document.getElementById('snap-modal-bg').style.display='flex';
-  const el=document.getElementById('snap-list');
-  el.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">⏳ Load ho raha hai...</div>';
-  try{
-    const res=await fetch(SB_URL+'/rest/v1/bf_sync_history?select=id,data,created_at&order=created_at.desc&limit=30',{
-      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
-    });
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    const rows=await res.json();
-    if(!rows.length){ el.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">Abhi koi snapshot nahi hai — thodi der baad try karo</div>'; return; }
-    const curCounts=_countsOf('local');
-    el.innerHTML=rows.map(r=>{
-      const snapCounts=_countsOf(r.data);
-      const dt=new Date(r.created_at).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-      const dbDiff = snapCounts['bf9_daybook'] - curCounts['bf9_daybook'];
-      const diffTxt = dbDiff>0?`<span style="color:var(--green-dark)">+${dbDiff} daybook</span>`:dbDiff<0?`<span style="color:var(--red-dark)">${dbDiff} daybook</span>`:'<span style="color:var(--muted)">same</span>';
-      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r2)">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:12px;font-weight:800;color:var(--navy2)">${dt}</div>
-          <div style="font-size:11px;color:var(--muted);font-weight:700">Daybook: ${snapCounts['bf9_daybook']} · ${diffTxt}</div>
-        </div>
-        <button onclick="restoreSnapshot('${r.id}')" style="padding:8px 12px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:800;cursor:pointer">Restore</button>
-      </div>`;
-    }).join('');
-  }catch(e){
-    el.innerHTML=`<div style="text-align:center;padding:16px;color:var(--red-dark);font-size:12px;font-weight:700">❌ ${esc(e.message)}</div>`;
-  }
-}
-async function restoreSnapshot(id){
-  try{
-    const res=await fetch(SB_URL+`/rest/v1/bf_sync_history?id=eq.${id}&select=data,created_at`,{
-      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
-    });
-    const rows=await res.json();
-    if(!rows.length){ toast('❌ Snapshot nahi mila'); return; }
-    const snap=rows[0].data;
-    const curCounts=_countsOf('local');
-    const snapCounts=_countsOf(snap);
-    const lines=CRITICAL_ARR_KEYS.map(k=>`${k.replace('bf9_','')}: ${curCounts[k]} → ${snapCounts[k]}`).join('\n');
-    if(!confirm(`⚠️ Ye snapshot (${new Date(rows[0].created_at).toLocaleString('en-IN')}) restore karoge?\nAbhi ka data replace ho jayega:\n\n${lines}\n\nPakka karna hai?`)) return;
-    _applyCloudData(snap);
-    localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
-    localStorage.setItem('bf9_gd_reloaded','1');
-    toast('✅ Restore ho gaya — reload ho raha hai...');
-    setTimeout(()=>location.reload(), 1000);
-  }catch(e){
-    toast('❌ '+e.message);
-  }
-}
-
 function gdForcePull(){
   if(!confirm('⚠️ Supabase se saara data overwrite hoga!\nLocal data replace ho jayega.\n\nAage badhna hai?')) return;
   _gdFetch(true);
@@ -15040,6 +14936,160 @@ function _dbOpenAdd(){
   const modal = document.getElementById('db-modal');
   modal.style.display='flex';
   setTimeout(()=>document.getElementById('db-amount').focus(),100);
+}
+
+/* ═══════════════════════════════════════════════
+   RECEIPT SCAN (OCR) — upload a PhonePe/GPay screenshot,
+   auto-extract amount/date/party/note, then hand off to
+   the normal Add Entry form so the user always reviews
+   and confirms before saving (no blind auto-save).
+═══════════════════════════════════════════════ */
+let _dbReceiptFile=null;
+
+function openDbReceiptModal(){
+  document.getElementById('db-receipt-modal').style.display='flex';
+  _dbReceiptReset();
+}
+function closeDbReceiptModal(){
+  document.getElementById('db-receipt-modal').style.display='none';
+}
+function _dbReceiptReset(){
+  _dbReceiptFile=null;
+  document.getElementById('db-receipt-file').value='';
+  document.getElementById('db-receipt-step-pick').style.display='';
+  document.getElementById('db-receipt-step-scan').style.display='none';
+  document.getElementById('db-receipt-status').textContent='';
+  document.getElementById('db-receipt-progress-bar').style.width='0%';
+  const btn=document.getElementById('db-receipt-scan-btn');
+  btn.disabled=false; btn.textContent='🔍 Scan Karo';
+}
+function _dbReceiptFileChosen(input){
+  const file=input.files[0];
+  if(!file) return;
+  _dbReceiptFile=file;
+  const url=URL.createObjectURL(file);
+  document.getElementById('db-receipt-preview').src=url;
+  document.getElementById('db-receipt-step-pick').style.display='none';
+  document.getElementById('db-receipt-step-scan').style.display='';
+}
+
+async function _dbRunReceiptOCR(){
+  if(!_dbReceiptFile){ toast('⚠️ Pehle screenshot chuno!'); return; }
+  const btn=document.getElementById('db-receipt-scan-btn');
+  const statusEl=document.getElementById('db-receipt-status');
+  const barEl=document.getElementById('db-receipt-progress-bar');
+  btn.disabled=true; btn.textContent='⏳ Scan ho raha hai...';
+  statusEl.textContent='Text padha ja raha hai...';
+  try{
+    const result=await Tesseract.recognize(_dbReceiptFile,'eng',{
+      logger:m=>{
+        if(m.status==='recognizing text'){
+          const pct=Math.round((m.progress||0)*100);
+          barEl.style.width=pct+'%';
+          statusEl.textContent=`Text padha ja raha hai... ${pct}%`;
+        } else if(m.status){
+          statusEl.textContent=m.status.replace(/_/g,' ');
+        }
+      }
+    });
+    const text=result?.data?.text||'';
+    if(!text.trim()){
+      toast('❌ Kuch text nahi mil paya — clearer screenshot try karo');
+      btn.disabled=false; btn.textContent='🔍 Scan Karo';
+      return;
+    }
+    const parsed=_dbParseReceiptText(text);
+    closeDbReceiptModal();
+    _dbApplyReceiptToForm(parsed);
+  }catch(e){
+    toast('❌ Scan fail ho gaya: '+e.message);
+    btn.disabled=false; btn.textContent='🔍 Scan Karo';
+  }
+}
+
+function _dbParseReceiptText(raw){
+  const text=raw.replace(/\r/g,'');
+  const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
+  const out={amount:null,date:null,party:'',note:'',mode:'upi',raw:text};
+
+  // Amount — first ₹ or Rs figure (biggest number near top is usually the txn amount)
+  const amtMatch=text.match(/[₹Rs]\s*([\d,]+(?:\.\d{1,2})?)/i);
+  if(amtMatch) out.amount=parseFloat(amtMatch[1].replace(/,/g,''));
+
+  // Date — "6 August 2026" style (day Month year), optionally with time after
+  const dateMatch=text.match(/(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})/i);
+  if(dateMatch){
+    const months={january:0,february:1,march:2,april:3,may:4,june:5,july:6,august:7,september:8,october:9,november:10,december:11};
+    const d=new Date(parseInt(dateMatch[3]), months[dateMatch[2].toLowerCase()], parseInt(dateMatch[1]));
+    if(!isNaN(d)) out.date=d.toISOString().split('T')[0];
+  }
+
+  // Paid to — line after "Paid to"
+  const paidToIdx=lines.findIndex(l=>/paid\s*to/i.test(l));
+  if(paidToIdx>=0 && lines[paidToIdx+1]) out.paidTo=lines[paidToIdx+1].replace(/[*]{4,}\d*/g,'').trim();
+
+  // Banking name — same line or next, after "Banking name"
+  const bankLine=lines.find(l=>/banking\s*name/i.test(l));
+  if(bankLine){
+    const m=bankLine.match(/banking\s*name\s*:?\s*(.+)/i);
+    if(m) out.bankingName=m[1].replace(/[✓✔️🟢]/g,'').trim();
+    else if(lines[lines.indexOf(bankLine)+1]) out.bankingName=lines[lines.indexOf(bankLine)+1].trim();
+  }
+
+  // Message — line after "Message"
+  const msgIdx=lines.findIndex(l=>/^message$/i.test(l));
+  if(msgIdx>=0 && lines[msgIdx+1]) out.message=lines[msgIdx+1].trim();
+
+  // Transaction ID / UTR — for the note, as a reference
+  const txnMatch=text.match(/Transaction ID\s*:?\s*\n?\s*([A-Z0-9]{8,})/i) || text.match(/\b(T\d{18,})\b/);
+  if(txnMatch) out.txnId=txnMatch[1];
+  const utrMatch=text.match(/UTR\s*:?\s*(\d{6,})/i);
+  if(utrMatch) out.utr=utrMatch[1];
+
+  // Best guess party = banking name (real account holder) > paid-to label
+  out.party=out.bankingName||out.paidTo||'';
+  // Note = message + paid-to label (if different from party) — useful context for category guessing
+  const noteBits=[];
+  if(out.message) noteBits.push(out.message);
+  if(out.paidTo && out.paidTo.toLowerCase()!==(out.party||'').toLowerCase()) noteBits.push(out.paidTo);
+  out.note=noteBits.join(' — ');
+
+  return out;
+}
+
+function _dbGuessCategory(parsed){
+  const hay=[parsed.paidTo,parsed.message,parsed.bankingName].filter(Boolean).join(' ').toLowerCase();
+  const rules=[
+    [/steel|iron|raw\s*material|polymer|tpe|plastic|powder\s*coat/,'raw_material'],
+    [/powder\s*coat|coating/,'powder_coating'],
+    [/pack(ing)?|carton|box/,'packaging'],
+    [/labour|majdoor|wages|salary/,'labour'],
+    [/rent|kiraya/,'rent'],
+    [/electric|bijli|mseb/,'electricity'],
+    [/transport|diesel|petrol|freight|logistics|courier/,'transport'],
+    [/market|ads|advertis/,'marketing'],
+    [/emi|loan|bank\s*charge|interest/,'interest_emi'],
+    [/gst|tax|govt|government/,'tax_govt'],
+    [/repair|maintenance|service/,'repair_maint'],
+  ];
+  for(const [re,catId] of rules){ if(re.test(hay)) return catId; }
+  return 'raw_material'; // sensible default for a vendor payment
+}
+
+function _dbApplyReceiptToForm(parsed){
+  _dbOpenAdd(); // opens the normal Add Entry modal, fresh
+  _dbSetType('expense'); // receipt = money paid out
+  if(parsed.amount) document.getElementById('db-amount').value=parsed.amount;
+  if(parsed.date) document.getElementById('db-date').value=parsed.date;
+  _dbSetMode('upi'); // PhonePe/GPay screenshot = UPI payment
+  if(parsed.party) document.getElementById('db-supplier-manual').value=parsed.party;
+  let note=parsed.note||'';
+  if(parsed.utr) note=(note?note+' — ':'')+'UTR: '+parsed.utr;
+  document.getElementById('db-note').value=note;
+  const guessedCat=_dbGuessCategory(parsed);
+  document.getElementById('db-category').value=guessedCat;
+  _dbCatSelect(guessedCat);
+  toast('📷 Receipt se fields fill ho gayi — check karke Save karo!');
 }
 
 function openDbCatDrill(catId, period){
