@@ -16291,9 +16291,14 @@ function _dbRunDiscipline(amount, date, category, note, supplier, mode){
     if(gap>=3) warnings.push({icon:'📅',rule:'Entry Gap',msg:`${gap} din baad entry ho rahi hai — beech ke din ki entries miss to nahi hui?`});
   }
 
-  // 7. Duplicate check
-  if(!_dbEditId && DAYBOOK.filter(e=>e.date===date&&e.category===category&&e.amount===amount&&e.type===_dbType).length>0)
-    warnings.push({icon:'⚠️',rule:'Duplicate Entry',msg:`Aaj already ₹${amount.toLocaleString('en-IN')} ki is category mein entry hai — duplicate to nahi?`});
+  // 7. Duplicate check — same date+amount+note as an existing entry (manual, receipt scan, OR imported)
+  //    Hard block: matches the same date|amount|note-prefix key used by Excel/CSV import,
+  //    so a duplicate can't sneak in through any of the three entry paths.
+  if(!_dbEditId){
+    const key = `${date}|${amount}|${(note||'').slice(0,20)}`;
+    const dup = DAYBOOK.find(e=>`${e.date}|${e.amount}|${(e.note||'').slice(0,20)}`===key);
+    if(dup) blocks.push({icon:'⚠️',rule:'Duplicate Entry',msg:`Isi date (${date}) pe already ₹${amount.toLocaleString('en-IN')} ki "${note||'(no note)'}" wali entry maujood hai — yeh duplicate lag rahi hai. Agar yeh nayi/alag entry hai to note thoda specific likh do.`});
+  }
 
   // 8. Round figure
   if(_dbType==='expense' && amount>=1000 && amount%500===0)
