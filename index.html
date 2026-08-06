@@ -15010,7 +15010,7 @@ async function _dbRunReceiptOCR(){
 function _dbParseReceiptText(raw){
   const text=raw.replace(/\r/g,'');
   const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
-  const out={amount:null,date:null,party:'',note:'',mode:'upi',raw:text};
+  const out={amount:null,date:null,party:'',note:'',mode:'upi',direction:'expense',raw:text};
 
   // Amount — ₹ or "Rs" figure; fallback to any comma-grouped currency-style
   // number (e.g. "4,543") since OCR often mangles/drops the ₹ glyph.
@@ -15030,16 +15030,25 @@ function _dbParseReceiptText(raw){
     if(!isNaN(d)) out.date=d.toISOString().split('T')[0];
   }
 
-  // Paid to — line after "Paid to"
-  const paidToIdx=lines.findIndex(l=>/paid\s*to/i.test(l));
-  if(paidToIdx>=0 && lines[paidToIdx+1]){
-    let p=lines[paidToIdx+1];
+  // Direction — "Paid to" (money out = expense) vs "Received from" (money in = income)
+  const cleanLabel=(s)=>{
+    let p=s;
     p=p.replace(/[*]{4,}\d*/g,'');                          // masked account numbers
     p=p.replace(/₹\s*[\d,]+(?:\.\d{1,2})?/g,'');             // amount merged in by OCR
     p=p.replace(/\brs\.?\s*[\d,]+(?:\.\d{1,2})?\b/gi,'');
     p=p.replace(/[^\w\s&().\/-]/g,' ');                      // stray OCR glyphs like »
-    out.paidTo=p.replace(/\s+/g,' ').trim();
+    return p.replace(/\s+/g,' ').trim();
+  };
+  const paidToIdx=lines.findIndex(l=>/paid\s*to/i.test(l));
+  const recvFromIdx=lines.findIndex(l=>/received\s*from/i.test(l));
+  if(recvFromIdx>=0 && lines[recvFromIdx+1]){
+    out.direction='income';
+    out.otherParty=cleanLabel(lines[recvFromIdx+1]);
+  } else if(paidToIdx>=0 && lines[paidToIdx+1]){
+    out.direction='expense';
+    out.otherParty=cleanLabel(lines[paidToIdx+1]);
   }
+  out.paidTo=out.otherParty; // kept for backward compat with category guessing below
 
   // Banking name — same line or next, after "Banking name"
   const bankLine=lines.find(l=>/banking\s*name/i.test(l));
@@ -15059,12 +15068,12 @@ function _dbParseReceiptText(raw){
   const utrMatch=text.match(/UTR\s*:?\s*(\d{6,})/i);
   if(utrMatch) out.utr=utrMatch[1];
 
-  // Best guess party = banking name (real account holder) > paid-to label
-  out.party=out.bankingName||out.paidTo||'';
-  // Note = message + paid-to label (if different from party) — useful context for category guessing
+  // Best guess party = banking name (real account holder) > paid-to/received-from label
+  out.party=out.bankingName||out.otherParty||'';
+  // Note = message + other-party label (if different from party) — useful context for category guessing
   const noteBits=[];
   if(out.message) noteBits.push(out.message);
-  if(out.paidTo && out.paidTo.toLowerCase()!==(out.party||'').toLowerCase()) noteBits.push(out.paidTo);
+  if(out.otherParty && out.otherParty.toLowerCase()!==(out.party||'').toLowerCase()) noteBits.push(out.otherParty);
   out.note=noteBits.join(' — ');
 
   return out;
@@ -15072,6 +15081,16 @@ function _dbParseReceiptText(raw){
 
 function _dbGuessCategory(parsed){
   const hay=[parsed.paidTo,parsed.message,parsed.bankingName].filter(Boolean).join(' ').toLowerCase();
+  if(parsed.direction==='income'){
+    const incomeRules=[
+      [/advance/,'advance_recv'],
+      [/venux/,'venux_income'],
+      [/personal/,'personal_in'],
+      [/inter[- ]?account|self|own\s*account/,'inter_account_in'],
+    ];
+    for(const [re,catId] of incomeRules){ if(re.test(hay)) return catId; }
+    return 'payment_recv'; // sensible default — a customer/party paid us
+  }
   const rules=[
     [/steel|iron|raw\s*material|polymer|tpe|plastic|powder\s*coat/,'raw_material'],
     [/powder\s*coat|coating/,'powder_coating'],
@@ -15091,19 +15110,22 @@ function _dbGuessCategory(parsed){
 
 function _dbApplyReceiptToForm(parsed){
   _dbOpenAdd(); // opens the normal Add Entry modal, fresh
-  _dbSetType('expense'); // receipt = money paid out
+  _dbSetType(parsed.direction||'expense'); // "Paid to" = expense, "Received from" = income
+  _dbRenderCatChips(parsed.direction||'expense');
   if(parsed.amount) document.getElementById('db-amount').value=parsed.amount;
   if(parsed.date) document.getElementById('db-date').value=parsed.date;
   _dbSetMode('upi'); // PhonePe/GPay screenshot = UPI payment
   if(parsed.party) document.getElementById('db-supplier-manual').value=parsed.party;
   let note=parsed.note||'';
+  if(parsed.direction==='income' && parsed.party) note=(note?note+' — ':'')+'From: '+parsed.party;
   if(parsed.utr) note=(note?note+' — ':'')+'UTR: '+parsed.utr;
   document.getElementById('db-note').value=note;
   const guessedCat=_dbGuessCategory(parsed);
   document.getElementById('db-category').value=guessedCat;
   _dbCatSelect(guessedCat);
-  toast('📷 Receipt se fields fill ho gayi — check karke Save karo!');
+  toast((parsed.direction==='income'?'📷 Income':'📷 Expense')+' receipt se fields fill ho gayi — check karke Save karo!');
 }
+
 
 function openDbCatDrill(catId, period){
   const allCats = [...DB_CATS.expense, ...DB_CATS.income];
