@@ -2756,6 +2756,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
       <button onclick="_dbOpenCatManager()" style="padding:9px 14px;background:#f0f4ff;color:var(--navy2);border:1px solid var(--border2);border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🏷️ Categories</button>
       <button onclick="_dbDownloadReport()" style="padding:9px 14px;background:var(--green);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">⬇️ Report</button>
       <button onclick="openDbStatement()" style="padding:9px 14px;background:#1d4ed8;color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🏦 Statement</button>
+      <button onclick="_dbHealthCheck()" style="padding:9px 14px;background:#7c3aed;color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🩺 Health Check</button>
     </div>
   </div>
 
@@ -3298,6 +3299,15 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
       </button>
       <input type="file" id="_restore_inp" accept=".json" style="display:none" onchange="_importAllData(this)">
       <div id="_restore_status" style="display:none;margin-top:10px;padding:10px 12px;border-radius:var(--r2);font-size:12px;font-weight:800;"></div>
+    </div>
+
+    <!-- Cloud Snapshot History -->
+    <div style="background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:var(--r2);padding:14px;margin-bottom:10px;">
+      <div style="font-size:13px;font-weight:900;color:#5b21b6;margin-bottom:4px;">📜 Snapshot History (Cloud)</div>
+      <div style="font-size:11px;color:#555;margin-bottom:12px;line-height:1.6;">Har thodi der mein automatic ek safe copy cloud pe save hoti hai. Agar kabhi data kam dikhe, yahan se purani snapshot dekh ke restore kar sakte ho.</div>
+      <button onclick="openSnapshotHistoryModal()" style="width:100%;padding:12px;background:#7c3aed;color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;">
+        📜 Snapshot History Dekho
+      </button>
     </div>
 
     <!-- How to move safely -->
@@ -4908,6 +4918,59 @@ let _gdSyncing   = false;
 let _gdPushTimer = null;
 let _gdLoaded    = false;
 
+/* ══════════════════════════════════════════════════════════
+   DATA-LOSS GUARD — koi bhi wholesale sync (push ya pull) jo
+   critical records ko achanak kam kar de, use auto-block karta
+   hai. Isse woh bug dobara nahi hoga jisme fresh/stale session
+   ne accha local data cloud ke khaali/purane data se overwrite
+   kar diya tha.
+══════════════════════════════════════════════════════════ */
+const CRITICAL_ARR_KEYS = ['bf9_daybook','bf9_batches','bf9_invoices','bf9_orders','bf9_customers','bf9_ledger','bf9_att','bf9_stxn','bf9_trips','bf9_assets','bf9_advances'];
+const GUARD_DROP_PCT = 0.15; // 15% se zyada gira toh block
+
+function _arrCount(jsonStr){
+  try{ const v = JSON.parse(jsonStr); return Array.isArray(v) ? v.length : 0; }catch(e){ return 0; }
+}
+function _countsOf(src){ // src: 'local' ya {key: jsonString} object (cloud data)
+  const out={};
+  CRITICAL_ARR_KEYS.forEach(k=>{
+    out[k] = _arrCount(src==='local' ? localStorage.getItem(k) : src[k]);
+  });
+  return out;
+}
+function _findDataLossDrops(fromCounts, toCounts){
+  const drops=[];
+  CRITICAL_ARR_KEYS.forEach(k=>{
+    if(fromCounts[k]>=5 && toCounts[k] < fromCounts[k]*(1-GUARD_DROP_PCT)){
+      drops.push({key:k, from:fromCounts[k], to:toCounts[k]});
+    }
+  });
+  return drops;
+}
+function _applyCloudData(cloud){
+  let restored=0;
+  GD_KEYS.forEach(k=>{
+    if(cloud[k]!==undefined && cloud[k]!=='' && cloud[k]!=='null'){
+      localStorage.setItem(k, cloud[k]);
+      restored++;
+    }
+  });
+  return restored;
+}
+function _showGuardBanner(drops, direction){
+  const msg = drops.map(d=>`${d.key.replace('bf9_','')}: ${d.from}→${d.to}`).join(' · ');
+  console.warn('🛑 SYNC BLOCKED — possible data loss ('+direction+'):', msg);
+  let el = document.getElementById('gd-guard-banner');
+  if(!el){
+    el = document.createElement('div');
+    el.id='gd-guard-banner';
+    el.style.cssText='position:fixed;top:0;left:0;right:0;background:#fee2e2;color:#991b1b;padding:10px 14px;font-size:12px;font-weight:800;z-index:9999;text-align:center;border-bottom:2px solid #ef4444;font-family:Nunito,sans-serif;';
+    document.body.prepend(el);
+  }
+  el.textContent = `⚠️ Auto-sync ROKA gaya (data-loss risk): ${msg}. Settings → Snapshot History se check karo, khud reload mat karo.`;
+  el.style.display='block';
+}
+
 /* ── localStorage helpers (unchanged) ── */
 function load(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; }}
 function save(k,v){
@@ -4951,11 +5014,40 @@ async function gdPush(){
     _gdSyncing = false;
     gdSetDot('ok');
     localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
+    _gdSaveHistorySnapshot(payload);
   } catch(e) {
     _gdSyncing = false;
     gdSetDot('err');
     console.warn('Supabase push failed:', e);
   }
+}
+
+/* ── Versioned snapshot history (apna khud ka point-in-time backup,
+   kyunki Supabase Free plan mein PITR nahi hota). Har push pe nahi,
+   max har 15 min mein ek snapshot — taaki table zyada bada na ho. ── */
+function _gdSaveHistorySnapshot(payload){
+  try{
+    const last = localStorage.getItem('bf9_hist_last');
+    const now = Date.now();
+    if(last && (now - parseInt(last,10)) < 15*60*1000) return;
+    localStorage.setItem('bf9_hist_last', String(now));
+    fetch(SB_URL+'/rest/v1/bf_sync_history', {
+      method:'POST',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body: JSON.stringify({ data: payload })
+    }).then(()=>{ if(Math.random()<0.1) _gdTrimHistory(); }).catch(()=>{});
+  }catch(e){}
+}
+/* ── Purane snapshots trim karo — sirf latest 300 rakho ── */
+function _gdTrimHistory(){
+  fetch(SB_URL+'/rest/v1/bf_sync_history?select=id&order=created_at.desc&offset=300',{
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+  }).then(r=>r.json()).then(rows=>{
+    if(rows && rows.length){
+      const ids = rows.map(r=>r.id).join(',');
+      fetch(SB_URL+`/rest/v1/bf_sync_history?id=in.(${ids})`,{method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).catch(()=>{});
+    }
+  }).catch(()=>{});
 }
 
 /* ── Load from Supabase on startup ── */
@@ -4995,13 +5087,9 @@ async function _gdSmartSync(){
 
     // Case 2: Local has never synced → pull from cloud
     if(!localTime){
-      let restored = 0;
-      GD_KEYS.forEach(k=>{
-        if(cloud[k] !== undefined && cloud[k] !== '' && cloud[k] !== 'null'){
-          localStorage.setItem(k, cloud[k]);
-          restored++;
-        }
-      });
+      const drops2 = _findDataLossDrops(_countsOf('local'), _countsOf(cloud));
+      if(drops2.length){ _showGuardBanner(drops2,'pull-fresh-session'); _gdLoaded=true; gdSetDot('err'); return; }
+      const restored = _applyCloudData(cloud);
       localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
       _gdLoaded = true;
       gdSetDot('ok');
@@ -5010,29 +5098,16 @@ async function _gdSmartSync(){
     }
 
     // Case 3: Local is NEWER than cloud → push local to cloud
-    // BUT first verify local actually has meaningful data — agar local empty hai toh cloud se pull karo
+    // BUT first check — agar local cloud se kaafi kam entries dikha raha hai (kisi bhi
+    // critical key mein), toh pehle cloud se pull karo — push mat karo (data loss prevention)
     if(localTime >= cloudUpdatedAt){
-      const localDaybook = load('bf9_daybook');
-      const localBatches = load('bf9_batches');
-      const localInvoices = load('bf9_invoices');
-      const localHasData = (localDaybook && localDaybook.length > 0) ||
-                           (localBatches && localBatches.length > 0) ||
-                           (localInvoices && localInvoices.length > 0);
+      const localCounts3 = _countsOf('local');
+      const cloudCounts3 = _countsOf(cloud);
+      const pullDrops = _findDataLossDrops(cloudCounts3, localCounts3); // local < cloud kahin?
 
-      // Agar cloud mein data hai par local empty hai — cloud jeet-ta hai (data loss prevention)
-      const cloudDaybook = cloud['bf9_daybook'] ? JSON.parse(cloud['bf9_daybook']) : [];
-      const cloudHasData = cloudDaybook && cloudDaybook.length > 0;
-
-      if(!localHasData && cloudHasData){
-        // Local empty, cloud mein data hai — cloud se restore karo
-        console.warn('⚠️ Local data empty but cloud has data — pulling from cloud to prevent data loss');
-        let restored = 0;
-        GD_KEYS.forEach(k=>{
-          if(cloud[k] !== undefined && cloud[k] !== '' && cloud[k] !== 'null'){
-            localStorage.setItem(k, cloud[k]);
-            restored++;
-          }
-        });
+      if(pullDrops.length){
+        console.warn('⚠️ Local kam entries dikha raha hai cloud se — pull kar rahe hain, push nahi', pullDrops);
+        const restored = _applyCloudData(cloud);
         localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
         _gdLoaded = true;
         gdSetDot('ok');
@@ -5047,13 +5122,12 @@ async function _gdSmartSync(){
     }
 
     // Case 4: Cloud is NEWER than local → pull from cloud
-    let restored = 0;
-    GD_KEYS.forEach(k=>{
-      if(cloud[k] !== undefined && cloud[k] !== '' && cloud[k] !== 'null'){
-        localStorage.setItem(k, cloud[k]);
-        restored++;
-      }
-    });
+    const localCounts4 = _countsOf('local');
+    const cloudCounts4 = _countsOf(cloud);
+    const drops4 = _findDataLossDrops(localCounts4, cloudCounts4);
+    if(drops4.length){ _showGuardBanner(drops4,'pull-cloud-newer'); _gdLoaded=true; gdSetDot('err'); return; }
+
+    const restored = _applyCloudData(cloud);
     localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
     _gdLoaded = true;
     gdSetDot('ok');
@@ -5069,6 +5143,70 @@ async function _gdSmartSync(){
 }
 
 /* ── Force pull from Supabase (doosre device ka data lana) ── */
+/* ── Snapshot History modal — purani cloud snapshots dekho aur chuni hui restore karo ── */
+async function openSnapshotHistoryModal(){
+  if(!document.getElementById('snap-modal-bg')){
+    const m=document.createElement('div');
+    m.id='snap-modal-bg';
+    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:960;align-items:flex-end;justify-content:center;';
+    m.innerHTML='<div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:560px;max-height:88vh;overflow-y:auto">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
+      +'<div style="font-size:15px;font-weight:800;color:var(--navy2)">📜 Snapshot History</div>'
+      +'<button onclick="document.getElementById(\'snap-modal-bg\').style.display=\'none\'" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button></div>'
+      +'<div id="snap-list" style="display:flex;flex-direction:column;gap:8px"></div>'
+      +'</div>';
+    document.body.appendChild(m);
+  }
+  document.getElementById('snap-modal-bg').style.display='flex';
+  const el=document.getElementById('snap-list');
+  el.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">⏳ Load ho raha hai...</div>';
+  try{
+    const res=await fetch(SB_URL+'/rest/v1/bf_sync_history?select=id,data,created_at&order=created_at.desc&limit=30',{
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const rows=await res.json();
+    if(!rows.length){ el.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">Abhi koi snapshot nahi hai — thodi der baad try karo</div>'; return; }
+    const curCounts=_countsOf('local');
+    el.innerHTML=rows.map(r=>{
+      const snapCounts=_countsOf(r.data);
+      const dt=new Date(r.created_at).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+      const dbDiff = snapCounts['bf9_daybook'] - curCounts['bf9_daybook'];
+      const diffTxt = dbDiff>0?`<span style="color:var(--green-dark)">+${dbDiff} daybook</span>`:dbDiff<0?`<span style="color:var(--red-dark)">${dbDiff} daybook</span>`:'<span style="color:var(--muted)">same</span>';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r2)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:800;color:var(--navy2)">${dt}</div>
+          <div style="font-size:11px;color:var(--muted);font-weight:700">Daybook: ${snapCounts['bf9_daybook']} · ${diffTxt}</div>
+        </div>
+        <button onclick="restoreSnapshot('${r.id}')" style="padding:8px 12px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:800;cursor:pointer">Restore</button>
+      </div>`;
+    }).join('');
+  }catch(e){
+    el.innerHTML=`<div style="text-align:center;padding:16px;color:var(--red-dark);font-size:12px;font-weight:700">❌ ${esc(e.message)}</div>`;
+  }
+}
+async function restoreSnapshot(id){
+  try{
+    const res=await fetch(SB_URL+`/rest/v1/bf_sync_history?id=eq.${id}&select=data,created_at`,{
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    });
+    const rows=await res.json();
+    if(!rows.length){ toast('❌ Snapshot nahi mila'); return; }
+    const snap=rows[0].data;
+    const curCounts=_countsOf('local');
+    const snapCounts=_countsOf(snap);
+    const lines=CRITICAL_ARR_KEYS.map(k=>`${k.replace('bf9_','')}: ${curCounts[k]} → ${snapCounts[k]}`).join('\n');
+    if(!confirm(`⚠️ Ye snapshot (${new Date(rows[0].created_at).toLocaleString('en-IN')}) restore karoge?\nAbhi ka data replace ho jayega:\n\n${lines}\n\nPakka karna hai?`)) return;
+    _applyCloudData(snap);
+    localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
+    localStorage.setItem('bf9_gd_reloaded','1');
+    toast('✅ Restore ho gaya — reload ho raha hai...');
+    setTimeout(()=>location.reload(), 1000);
+  }catch(e){
+    toast('❌ '+e.message);
+  }
+}
+
 function gdForcePull(){
   if(!confirm('⚠️ Supabase se saara data overwrite hoga!\nLocal data replace ho jayega.\n\nAage badhna hai?')) return;
   _gdFetch(true);
@@ -14653,24 +14791,6 @@ Tips:
 
 let DAYBOOK = load('bf9_daybook') || [];
 
-/* ── Pre-load Excel data if not already imported ── */
-(function _preloadExcelData(){
-  const IMPORTED_KEY = 'bf9_daybook_excel_v1';
-  if(localStorage.getItem(IMPORTED_KEY)) return; // already done
-  const excelData = [{"id":"db_import_0_1779255669","date":"2026-04-01","type":"income","category":"customer_payment","subcategory":"","amount":13000.0,"mode":"cash","note":"dhondiba advance (20 stand)","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_1_1779255669","date":"2026-04-01","type":"income","category":"customer_payment","subcategory":"","amount":6500.0,"mode":"cash","note":"tribhuvan kalyan (20 stand)","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_2_1779255669","date":"2026-04-01","type":"expense","category":"labour","subcategory":"","amount":5000.0,"mode":"cash","note":"savita tai","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_3_1779255669","date":"2026-04-01","type":"expense","category":"labour","subcategory":"","amount":5000.0,"mode":"cash","note":"lata tai","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_4_1779255669","date":"2026-04-01","type":"income","category":"customer_payment","subcategory":"","amount":50000.0,"mode":"cash","note":"dhule advance (100 stand)","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_5_1779255669","date":"2026-04-01","type":"expense","category":"personal_sanket","subcategory":"","amount":50000.0,"mode":"cash","note":"one card payment","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_6_1779255669","date":"2026-04-01","type":"income","category":"customer_payment","subcategory":"","amount":7020.0,"mode":"cash","note":"savta gaikwad advance","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_7_1779255669","date":"2026-04-01","type":"expense","category":"packaging","subcategory":"","amount":60.0,"mode":"cash","note":"packeging tape","cfo_field":"prodother","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_9_1779255669","date":"2026-04-01","type":"expense","category":"interest_emi","subcategory":"","amount":29342.24,"mode":"cash","note":"Onecard prashant","cfo_field":"interest","imported":true,"orig_cat":"Prashant","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_10_1779255669","date":"2026-04-01","type":"income","category":"inter_account_in","subcategory":"","amount":26969.4,"mode":"bank","note":"Onecard prashant (542.80 razorpay charges+ 1830.04 interest)","cfo_field":null,"imported":true,"orig_cat":"Cards","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_11_1779255669","date":"2026-04-01","type":"expense","category":"marketing","subcategory":"","amount":2000.0,"mode":"cash","note":"venux ads","cfo_field":"marketing","imported":true,"orig_cat":"Prashant","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_12_1779255669","date":"2026-04-01","type":"expense","category":"marketing","subcategory":"","amount":2050.0,"mode":"cash","note":"shiprocket","cfo_field":"marketing","imported":true,"orig_cat":"Prashant","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_13_1779255669","date":"2026-04-01","type":"expense","category":"personal_sanket","subcategory":"","amount":950.0,"mode":"cash","note":"hair cut","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_14_1779255669","date":"2026-04-01","type":"income","category":"customer_payment","subcategory":"","amount":10000.0,"mode":"cash","note":"pratik jalgaon","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_15_1779255669","date":"2026-04-01","type":"expense","category":"personal_sanket","subcategory":"","amount":280.0,"mode":"cash","note":"bouqute","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_16_1779255669","date":"2026-04-01","type":"expense","category":"interest_emi","subcategory":"","amount":4000.0,"mode":"cash","note":"emi","cfo_field":"interest","imported":true,"orig_cat":"Sanket","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_17_1779255669","date":"2026-04-01","type":"expense","category":"interest_emi","subcategory":"","amount":4500.0,"mode":"cash","note":"emi","cfo_field":"interest","imported":true,"orig_cat":"Prashant","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_18_1779255669","date":"2026-04-01","type":"expense","category":"powder_coating","subcategory":"","amount":2465.0,"mode":"cash","note":"pc 350 pipe and 90 bracket","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_19_1779255669","date":"2026-04-01","type":"expense","category":"labour","subcategory":"","amount":200.0,"mode":"cash","note":"juned advance","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_20_1779255669","date":"2026-04-01","type":"expense","category":"personal_sanket","subcategory":"","amount":500.0,"mode":"cash","note":"give to rani","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_21_1779255669","date":"2026-04-02","type":"expense","category":"powder_coating","subcategory":"","amount":4000.0,"mode":"cash","note":"lucky shairing","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-04-02T00:00:00.000Z"},{"id":"db_import_22_1779255669","date":"2026-04-02","type":"expense","category":"powder_coating","subcategory":"","amount":5000.0,"mode":"cash","note":"bagul febcration","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-04-02T00:00:00.000Z"},{"id":"db_import_23_1779255669","date":"2026-04-02","type":"expense","category":"repair_maint","subcategory":"","amount":20.0,"mode":"cash","note":"fan capacitor","cfo_field":"prodother","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-02T00:00:00.000Z"},{"id":"db_import_24_1779255669","date":"2026-04-02","type":"income","category":"customer_payment","subcategory":"","amount":2000.0,"mode":"cash","note":"pratik jalgaon","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-02T00:00:00.000Z"},{"id":"db_import_25_1779255669","date":"2026-04-02","type":"expense","category":"labour","subcategory":"","amount":500.0,"mode":"cash","note":"all worker lunch","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-02T00:00:00.000Z"},{"id":"db_import_26_1779255669","date":"2026-04-02","type":"income","category":"customer_payment","subcategory":"","amount":4450.0,"mode":"cash","note":"savta gaikwad advance","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-02T00:00:00.000Z"},{"id":"db_import_27_1779255669","date":"2026-04-02","type":"expense","category":"packaging","subcategory":"","amount":160.0,"mode":"cash","note":"packeging  dhori","cfo_field":"prodother","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-02T00:00:00.000Z"},{"id":"db_import_28_1779255669","date":"2026-04-02","type":"income","category":"customer_payment","subcategory":"","amount":4000.0,"mode":"cash","note":"savta gaikwad advance","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-02T00:00:00.000Z"},{"id":"db_import_29_1779255669","date":"2026-04-02","type":"expense","category":"powder_coating","subcategory":"","amount":10000.0,"mode":"cash","note":"Shree Balaji","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-04-02T00:00:00.000Z"},{"id":"db_import_30_1779255669","date":"2026-04-03","type":"expense","category":"packaging","subcategory":"","amount":11283.0,"mode":"cash","note":"polytech packaging cash and beyondfuri payment paid","cfo_field":"prodother","imported":true,"orig_cat":"Party","createdAt":"2026-04-03T00:00:00.000Z"},{"id":"db_import_31_1779255669","date":"2026-04-03","type":"expense","category":"labour","subcategory":"","amount":300.0,"mode":"cash","note":"juned advance","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-03T00:00:00.000Z"},{"id":"db_import_32_1779255669","date":"2026-04-03","type":"expense","category":"personal_sanket","subcategory":"","amount":50.0,"mode":"cash","note":"friend help","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-03T00:00:00.000Z"},{"id":"db_import_33_1779255669","date":"2026-04-04","type":"income","category":"customer_payment","subcategory":"","amount":62000.0,"mode":"cash","note":"shital marketing","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-04T00:00:00.000Z"},{"id":"db_import_34_1779255669","date":"2026-04-05","type":"expense","category":"raw_material","subcategory":"","amount":54450.0,"mode":"cash","note":"steel center (200 stand material) + transport 400","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-05T00:00:00.000Z"},{"id":"db_import_35_1779255669","date":"2026-04-05","type":"expense","category":"raw_material","subcategory":"","amount":5015.0,"mode":"cash","note":"wheel material 1 bag","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-05T00:00:00.000Z"},{"id":"db_import_36_1779255669","date":"2026-04-05","type":"expense","category":"interest_emi","subcategory":"","amount":33264.0,"mode":"cash","note":"EMI","cfo_field":"interest","imported":true,"orig_cat":"Prashant","createdAt":"2026-04-05T00:00:00.000Z"},{"id":"db_import_37_1779255669","date":"2026-04-05","type":"income","category":"customer_payment","subcategory":"","amount":4000.0,"mode":"cash","note":"savta gaikwad advance","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-05T00:00:00.000Z"},{"id":"db_import_38_1779255669","date":"2026-04-05","type":"expense","category":"powder_coating","subcategory":"","amount":4000.0,"mode":"cash","note":"ss powder coating","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-04-05T00:00:00.000Z"},{"id":"db_import_39_1779255669","date":"2026-04-01","type":"expense","category":"personal_prashant","subcategory":"","amount":2000.0,"mode":"cash","note":"sound rent for funcation","cfo_field":null,"imported":true,"orig_cat":"Prashant","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_40_1779255669","date":"2026-03-29","type":"expense","category":"interest_emi","subcategory":"","amount":699.0,"mode":"cash","note":"auto dabit app","cfo_field":"interest","imported":true,"orig_cat":"Sanket","createdAt":"2026-03-29T00:00:00.000Z"},{"id":"db_import_41_1779255669","date":"2026-04-08","type":"income","category":"inter_account_in","subcategory":"","amount":7000.0,"mode":"cash","note":"pp black and decoration","cfo_field":null,"imported":true,"orig_cat":"Prashant","createdAt":"2026-04-08T00:00:00.000Z"},{"id":"db_import_42_1779255669","date":"2026-04-08","type":"expense","category":"raw_material","subcategory":"","amount":3000.0,"mode":"cash","note":"pp black","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-08T00:00:00.000Z"},{"id":"db_import_43_1779255669","date":"2026-04-08","type":"expense","category":"personal_prashant","subcategory":"","amount":4000.0,"mode":"cash","note":"decoration","cfo_field":null,"imported":true,"orig_cat":"Prashant","createdAt":"2026-04-08T00:00:00.000Z"},{"id":"db_import_44_1779255669","date":"2026-04-09","type":"expense","category":"admin_misc","subcategory":"","amount":560.0,"mode":"cash","note":"jio wifi","cfo_field":"admin","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-09T00:00:00.000Z"},{"id":"db_import_45_1779255669","date":"2026-04-09","type":"income","category":"personal_in","subcategory":"","amount":560.0,"mode":"cash","note":"jio wifi","cfo_field":null,"imported":true,"orig_cat":"Prashant","createdAt":"2026-04-09T00:00:00.000Z"},{"id":"db_import_46_1779255669","date":"2026-04-09","type":"income","category":"customer_payment","subcategory":"","amount":19800.0,"mode":"cash","note":"Ar refergration","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-09T00:00:00.000Z"},{"id":"db_import_47_1779255669","date":"2026-04-09","type":"expense","category":"interest_emi","subcategory":"","amount":19800.0,"mode":"cash","note":"emi sanket","cfo_field":"interest","imported":true,"orig_cat":"Bank Charges / Interest Expense","createdAt":"2026-04-09T00:00:00.000Z"},{"id":"db_import_48_1779255669","date":"2026-04-09","type":"expense","category":"personal_sanket","subcategory":"","amount":80.0,"mode":"cash","note":"home use","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-09T00:00:00.000Z"},{"id":"db_import_49_1779255669","date":"2026-04-09","type":"income","category":"customer_payment","subcategory":"","amount":13000.0,"mode":"cash","note":"raju ambejogi","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-09T00:00:00.000Z"},{"id":"db_import_50_1779255669","date":"2026-04-10","type":"expense","category":"personal_sanket","subcategory":"","amount":10.0,"mode":"cash","note":"cholate","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-10T00:00:00.000Z"},{"id":"db_import_51_1779255669","date":"2026-04-10","type":"expense","category":"powder_coating","subcategory":"","amount":4725.0,"mode":"cash","note":"nap pc payment","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-04-10T00:00:00.000Z"},{"id":"db_import_52_1779255669","date":"2026-04-10","type":"expense","category":"powder_coating","subcategory":"","amount":3000.0,"mode":"cash","note":"nashik argone","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-04-10T00:00:00.000Z"},{"id":"db_import_53_1779255669","date":"2026-04-10","type":"expense","category":"transport","subcategory":"","amount":300.0,"mode":"cash","note":"alfa diesel","cfo_field":"transport","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-10T00:00:00.000Z"},{"id":"db_import_54_1779255669","date":"2026-04-10","type":"expense","category":"powder_coating","subcategory":"","amount":0,"mode":"cash","note":"baba nagar","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-04-10T00:00:00.000Z"},{"id":"db_import_55_1779255669","date":"2026-04-10","type":"expense","category":"personal_sanket","subcategory":"","amount":2835.0,"mode":"cash","note":"home use","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-10T00:00:00.000Z"},{"id":"db_import_56_1779255669","date":"2026-04-11","type":"expense","category":"labour","subcategory":"","amount":300.0,"mode":"cash","note":"juned advance","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-11T00:00:00.000Z"},{"id":"db_import_57_1779255669","date":"2026-04-11","type":"expense","category":"raw_material","subcategory":"","amount":10000.0,"mode":"cash","note":"kalki fastner","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-11T00:00:00.000Z"},{"id":"db_import_58_1779255669","date":"2026-04-11","type":"expense","category":"packaging","subcategory":"","amount":3000.0,"mode":"cash","note":"paykia tape","cfo_field":"prodother","imported":true,"orig_cat":"Party","createdAt":"2026-04-11T00:00:00.000Z"},{"id":"db_import_59_1779255669","date":"2026-04-11","type":"expense","category":"raw_material","subcategory":"","amount":480.0,"mode":"cash","note":"subham fastner m6 bolt nut washer","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-11T00:00:00.000Z"},{"id":"db_import_60_1779255669","date":"2026-04-11","type":"expense","category":"raw_material","subcategory":"","amount":60.0,"mode":"cash","note":"white tape","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-11T00:00:00.000Z"},{"id":"db_import_61_1779255669","date":"2026-04-11","type":"income","category":"customer_payment","subcategory":"","amount":950.0,"mode":"cash","note":"ranjeet patil (metal stand)","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-11T00:00:00.000Z"},{"id":"db_import_62_1779255669","date":"2026-04-11","type":"expense","category":"interest_emi","subcategory":"","amount":1833.0,"mode":"cash","note":"sbi cradit card","cfo_field":"interest","imported":true,"orig_cat":"Bank Charges / Interest Expense","createdAt":"2026-04-11T00:00:00.000Z"},{"id":"db_import_63_1779255669","date":"2026-04-10","type":"expense","category":"personal_sanket","subcategory":"","amount":179.0,"mode":"cash","note":"pabalo cradle bag","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-10T00:00:00.000Z"},{"id":"db_import_64_1779255669","date":"2026-04-13","type":"income","category":"customer_payment","subcategory":"","amount":700.0,"mode":"cash","note":"pravin patil","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-13T00:00:00.000Z"},{"id":"db_import_65_1779255669","date":"2026-04-13","type":"expense","category":"raw_material","subcategory":"","amount":5015.0,"mode":"cash","note":"accord enterprises","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-13T00:00:00.000Z"},{"id":"db_import_66_1779255669","date":"2026-04-13","type":"expense","category":"admin_misc","subcategory":"","amount":180.0,"mode":"cash","note":"cat food","cfo_field":"admin","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-13T00:00:00.000Z"},{"id":"db_import_67_1779255669","date":"2026-04-14","type":"income","category":"personal_in","subcategory":"","amount":1000.0,"mode":"cash","note":"recived to mom","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-14T00:00:00.000Z"},{"id":"db_import_68_1779255669","date":"2026-04-14","type":"income","category":"customer_payment","subcategory":"","amount":6500.0,"mode":"cash","note":"trinhavan","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-14T00:00:00.000Z"},{"id":"db_import_69_1779255669","date":"2026-04-14","type":"expense","category":"packaging","subcategory":"","amount":3500.0,"mode":"cash","note":"plastic bag","cfo_field":"prodother","imported":true,"orig_cat":"Party","createdAt":"2026-04-14T00:00:00.000Z"},{"id":"db_import_70_1779255669","date":"2026-04-14","type":"expense","category":"personal_sanket","subcategory":"","amount":140.0,"mode":"cash","note":"home use","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-14T00:00:00.000Z"},{"id":"db_import_71_1779255669","date":"2026-04-14","type":"expense","category":"personal_sanket","subcategory":"","amount":20.0,"mode":"cash","note":"home use","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-14T00:00:00.000Z"},{"id":"db_import_72_1779255669","date":"2026-04-14","type":"expense","category":"personal_sanket","subcategory":"","amount":40.0,"mode":"cash","note":"home use","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-14T00:00:00.000Z"},{"id":"db_import_73_1779255669","date":"2026-04-14","type":"expense","category":"personal_sanket","subcategory":"","amount":40.0,"mode":"cash","note":"home use","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-14T00:00:00.000Z"},{"id":"db_import_74_1779255669","date":"2026-04-15","type":"expense","category":"transport","subcategory":"","amount":300.0,"mode":"cash","note":"alfa diesel","cfo_field":"transport","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-15T00:00:00.000Z"},{"id":"db_import_75_1779255669","date":"2026-04-15","type":"expense","category":"raw_material","subcategory":"","amount":10000.0,"mode":"cash","note":"subham fastner m6 bolt nut washer","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-15T00:00:00.000Z"},{"id":"db_import_76_1779255669","date":"2026-04-15","type":"expense","category":"admin_misc","subcategory":"","amount":2000.0,"mode":"cash","note":"tea bill","cfo_field":"admin","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-15T00:00:00.000Z"},{"id":"db_import_77_1779255669","date":"2026-04-16","type":"expense","category":"repair_maint","subcategory":"","amount":290.0,"mode":"cash","note":"flap wheel","cfo_field":"prodother","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-16T00:00:00.000Z"},{"id":"db_import_78_1779255669","date":"2026-04-16","type":"expense","category":"labour","subcategory":"","amount":200.0,"mode":"cash","note":"juned advance","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-16T00:00:00.000Z"},{"id":"db_import_79_1779255669","date":"2026-04-16","type":"expense","category":"personal_sanket","subcategory":"","amount":894.16,"mode":"cash","note":"account settle","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-16T00:00:00.000Z"},{"id":"db_import_80_1779255669","date":"2026-04-17","type":"income","category":"personal_in","subcategory":"","amount":40000.0,"mode":"cash","note":"from dad","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-17T00:00:00.000Z"},{"id":"db_import_81_1779255669","date":"2026-04-17","type":"expense","category":"raw_material","subcategory":"","amount":35210.0,"mode":"cash","note":"steel center (200 stand material without angle) + transport 400","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-17T00:00:00.000Z"},{"id":"db_import_82_1779255669","date":"2026-04-17","type":"expense","category":"labour","subcategory":"","amount":200.0,"mode":"cash","note":"juned advance","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-17T00:00:00.000Z"},{"id":"db_import_83_1779255669","date":"2026-04-20","type":"income","category":"venux_income","subcategory":"","amount":80500.0,"mode":"cash","note":"venux","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-20T00:00:00.000Z"},{"id":"db_import_84_1779255669","date":"2026-04-20","type":"expense","category":"powder_coating","subcategory":"","amount":10000.0,"mode":"cash","note":"bagul febcration (cash paid)","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-04-20T00:00:00.000Z"},{"id":"db_import_85_1779255669","date":"2026-04-20","type":"expense","category":"powder_coating","subcategory":"","amount":2000.0,"mode":"cash","note":"nashik argone ( cash paid)","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-04-20T00:00:00.000Z"},{"id":"db_import_86_1779255669","date":"2026-04-20","type":"expense","category":"rent","subcategory":"","amount":20200.0,"mode":"cash","note":"shop rent and light bill ( cash paid )","cfo_field":"rent","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-20T00:00:00.000Z"},{"id":"db_import_87_1779255669","date":"2026-04-20","type":"expense","category":"transport","subcategory":"","amount":300.0,"mode":"cash","note":"alfa diesel ( cash paid )","cfo_field":"transport","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-20T00:00:00.000Z"},{"id":"db_import_88_1779255669","date":"2026-04-21","type":"expense","category":"raw_material","subcategory":"","amount":7000.0,"mode":"cash","note":"subham fastner m6 bolt nut washer CASH PAID","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-21T00:00:00.000Z"},{"id":"db_import_89_1779255669","date":"2026-04-21","type":"expense","category":"raw_material","subcategory":"","amount":4200.0,"mode":"cash","note":"pp material black 2 bag 45 rs ( 1800 +2250 cash paid )","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-21T00:00:00.000Z"},{"id":"db_import_90_1779255669","date":"2026-04-21","type":"income","category":"customer_payment","subcategory":"","amount":10000.0,"mode":"cash","note":"A Square advance 20 stand","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-21T00:00:00.000Z"},{"id":"db_import_91_1779255669","date":"2026-04-21","type":"expense","category":"tax_govt","subcategory":"","amount":2000.0,"mode":"cash","note":"SR GST PAID","cfo_field":"tax","imported":true,"orig_cat":"Bank Charges / Interest Expense","createdAt":"2026-04-21T00:00:00.000Z"},{"id":"db_import_92_1779255669","date":"2026-04-22","type":"expense","category":"powder_coating","subcategory":"","amount":3500.0,"mode":"cash","note":"lucky shairing CASH PAID","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-04-22T00:00:00.000Z"},{"id":"db_import_93_1779255669","date":"2026-04-22","type":"expense","category":"raw_material","subcategory":"","amount":27000.0,"mode":"cash","note":"angale and pipe CASH PAID","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-22T00:00:00.000Z"},{"id":"db_import_94_1779255669","date":"2026-04-22","type":"expense","category":"repair_maint","subcategory":"","amount":140.0,"mode":"cash","note":"belt tapping machine","cfo_field":"prodother","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-22T00:00:00.000Z"},{"id":"db_import_95_1779255669","date":"2026-04-22","type":"income","category":"venux_income","subcategory":"","amount":40000.0,"mode":"cash","note":"venux CASH PAID","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-22T00:00:00.000Z"},{"id":"db_import_96_1779255669","date":"2026-04-22","type":"income","category":"customer_payment","subcategory":"","amount":6200.0,"mode":"cash","note":"mayur enterprises","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-22T00:00:00.000Z"},{"id":"db_import_97_1779255669","date":"2026-04-22","type":"expense","category":"labour","subcategory":"","amount":7000.0,"mode":"cash","note":"savita tai CASH PAID","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-22T00:00:00.000Z"},{"id":"db_import_98_1779255669","date":"2026-04-22","type":"expense","category":"labour","subcategory":"","amount":7000.0,"mode":"cash","note":"lata tai CASH PAID","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-22T00:00:00.000Z"},{"id":"db_import_99_1779255669","date":"2026-04-22","type":"expense","category":"labour","subcategory":"","amount":6000.0,"mode":"cash","note":"juned advance CASH PAID","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-22T00:00:00.000Z"},{"id":"db_import_100_1779255669","date":"2026-04-23","type":"expense","category":"raw_material","subcategory":"","amount":1000.0,"mode":"cash","note":"subham fastner m6 bolt nut washer CASH PAID","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-23T00:00:00.000Z"},{"id":"db_import_101_1779255669","date":"2026-04-21","type":"expense","category":"labour","subcategory":"","amount":300.0,"mode":"cash","note":"juned advance","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-21T00:00:00.000Z"},{"id":"db_import_102_1779255669","date":"2026-04-22","type":"expense","category":"personal_sanket","subcategory":"","amount":228.0,"mode":"cash","note":"pabalo dress","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-22T00:00:00.000Z"},{"id":"db_import_103_1779255669","date":"2026-04-23","type":"expense","category":"transport","subcategory":"","amount":300.0,"mode":"cash","note":"alfa diseal","cfo_field":"transport","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-23T00:00:00.000Z"},{"id":"db_import_104_1779255669","date":"2026-04-23","type":"expense","category":"labour","subcategory":"","amount":2000.0,"mode":"cash","note":"lata payment CASH PAID","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-23T00:00:00.000Z"},{"id":"db_import_105_1779255669","date":"2026-04-24","type":"expense","category":"repair_maint","subcategory":"","amount":140.0,"mode":"cash","note":"moulding spary","cfo_field":"prodother","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-24T00:00:00.000Z"},{"id":"db_import_106_1779255669","date":"2026-04-24","type":"expense","category":"transport","subcategory":"","amount":300.0,"mode":"cash","note":"alfa diesel","cfo_field":"transport","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-24T00:00:00.000Z"},{"id":"db_import_107_1779255669","date":"2026-04-24","type":"expense","category":"personal_sanket","subcategory":"","amount":15.0,"mode":"cash","note":"pablo  khau","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-24T00:00:00.000Z"},{"id":"db_import_108_1779255669","date":"2026-04-25","type":"expense","category":"repair_maint","subcategory":"","amount":240.0,"mode":"cash","note":"cutting wheel","cfo_field":"prodother","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-25T00:00:00.000Z"},{"id":"db_import_109_1779255669","date":"2026-04-25","type":"income","category":"customer_payment","subcategory":"","amount":53950.0,"mode":"cash","note":"annapurna trade wings kolkatta","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-25T00:00:00.000Z"},{"id":"db_import_110_1779255669","date":"2026-04-25","type":"expense","category":"labour","subcategory":"","amount":4000.0,"mode":"cash","note":"juned advance","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-25T00:00:00.000Z"},{"id":"db_import_111_1779255669","date":"2026-04-25","type":"expense","category":"personal_sanket","subcategory":"","amount":1000.0,"mode":"cash","note":"car ac","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-25T00:00:00.000Z"},{"id":"db_import_112_1779255669","date":"2026-04-25","type":"expense","category":"personal_sanket","subcategory":"","amount":50.0,"mode":"cash","note":"ies cream","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-25T00:00:00.000Z"},{"id":"db_import_113_1779255669","date":"2026-04-26","type":"expense","category":"personal_sanket","subcategory":"","amount":7200.0,"mode":"cash","note":"car ac","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-26T00:00:00.000Z"},{"id":"db_import_114_1779255669","date":"2026-04-26","type":"expense","category":"personal_sanket","subcategory":"","amount":30.0,"mode":"cash","note":"pablo  khau","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-26T00:00:00.000Z"},{"id":"db_import_115_1779255669","date":"2026-04-26","type":"expense","category":"powder_coating","subcategory":"","amount":800.0,"mode":"cash","note":"nashik argon","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-04-26T00:00:00.000Z"},{"id":"db_import_116_1779255669","date":"2026-04-26","type":"expense","category":"personal_sanket","subcategory":"","amount":200.0,"mode":"cash","note":"cake mom and dad","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-26T00:00:00.000Z"},{"id":"db_import_117_1779255669","date":"2026-04-27","type":"expense","category":"interest_emi","subcategory":"","amount":20000.0,"mode":"cash","note":"for cc sbi","cfo_field":"interest","imported":true,"orig_cat":"Prashant","createdAt":"2026-04-27T00:00:00.000Z"},{"id":"db_import_118_1779255669","date":"2026-04-27","type":"expense","category":"packaging","subcategory":"","amount":10000.0,"mode":"cash","note":"polytech packaging cash and beyondfuri payment paid","cfo_field":"prodother","imported":true,"orig_cat":"Party","createdAt":"2026-04-27T00:00:00.000Z"},{"id":"db_import_119_1779255669","date":"2026-04-27","type":"expense","category":"raw_material","subcategory":"","amount":5000.0,"mode":"cash","note":"S A Polymer","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-27T00:00:00.000Z"},{"id":"db_import_120_1779255669","date":"2026-04-27","type":"expense","category":"interest_emi","subcategory":"","amount":8000.0,"mode":"cash","note":"sbi cc (20000+8000=28000 )","cfo_field":"interest","imported":true,"orig_cat":"Bank Charges / Interest Expense","createdAt":"2026-04-27T00:00:00.000Z"},{"id":"db_import_121_1779255669","date":"2026-04-27","type":"expense","category":"personal_sanket","subcategory":"","amount":72.0,"mode":"cash","note":"nasta","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-27T00:00:00.000Z"},{"id":"db_import_122_1779255669","date":"2026-04-28","type":"expense","category":"raw_material","subcategory":"","amount":3000.0,"mode":"cash","note":"black pp","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-28T00:00:00.000Z"},{"id":"db_import_123_1779255669","date":"2026-04-28","type":"expense","category":"admin_misc","subcategory":"","amount":824.82,"mode":"cash","note":"company wifi","cfo_field":"admin","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-28T00:00:00.000Z"},{"id":"db_import_124_1779255669","date":"2026-04-28","type":"expense","category":"powder_coating","subcategory":"","amount":6705.0,"mode":"cash","note":"ashish pc","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-04-28T00:00:00.000Z"},{"id":"db_import_125_1779255669","date":"2026-04-29","type":"expense","category":"personal_sanket","subcategory":"","amount":2843.0,"mode":"cash","note":"home use","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-29T00:00:00.000Z"},{"id":"db_import_126_1779255669","date":"2026-04-29","type":"expense","category":"raw_material","subcategory":"","amount":1000.0,"mode":"cash","note":"black pp","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-29T00:00:00.000Z"},{"id":"db_import_127_1779255669","date":"2026-04-29","type":"expense","category":"raw_material","subcategory":"","amount":27850.0,"mode":"cash","note":"steel center +transport","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-29T00:00:00.000Z"},{"id":"db_import_128_1779255669","date":"2026-04-29","type":"income","category":"venux_income","subcategory":"","amount":3960.0,"mode":"cash","note":"venux advance payment ( 260+350+3350=39600","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-29T00:00:00.000Z"},{"id":"db_import_129_1779255669","date":"2026-04-30","type":"income","category":"customer_payment","subcategory":"","amount":10000.0,"mode":"cash","note":"dhondiba advance","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-30T00:00:00.000Z"},{"id":"db_import_130_1779255669","date":"2026-04-30","type":"expense","category":"packaging","subcategory":"","amount":3349.0,"mode":"cash","note":"paykia tape","cfo_field":"prodother","imported":true,"orig_cat":"Party","createdAt":"2026-04-30T00:00:00.000Z"},{"id":"db_import_131_1779255669","date":"2026-04-30","type":"expense","category":"transport","subcategory":"","amount":300.0,"mode":"cash","note":"alfa diesel","cfo_field":"transport","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-30T00:00:00.000Z"},{"id":"db_import_132_1779255669","date":"2026-04-30","type":"expense","category":"raw_material","subcategory":"","amount":50.0,"mode":"cash","note":"subham fastner 6nut","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-30T00:00:00.000Z"},{"id":"db_import_133_1779255669","date":"2026-04-30","type":"expense","category":"personal_sanket","subcategory":"","amount":353.0,"mode":"cash","note":"recharge","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-30T00:00:00.000Z"},{"id":"db_import_134_1779255669","date":"2026-04-30","type":"income","category":"venux_income","subcategory":"","amount":349.0,"mode":"cash","note":"VENUX","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-30T00:00:00.000Z"},{"id":"db_import_135_1779255669","date":"2026-04-30","type":"expense","category":"labour","subcategory":"","amount":7000.0,"mode":"cash","note":"dhanshree tai","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-30T00:00:00.000Z"},{"id":"db_import_136_1779255669","date":"2026-05-01","type":"income","category":"venux_income","subcategory":"","amount":4000.0,"mode":"cash","note":"venux fund","cfo_field":null,"imported":true,"orig_cat":"Party, Bank Charges / Interest Expense","createdAt":"2026-05-01T00:00:00.000Z"},{"id":"db_import_137_1779255669","date":"2026-05-02","type":"expense","category":"interest_emi","subcategory":"","amount":4000.0,"mode":"cash","note":"sanket emi","cfo_field":"interest","imported":true,"orig_cat":"Bank Charges / Interest Expense","createdAt":"2026-05-02T00:00:00.000Z"},{"id":"db_import_138_1779255669","date":"2026-05-05","type":"income","category":"customer_payment","subcategory":"","amount":3000.0,"mode":"cash","note":"A Square advance 20 stand","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-05-05T00:00:00.000Z"},{"id":"db_import_139_1779255669","date":"2026-05-05","type":"expense","category":"personal_sanket","subcategory":"","amount":5500.0,"mode":"cash","note":"give to tejas","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-05-05T00:00:00.000Z"},{"id":"db_import_140_1779255669","date":"2026-05-06","type":"income","category":"customer_payment","subcategory":"","amount":45500.0,"mode":"cash","note":"COOL CARE ADVANCE (70 STAND )","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-05-06T00:00:00.000Z"},{"id":"db_import_141_1779255669","date":"2026-05-06","type":"expense","category":"raw_material","subcategory":"","amount":25750.0,"mode":"cash","note":"steel center 100 m +transport","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-05-06T00:00:00.000Z"},{"id":"db_import_142_1779255669","date":"2026-05-06","type":"income","category":"customer_payment","subcategory":"","amount":22500.0,"mode":"cash","note":"dhondiba advance 50 stand","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-05-06T00:00:00.000Z"},{"id":"db_import_143_1779255669","date":"2026-05-06","type":"expense","category":"personal_sanket","subcategory":"","amount":994.0,"mode":"cash","note":"pabalo hosptil","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-05-06T00:00:00.000Z"},{"id":"db_import_144_1779255669","date":"2026-05-07","type":"expense","category":"repair_maint","subcategory":"","amount":5000.0,"mode":"cash","note":"mangal murti service gunjal","cfo_field":"prodother","imported":true,"orig_cat":"Party","createdAt":"2026-05-07T00:00:00.000Z"},{"id":"db_import_145_1779255669","date":"2026-05-07","type":"expense","category":"personal_sanket","subcategory":"","amount":523.0,"mode":"cash","note":"sanket oetrol","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-05-07T00:00:00.000Z"},{"id":"db_import_146_1779255669","date":"2026-05-08","type":"income","category":"venux_income","subcategory":"","amount":2300.0,"mode":"cash","note":"VENUX","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-05-08T00:00:00.000Z"},{"id":"db_import_147_1779255669","date":"2026-05-08","type":"expense","category":"raw_material","subcategory":"","amount":5300.0,"mode":"cash","note":"S A Polymer","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-05-08T00:00:00.000Z"},{"id":"db_import_148_1779255669","date":"2026-05-09","type":"expense","category":"personal_sanket","subcategory":"","amount":569.0,"mode":"cash","note":"D MART","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-05-09T00:00:00.000Z"},{"id":"db_import_149_1779255669","date":"2026-05-09","type":"expense","category":"interest_emi","subcategory":"","amount":22000.0,"mode":"cash","note":"HOME EMI","cfo_field":"interest","imported":true,"orig_cat":"Bank Charges / Interest Expense","createdAt":"2026-05-09T00:00:00.000Z"},{"id":"db_import_150_1779255669","date":"2026-05-10","type":"expense","category":"transport","subcategory":"","amount":300.0,"mode":"cash","note":"alfa diseal","cfo_field":"transport","imported":true,"orig_cat":"operating expense","createdAt":"2026-05-10T00:00:00.000Z"},{"id":"db_import_151_1779255669","date":"2026-05-10","type":"expense","category":"repair_maint","subcategory":"","amount":400.0,"mode":"cash","note":"m8 tap","cfo_field":"prodother","imported":true,"orig_cat":"operating expense","createdAt":"2026-05-10T00:00:00.000Z"},{"id":"db_import_152_1779255669","date":"2026-05-11","type":"expense","category":"packaging","subcategory":"","amount":320.0,"mode":"cash","note":"packeging dori","cfo_field":"prodother","imported":true,"orig_cat":"operating expense","createdAt":"2026-05-11T00:00:00.000Z"},{"id":"db_import_153_1779255669","date":"2026-05-11","type":"income","category":"customer_payment","subcategory":"","amount":31000.0,"mode":"cash","note":"shital marketing","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-05-11T00:00:00.000Z"},{"id":"db_import_154_1779255669","date":"2026-05-11","type":"expense","category":"raw_material","subcategory":"","amount":10000.0,"mode":"cash","note":"subham fastner","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-05-11T00:00:00.000Z"},{"id":"db_import_155_1779255669","date":"2026-05-11","type":"expense","category":"powder_coating","subcategory":"","amount":5608.0,"mode":"cash","note":"nap pc payment","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-05-11T00:00:00.000Z"},{"id":"db_import_156_1779255669","date":"2026-05-12","type":"expense","category":"raw_material","subcategory":"","amount":4543.0,"mode":"cash","note":"pp vergine wheel","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-05-12T00:00:00.000Z"},{"id":"db_import_157_1779255669","date":"2026-05-12","type":"expense","category":"personal_sanket","subcategory":"","amount":90.0,"mode":"cash","note":"medical","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-05-12T00:00:00.000Z"},{"id":"db_import_158_1779255669","date":"2026-05-13","type":"income","category":"customer_payment","subcategory":"","amount":31500.0,"mode":"cash","note":"baba jalana","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-05-13T00:00:00.000Z"},{"id":"db_import_159_1779255669","date":"2026-05-13","type":"expense","category":"raw_material","subcategory":"","amount":59100.0,"mode":"cash","note":"steel center","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-05-13T00:00:00.000Z"},{"id":"db_import_160_1779255669","date":"2026-05-13","type":"income","category":"customer_payment","subcategory":"","amount":25000.0,"mode":"cash","note":"baba nagar","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-05-13T00:00:00.000Z"},{"id":"db_import_161_1779255669","date":"2026-05-13","type":"expense","category":"repair_maint","subcategory":"","amount":120.0,"mode":"cash","note":"hand gloves","cfo_field":"prodother","imported":true,"orig_cat":"operating expense","createdAt":"2026-05-13T00:00:00.000Z"},{"id":"db_import_162_1779255669","date":"2026-05-13","type":"expense","category":"personal_sanket","subcategory":"","amount":200.0,"mode":"cash","note":"leta tai cake","cfo_field":null,"imported":true,"orig_cat":"operating expense","createdAt":"2026-05-13T00:00:00.000Z"},{"id":"db_import_163_1779255669","date":"2026-05-13","type":"expense","category":"interest_emi","subcategory":"","amount":7462.0,"mode":"cash","note":"sbi card","cfo_field":"interest","imported":true,"orig_cat":"Bank Charges / Interest Expense","createdAt":"2026-05-13T00:00:00.000Z"},{"id":"db_import_164_1779255669","date":"2026-05-13","type":"expense","category":"labour","subcategory":"","amount":5000.0,"mode":"cash","note":"juned and sanjeevani ( 2500/2500) payment","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-05-13T00:00:00.000Z"},{"id":"db_import_165_1779255669","date":"2026-05-14","type":"expense","category":"personal_sanket","subcategory":"","amount":994.0,"mode":"cash","note":"pabalo hosptil","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-05-14T00:00:00.000Z"},{"id":"db_import_166_1779255669","date":"2026-05-14","type":"expense","category":"transport","subcategory":"","amount":300.0,"mode":"cash","note":"alfa diseal","cfo_field":"transport","imported":true,"orig_cat":"operating expense","createdAt":"2026-05-14T00:00:00.000Z"},{"id":"db_import_167_1779255669","date":"2026-05-15","type":"income","category":"venux_income","subcategory":"","amount":500.0,"mode":"cash","note":"venux","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-05-15T00:00:00.000Z"}];
-  if(!excelData.length) return;
-  const existing = new Set(DAYBOOK.map(e=>`${e.date}|${e.amount}|${(e.note||'').slice(0,20)}`));
-  let added = 0;
-  excelData.forEach(e=>{
-    const key = `${e.date}|${e.amount}|${(e.note||'').slice(0,20)}`;
-    if(!existing.has(key)){ DAYBOOK.push(e); added++; }
-  });
-  if(added > 0){
-    try{ localStorage.setItem('bf9_daybook', JSON.stringify(DAYBOOK)); }catch(e){}
-  }
-  localStorage.setItem(IMPORTED_KEY, '1');
-  console.log(`✅ Daybook: ${added} Excel entries pre-loaded`);
-})();
 let _dbEditId = null;
 let _dbType = 'expense';
 let _dbMode = 'cash';
@@ -16547,6 +16667,7 @@ function _dbShowDisciplineModal(warnings, blocks, doSave){
 }
 
 function _dbSaveEntry(){
+  if(_dbSaving) return; // double-tap / double-click guard
   const amount   = parseFloat(document.getElementById('db-amount').value)||0;
   const date     = document.getElementById('db-date').value;
   const category = document.getElementById('db-category').value;
@@ -16558,12 +16679,18 @@ function _dbSaveEntry(){
   if(!category)    { toast('⚠️ Category chunno!'); return; }
 
   const doSave = function(){
+    _dbSaving = true;
     if(_dbEditId){
       const idx = DAYBOOK.findIndex(e=>e.id===_dbEditId);
-      if(idx>=0) DAYBOOK[idx] = {...DAYBOOK[idx], type:_dbType, category, supplier, amount, date, mode:_dbMode, note};
+      if(idx>=0){
+        _dbLogAction('edit', DAYBOOK[idx], {type:_dbType, category, supplier, amount, date, mode:_dbMode, note});
+        DAYBOOK[idx] = {...DAYBOOK[idx], type:_dbType, category, supplier, amount, date, mode:_dbMode, note};
+      }
       toast('✅ Entry update ho gayi!');
     } else {
-      DAYBOOK.push({id:'db_'+Date.now(), date, type:_dbType, category, supplier, amount, mode:_dbMode, note, createdAt:new Date().toISOString()});
+      const newEntry = {id:'db_'+Date.now()+'_'+Math.random().toString(36).slice(2,8), date, type:_dbType, category, supplier, amount, mode:_dbMode, note, createdAt:new Date().toISOString()};
+      DAYBOOK.push(newEntry);
+      _dbLogAction('add', null, newEntry);
       toast('✅ Entry save ho gayi!');
     }
     save('bf9_daybook', DAYBOOK);
@@ -16575,6 +16702,7 @@ function _dbSaveEntry(){
       _dbRemoveQueueBanner();
       _dbProcessQueueItem();
     }
+    setTimeout(()=>{ _dbSaving = false; }, 1200);
   };
 
   const {warnings, blocks} = _dbRunDiscipline(amount, date, category, note, supplier, _dbMode);
@@ -16584,9 +16712,23 @@ function _dbSaveEntry(){
     doSave();
   }
 }
+let _dbSaving = false;
+
+/* ── Local audit log — kisne/kab edit ya delete kiya, taaki "entry gayab"
+   lagne pe khud verify kar sako ki kya hua tha ── */
+function _dbLogAction(action, before, after){
+  try{
+    const log = JSON.parse(localStorage.getItem('bf9_db_audit')||'[]');
+    log.unshift({ action, before, after, at: new Date().toISOString() });
+    if(log.length>200) log.length=200;
+    localStorage.setItem('bf9_db_audit', JSON.stringify(log));
+  }catch(e){}
+}
 
 function _dbDelete(id){
   if(!confirm('Yeh entry delete karo?')) return;
+  const entry = DAYBOOK.find(e=>e.id===id);
+  _dbLogAction('delete', entry, null);
   DAYBOOK = DAYBOOK.filter(e=>e.id!==id);
   save('bf9_daybook', DAYBOOK);
   renderDaybook();
@@ -16773,6 +16915,100 @@ function _dbResetCats(){
 }
 
 /* ── Day Book Report Download ── */
+/* ══════════════════════════════════════════════════════════
+   DAYBOOK HEALTH CHECK — duplicate entries, bad data, aur
+   recent edit/delete history ek jagah dikhata hai taaki
+   "total galat" ya "entry gayab" lagne pe khud verify kar sako.
+══════════════════════════════════════════════════════════ */
+function _dbFindDuplicates(){
+  const groups = {};
+  DAYBOOK.forEach(e=>{
+    const key = `${e.date}|${e.type}|${e.category}|${e.amount}|${(e.supplier||'').trim().toLowerCase()}`;
+    (groups[key] = groups[key]||[]).push(e);
+  });
+  return Object.values(groups).filter(g=>g.length>1);
+}
+function _dbFindBadData(){
+  return DAYBOOK.filter(e=>
+    typeof e.amount!=='number' || isNaN(e.amount) || e.amount<=0 ||
+    !e.date || !/^\d{4}-\d{2}-\d{2}$/.test(e.date) ||
+    (e.type!=='income' && e.type!=='expense')
+  );
+}
+function _dbHealthCheck(){
+  const dupGroups = _dbFindDuplicates();
+  const badData   = _dbFindBadData();
+  const dupCount  = dupGroups.reduce((s,g)=>s+g.length-1,0); // extra copies
+  const dupAmt    = dupGroups.reduce((s,g)=>s+g.slice(1).reduce((s2,e)=>s2+(e.amount||0),0),0);
+  const audit     = JSON.parse(localStorage.getItem('bf9_db_audit')||'[]').slice(0,15);
+
+  let el = document.getElementById('db-health-modal');
+  if(!el){
+    el = document.createElement('div');
+    el.id='db-health-modal';
+    el.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:970;align-items:flex-end;justify-content:center;';
+    document.body.appendChild(el);
+  }
+
+  const dupHtml = dupGroups.length ? dupGroups.map((g,gi)=>{
+    const cat = (DB_CATS[g[0].type]||[]).find(c=>c.id===g[0].category);
+    return `<div style="border:1px solid #fca5a5;background:#fef2f2;border-radius:10px;padding:10px;margin-bottom:8px">
+      <div style="font-size:12px;font-weight:800;color:#991b1b;margin-bottom:6px">${g[0].date} · ${cat?cat.label:g[0].category} · ₹${_fmtAmt(g[0].amount)} × ${g.length} baar${g[0].supplier?' · '+esc(g[0].supplier):''}</div>
+      ${g.map((e,i)=>`<div style="display:flex;align-items:center;gap:8px;font-size:11px;color:#555;padding:3px 0">
+        <span style="flex:1">${i===0?'✅ Rakhenge':'❌ Extra copy'} — ${esc(e.note||'(no note)')}</span>
+        ${i>0?`<button onclick="_dbHealthDelete('${e.id}')" style="padding:4px 8px;background:#dc2626;color:#fff;border:none;border-radius:6px;font-size:10px;font-weight:800;cursor:pointer">Delete</button>`:''}
+      </div>`).join('')}
+    </div>`;
+  }).join('') : '<div style="text-align:center;padding:14px;color:var(--muted);font-size:12px">✅ Koi duplicate entry nahi mili</div>';
+
+  const badHtml = badData.length ? badData.map(e=>`<div style="border:1px solid #fca5a5;background:#fef2f2;border-radius:10px;padding:8px 10px;margin-bottom:6px;font-size:11px;color:#991b1b">
+      ${esc(e.date||'(no date)')} · amount: ${JSON.stringify(e.amount)} · type: ${e.type||'(missing)'} — <button onclick="_dbHealthDelete('${e.id}')" style="padding:3px 8px;background:#dc2626;color:#fff;border:none;border-radius:6px;font-size:10px;font-weight:800;cursor:pointer">Delete</button>
+    </div>`).join('') : '<div style="text-align:center;padding:10px;color:var(--muted);font-size:12px">✅ Koi corrupt/invalid entry nahi</div>';
+
+  const auditHtml = audit.length ? audit.map(a=>{
+    const dt = new Date(a.at).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    const ref = a.after||a.before||{};
+    const lbl = a.action==='add'?'➕ Add':a.action==='edit'?'✏️ Edit':'🗑 Delete';
+    return `<div style="display:flex;justify-content:space-between;font-size:11px;color:#555;padding:4px 0;border-bottom:1px solid #eee">
+      <span>${lbl} · ${ref.date||''} · ₹${_fmtAmt(ref.amount||0)}</span><span style="color:var(--muted)">${dt}</span>
+    </div>`;
+  }).join('') : '<div style="text-align:center;padding:10px;color:var(--muted);font-size:12px">Koi recent activity nahi</div>';
+
+  el.innerHTML = `<div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:560px;max-height:88vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-size:15px;font-weight:800;color:var(--navy2)">🩺 Daybook Health Check</div>
+      <button onclick="document.getElementById('db-health-modal').style.display='none'" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+      <div style="background:${dupCount>0?'#fef2f2':'#f0fdf4'};border-radius:10px;padding:10px;text-align:center">
+        <div style="font-size:20px;font-weight:900;color:${dupCount>0?'#dc2626':'#16a34a'}">${dupCount}</div>
+        <div style="font-size:10px;color:var(--muted);font-weight:700">Duplicate copies${dupCount>0?` (₹${_fmtAmt(dupAmt)})`:''}</div>
+      </div>
+      <div style="background:${badData.length>0?'#fef2f2':'#f0fdf4'};border-radius:10px;padding:10px;text-align:center">
+        <div style="font-size:20px;font-weight:900;color:${badData.length>0?'#dc2626':'#16a34a'}">${badData.length}</div>
+        <div style="font-size:10px;color:var(--muted);font-weight:700">Corrupt entries</div>
+      </div>
+    </div>
+    <div style="font-size:13px;font-weight:800;color:var(--navy2);margin-bottom:8px">Duplicate Entries</div>
+    ${dupHtml}
+    <div style="font-size:13px;font-weight:800;color:var(--navy2);margin:14px 0 8px">Corrupt / Invalid Entries</div>
+    ${badHtml}
+    <div style="font-size:13px;font-weight:800;color:var(--navy2);margin:14px 0 8px">Recent Add/Edit/Delete (is device)</div>
+    ${auditHtml}
+  </div>`;
+  el.style.display='flex';
+}
+function _dbHealthDelete(id){
+  if(!confirm('Ye entry permanently delete karo?')) return;
+  const entry = DAYBOOK.find(e=>e.id===id);
+  _dbLogAction('delete', entry, null);
+  DAYBOOK = DAYBOOK.filter(e=>e.id!==id);
+  save('bf9_daybook', DAYBOOK);
+  renderDaybook();
+  toast('🗑 Delete ho gaya');
+  _dbHealthCheck(); // refresh modal
+}
+
 function _dbDownloadReport(){
   const filterDate  = document.getElementById('db-filter-date')?.value  || '';
   const filterMonth = document.getElementById('db-filter-month')?.value || '';
