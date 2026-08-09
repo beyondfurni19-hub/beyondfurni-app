@@ -668,13 +668,13 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 /* ═══ PLAN EDIT ═══ */
 .plan-edit-modal-bg{
   display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);
-  z-index:700;align-items:flex-start;justify-content:center;
-  padding:10px;overflow-y:auto;
+  z-index:700;align-items:stretch;justify-content:flex-end;
 }
 .plan-edit-modal-bg.show{display:flex;}
 .plan-edit-modal{
-  background:var(--card);border-radius:20px;width:100%;max-width:560px;
-  margin:auto;animation:popIn .22s ease;box-shadow:0 20px 60px rgba(0,0,0,.4);
+  background:var(--card);border-radius:16px 0 0 16px;width:420px;max-width:92vw;
+  height:100%;max-height:100vh;overflow-y:auto;box-sizing:border-box;
+  animation:slideInRight .22s ease;box-shadow:-6px 0 28px rgba(0,0,0,.18);
 }
 .pem-header{
   padding:14px 16px 11px;border-bottom:1px solid var(--border);
@@ -892,12 +892,13 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 .txn-qty{font-weight:800;font-size:12px;}
 .txn-date{font-size:10px;color:var(--muted);}
 
-/* Stock modal */
-.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;align-items:flex-end;justify-content:center;}
-.modal-bg.show{display:flex;}
-.modal{background:var(--card);border-radius:22px 22px 0 0;padding:16px 16px 30px;width:100%;max-width:560px;animation:slideUp .22s ease;}
+/* Stock modal — converted to right-side sliding panel (was bottom-sheet) */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;align-items:stretch;justify-content:flex-end;}
+.modal-bg.show{display:flex!important;}
+.modal{background:var(--card);border-radius:16px 0 0 16px;padding:16px 16px 30px;width:400px;max-width:92vw;max-height:100vh!important;height:100%;overflow-y:auto;animation:slideInRight .22s ease;box-shadow:-6px 0 28px rgba(0,0,0,.18);box-sizing:border-box;}
 @keyframes slideUp{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
-.modal-handle{width:40px;height:4px;border-radius:2px;background:var(--border2);margin:0 auto 14px;}
+@keyframes slideInRight{from{transform:translateX(60px);opacity:0}to{transform:translateX(0);opacity:1}}
+.modal-handle{display:none;}
 .modal h3{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--navy2);margin-bottom:4px;}
 .big-qty{text-align:center;font-family:'Bebas Neue',sans-serif;font-size:48px;color:var(--navy2);width:100%;border:2px solid var(--border);border-radius:14px;padding:10px;outline:none;background:#f8faff;margin-bottom:10px;}
 .big-qty:focus{border-color:var(--orange);}
@@ -1012,7 +1013,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 .btn-print-meet{width:100%;padding:12px;background:var(--navy2);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;margin-bottom:10px;}
 
 /* PDF download modal */
-.pdf-modal-body{background:var(--card);border-radius:22px 22px 0 0;padding:18px 16px 32px;width:100%;max-width:560px;animation:slideUp .22s ease;}
+.pdf-modal-body{background:var(--card);border-radius:16px 0 0 16px;padding:18px 16px 32px;width:400px;max-width:92vw;height:100%;max-height:100vh;overflow-y:auto;box-sizing:border-box;animation:slideInRight .22s ease;box-shadow:-6px 0 28px rgba(0,0,0,.18);}
 .modal-steps{background:#f8faff;border-radius:var(--r2);padding:12px 14px;font-size:12px;font-weight:600;color:var(--text);line-height:2;margin-bottom:14px;}
 
 /* ═══════════════════ BATCH TRACKER ═══════════════════ */
@@ -2783,8 +2784,8 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 </div>
 
 <!-- Day Book Add/Edit Modal -->
-<div id="db-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:990;align-items:flex-end;justify-content:center">
-  <div style="background:#fff;border-radius:var(--r) var(--r) 0 0;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;padding:20px">
+<div id="db-modal" class="modal-bg" style="display:none;z-index:990">
+  <div style="background:#fff;border-radius:16px 0 0 16px;width:400px;max-width:92vw;height:100%;max-height:100vh;overflow-y:auto;padding:20px;box-sizing:border-box;animation:slideInRight .22s ease;box-shadow:-6px 0 28px rgba(0,0,0,.18)">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div style="font-size:16px;font-weight:900;color:var(--navy2)" id="db-modal-title">📔 Naya Kharcha</div>
       <button onclick="_dbCloseModalOrQueue()" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:#f0f4ff;cursor:pointer;font-size:16px">✕</button>
@@ -2862,8 +2863,8 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 </div>
 
 <!-- Receipt Scan Modal (OCR) -->
-<div id="db-receipt-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:650;align-items:flex-end;justify-content:center">
-  <div style="background:#fff;border-radius:var(--r) var(--r) 0 0;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;padding:20px">
+<div id="db-receipt-modal" class="modal-bg" style="display:none;z-index:650">
+  <div style="background:#fff;border-radius:16px 0 0 16px;width:420px;max-width:92vw;height:100%;max-height:100vh;overflow-y:auto;padding:20px;box-sizing:border-box;animation:slideInRight .22s ease;box-shadow:-6px 0 28px rgba(0,0,0,.18)">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
       <div style="font-size:16px;font-weight:900;color:var(--navy2)">📷 Receipt Se Entry Banao</div>
       <button onclick="closeDbReceiptModal()" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:#f0f4ff;cursor:pointer;font-size:16px">✕</button>
@@ -2900,8 +2901,8 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 
 
 <!-- ════ DAY BOOK CATEGORY MANAGER MODAL ════ -->
-<div id="db-cat-manager" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:650;align-items:flex-end;justify-content:center">
-  <div style="background:#fff;border-radius:var(--r) var(--r) 0 0;width:100%;max-width:520px;max-height:88vh;overflow-y:auto">
+<div id="db-cat-manager" class="modal-bg" style="display:none;z-index:650">
+  <div style="background:#fff;border-radius:16px 0 0 16px;width:420px;max-width:92vw;height:100%;max-height:100vh;overflow-y:auto;box-sizing:border-box;animation:slideInRight .22s ease;box-shadow:-6px 0 28px rgba(0,0,0,.18)">
     <div style="position:sticky;top:0;background:#fff;padding:16px 18px 12px;border-bottom:1px solid var(--border);z-index:1">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div>
@@ -2919,8 +2920,8 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 </div>
 
 <!-- Category Drill Modal -->
-<div id="db-drill-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:700;align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeDbDrill()">
-  <div style="background:#fff;border-radius:var(--r) var(--r) 0 0;width:100%;max-width:520px;max-height:88vh;display:flex;flex-direction:column">
+<div id="db-drill-modal" class="modal-bg" style="display:none;z-index:700" onclick="if(event.target===this)closeDbDrill()">
+  <div style="background:#fff;border-radius:16px 0 0 16px;width:420px;max-width:92vw;height:100%;max-height:100vh;display:flex;flex-direction:column;box-sizing:border-box;animation:slideInRight .22s ease;box-shadow:-6px 0 28px rgba(0,0,0,.18)">
     <!-- Header sticky -->
     <div style="position:sticky;top:0;background:#fff;padding:14px 16px 10px;border-bottom:1px solid var(--border);z-index:1;flex-shrink:0">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
@@ -2939,8 +2940,8 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 </div>
 
 <!-- Detailed Statement Modal (Bank-style) -->
-<div id="db-stmt-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:750;align-items:center;justify-content:center;padding:10px">
-  <div style="background:#fff;border-radius:var(--r);width:100%;max-width:680px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden">
+<div id="db-stmt-modal" class="modal-bg" style="display:none;z-index:750">
+  <div style="background:#fff;border-radius:16px 0 0 16px;width:680px;max-width:96vw;height:100%;max-height:100vh;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box;animation:slideInRight .22s ease;box-shadow:-6px 0 28px rgba(0,0,0,.18)">
     <!-- Header -->
     <div style="background:var(--navy2);padding:14px 16px;flex-shrink:0">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -3841,8 +3842,8 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 <!-- CUSTOMER MODAL -->
 
 <!-- ════ ORDER MODAL ════ -->
-<div id="order-modal-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:700;align-items:flex-start;justify-content:center;padding:10px;overflow-y:auto">
-  <div style="background:var(--card);border-radius:20px;width:100%;max-width:520px;margin:auto;animation:popIn .22s ease;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+<div id="order-modal-bg" class="modal-bg" style="display:none;z-index:700">
+  <div style="background:var(--card);border-radius:16px 0 0 16px;width:420px;max-width:92vw;height:100%;max-height:100vh;overflow-y:auto;box-sizing:border-box;animation:slideInRight .22s ease;box-shadow:-6px 0 28px rgba(0,0,0,.18)">
     <div style="padding:14px 16px 11px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
       <div style="font-size:16px;font-weight:900;color:var(--navy2)" id="ord-modal-title">📦 Naya Order</div>
       <button onclick="closeOrderModal()" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:#f0f4ff;color:var(--muted);font-size:16px;cursor:pointer">✕</button>
@@ -3929,8 +3930,8 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 </div>
 
 <!-- Delivery Update Modal -->
-<div id="delivery-modal-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:700;align-items:center;justify-content:center;padding:10px">
-  <div style="background:var(--card);border-radius:20px;width:100%;max-width:400px;animation:popIn .22s ease;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+<div id="delivery-modal-bg" class="modal-bg" style="display:none;z-index:700">
+  <div style="background:var(--card);border-radius:16px 0 0 16px;width:400px;max-width:92vw;height:100%;max-height:100vh;overflow-y:auto;box-sizing:border-box;animation:slideInRight .22s ease;box-shadow:-6px 0 28px rgba(0,0,0,.18)">
     <div style="padding:14px 16px 11px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
       <div style="font-size:15px;font-weight:900;color:var(--navy2)">🚚 Delivery Update</div>
       <button onclick="closeDeliveryModal()" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:#f0f4ff;color:var(--muted);font-size:16px;cursor:pointer">✕</button>
@@ -3964,8 +3965,8 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
     </div>
   </div>
 </div>
-<div id="cust-modal-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:600;align-items:center;justify-content:center;padding:16px">
-  <div id="cust-modal" style="background:#fff;border-radius:20px;width:100%;max-width:520px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);animation:popIn .22s ease">
+<div id="cust-modal-bg" class="modal-bg" style="display:none;z-index:600">
+  <div id="cust-modal" style="background:#fff;border-radius:16px 0 0 16px;width:440px;max-width:92vw;height:100%;max-height:100vh;display:flex;flex-direction:column;box-shadow:-6px 0 28px rgba(0,0,0,.18);animation:slideInRight .22s ease;box-sizing:border-box">
     <style>@keyframes popIn{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}</style>
 
     <!-- Modal Header -->
@@ -4147,7 +4148,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 
 <!-- Asset Add/Edit Modal -->
 <div class="modal-bg" id="asset-modal">
-  <div class="modal" style="max-height:90vh;overflow-y:auto">
+  <div class="modal" style="max-height:100vh;overflow-y:auto">
     <div class="modal-handle"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
       <div>
@@ -4267,7 +4268,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 
 <!-- Manufacture Modal -->
 <div class="modal-bg" id="stk-mfg-modal">
-  <div class="modal" style="max-height:85vh;overflow-y:auto">
+  <div class="modal" style="max-height:100vh;overflow-y:auto">
     <div class="modal-handle"></div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
       <div>
@@ -4302,7 +4303,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 
 <!-- Stock Edit Modal -->
 <div class="modal-bg" id="stk-edit-modal">
-  <div class="modal" style="max-height:90vh;overflow-y:auto;border-radius:var(--r) var(--r) 0 0">
+  <div class="modal" style="max-height:100vh;overflow-y:auto">
     <div class="modal-handle"></div>
     <!-- Header -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
@@ -4757,8 +4758,8 @@ function openUsersModal(){
   if(!document.getElementById('usr-modal-bg')){
     const m=document.createElement('div');
     m.id='usr-modal-bg';
-    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:950;align-items:flex-end;justify-content:center;';
-    m.innerHTML='<div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:560px;max-height:88vh;overflow-y:auto">'
+    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:950;align-items:stretch;justify-content:flex-end;';
+    m.innerHTML='<div style="background:#fff;border-radius:16px 0 0 16px;padding:20px 16px 32px;width:560px;max-width:92vw;height:100%;max-height:100vh;overflow-y:auto;box-sizing:border-box;animation:slideInRight .22s ease;box-shadow:-6px 0 28px rgba(0,0,0,.18)">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
       +'<div style="font-size:15px;font-weight:800;color:var(--navy2)">👥 Team Members</div>'
       +'<button onclick="closeUsersModal()" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button></div>'
@@ -4805,12 +4806,12 @@ function openUserFormModal(userId){
   if(!document.getElementById('usrf-modal-bg')){
     const m=document.createElement('div');
     m.id='usrf-modal-bg';
-    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:970;align-items:flex-end;justify-content:center;';
+    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:970;align-items:stretch;justify-content:flex-end;';
     document.body.appendChild(m);
   }
   const tabs=_authAllTabs();
   const m=document.getElementById('usrf-modal-bg');
-  m.innerHTML='<div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto">'
+  m.innerHTML='<div style="background:#fff;border-radius:16px 0 0 16px;padding:20px 16px 32px;width:560px;max-width:92vw;height:100%;max-height:100vh;overflow-y:auto;box-sizing:border-box;animation:slideInRight .22s ease;box-shadow:-6px 0 28px rgba(0,0,0,.18)">'
     +`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <div style="font-size:15px;font-weight:800;color:var(--navy2)">${existing?'✏️ User Edit Karo':'➕ Naya User'}</div>
         <button onclick="closeUserFormModal()" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
@@ -5148,8 +5149,8 @@ async function openSnapshotHistoryModal(){
   if(!document.getElementById('snap-modal-bg')){
     const m=document.createElement('div');
     m.id='snap-modal-bg';
-    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:960;align-items:flex-end;justify-content:center;';
-    m.innerHTML='<div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:560px;max-height:88vh;overflow-y:auto">'
+    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:960;align-items:stretch;justify-content:flex-end;';
+    m.innerHTML='<div style="background:#fff;border-radius:16px 0 0 16px;padding:20px 16px 32px;width:560px;max-width:92vw;height:100%;max-height:100vh;overflow-y:auto;box-sizing:border-box;animation:slideInRight .22s ease;box-shadow:-6px 0 28px rgba(0,0,0,.18)">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
       +'<div style="font-size:15px;font-weight:800;color:var(--navy2)">📜 Snapshot History</div>'
       +'<button onclick="document.getElementById(\'snap-modal-bg\').style.display=\'none\'" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button></div>'
@@ -8479,8 +8480,8 @@ function openBtEditModal(bid){
   if(!document.getElementById('bt-edit-modal-bg')){
     const m=document.createElement('div');
     m.id='bt-edit-modal-bg';
-    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:700;align-items:flex-end;justify-content:center;';
-    m.innerHTML='<div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;">'
+    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:700;align-items:stretch;justify-content:flex-end;';
+    m.innerHTML='<div style="background:#fff;border-radius:16px 0 0 16px;padding:20px 16px 32px;width:500px;max-width:92vw;height:100%;max-height:100vh;overflow-y:auto;box-sizing:border-box;animation:slideInRight .22s ease;box-shadow:-6px 0 28px rgba(0,0,0,.18);">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
       +'<div style="font-size:15px;font-weight:800;color:var(--navy2)">✏️ Batch Edit Karo</div>'
       +'<button onclick="closeBtEditModal()" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button></div>'
@@ -8543,8 +8544,8 @@ function btOpenDelivery(bid){
   if(!document.getElementById('bt-deliv-modal-bg')){
     const modal=document.createElement('div');
     modal.id='bt-deliv-modal-bg';
-    modal.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:800;align-items:flex-end;justify-content:center;';
-    modal.innerHTML='<div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 36px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto">'
+    modal.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:800;align-items:stretch;justify-content:flex-end;';
+    modal.innerHTML='<div style="background:#fff;border-radius:16px 0 0 16px;padding:20px 16px 36px;width:500px;max-width:92vw;height:100%;max-height:100vh;overflow-y:auto;box-sizing:border-box;animation:slideInRight .22s ease;box-shadow:-6px 0 28px rgba(0,0,0,.18)">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
       +'<div style="font-size:15px;font-weight:800;color:var(--navy2)">🚚 Delivery Record Karo</div>'
       +'<button onclick="btCloseDelivery()" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button></div>'
@@ -9864,8 +9865,8 @@ function openBoxLabelModal(invId){
   if(!document.getElementById('bxl-modal-bg')){
     const m=document.createElement('div');
     m.id='bxl-modal-bg';
-    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900;align-items:flex-end;justify-content:center;';
-    m.innerHTML='<div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:500px">'
+    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900;align-items:stretch;justify-content:flex-end;';
+    m.innerHTML='<div style="background:#fff;border-radius:16px 0 0 16px;padding:20px 16px 32px;width:420px;max-width:92vw;height:100%;max-height:100vh;overflow-y:auto;box-sizing:border-box;animation:slideInRight .22s ease;box-shadow:-6px 0 28px rgba(0,0,0,.18)">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
       +'<div style="font-size:15px;font-weight:800;color:var(--navy2)">🏷️ Box Labels Banao</div>'
       +'<button onclick="closeBoxLabelModal()" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button></div>'
@@ -10154,7 +10155,7 @@ function openPartialPayModal(invId){
 
   const modal=document.createElement('div');
   modal.id='ppm-modal';
-  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:800;display:flex;align-items:flex-end;justify-content:center';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:800;display:flex;align-items:stretch;justify-content:flex-end';
 
   const histHTML=(inv.payments||[]).length?`
     <div style="margin-bottom:12px">
@@ -10173,8 +10174,7 @@ function openPartialPayModal(invId){
   ).join('');
 
   modal.innerHTML=`
-    <div style="background:#fff;border-radius:22px 22px 0 0;padding:18px 16px 32px;width:100%;max-width:520px;animation:slideUp .22s ease;max-height:90vh;overflow-y:auto">
-      <div style="width:40px;height:4px;background:#dceaf3;border-radius:2px;margin:0 auto 14px"></div>
+    <div style="background:#fff;border-radius:16px 0 0 16px;padding:20px 16px 32px;width:420px;max-width:92vw;height:100%;max-height:100vh;overflow-y:auto;box-sizing:border-box;animation:slideInRight .22s ease;box-shadow:-6px 0 28px rgba(0,0,0,.18)">
       <div style="font-size:17px;font-weight:900;color:var(--navy2);margin-bottom:2px">💰 Payment Record Karo</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Invoice: <b>${esc(inv.num)}</b> · <b>${esc(inv.party)}</b></div>
 
@@ -14131,9 +14131,9 @@ function openPaySalaryForm(empId, name, netSalary){
   document.getElementById('sal-rules-panel')?.remove();
   const panel=document.createElement('div');
   panel.id='sal-rules-panel';
-  panel.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;display:flex;align-items:center;justify-content:center;padding:16px';
+  panel.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;display:flex;align-items:stretch;justify-content:flex-end';
   panel.innerHTML=`
-    <div style="background:#fff;border-radius:var(--r);max-width:380px;width:100%;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div style="background:#fff;border-radius:16px 0 0 16px;width:400px;max-width:92vw;height:100%;max-height:100vh;overflow-y:auto;padding:20px;box-sizing:border-box;box-shadow:-6px 0 28px rgba(0,0,0,.18);animation:slideInRight .22s ease">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
         <div style="font-size:15px;font-weight:900;color:var(--navy2)">💰 ${esc(name)} — Salary Pay Karo</div>
         <button onclick="document.getElementById('sal-rules-panel').remove()" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:#f0f4ff;cursor:pointer">✕</button>
@@ -14251,9 +14251,9 @@ function openAdvanceForm(empId, name){
   document.getElementById('sal-rules-panel')?.remove();
   const panel=document.createElement('div');
   panel.id='sal-rules-panel';
-  panel.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;display:flex;align-items:center;justify-content:center;padding:16px';
+  panel.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;display:flex;align-items:stretch;justify-content:flex-end';
   panel.innerHTML=`
-    <div style="background:#fff;border-radius:var(--r);max-width:380px;width:100%;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div style="background:#fff;border-radius:16px 0 0 16px;width:400px;max-width:92vw;height:100%;max-height:100vh;overflow-y:auto;padding:20px;box-sizing:border-box;box-shadow:-6px 0 28px rgba(0,0,0,.18);animation:slideInRight .22s ease">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <div style="font-size:15px;font-weight:900;color:var(--navy2)">💸 ${esc(name)} — Advance/Deduction</div>
         <button onclick="document.getElementById('sal-rules-panel').remove()" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:#f0f4ff;cursor:pointer">✕</button>
@@ -14459,9 +14459,9 @@ function openSalarySettings(){
   document.getElementById('sal-rules-panel')?.remove();
   const panel=document.createElement('div');
   panel.id='sal-rules-panel';
-  panel.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;display:flex;align-items:center;justify-content:center;padding:16px';
+  panel.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;display:flex;align-items:stretch;justify-content:flex-end';
   panel.innerHTML=`
-    <div style="background:#fff;border-radius:var(--r);max-width:400px;width:100%;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:90vh;overflow-y:auto">
+    <div style="background:#fff;border-radius:16px 0 0 16px;width:420px;max-width:92vw;height:100%;max-height:100vh;overflow-y:auto;padding:20px;box-sizing:border-box;box-shadow:-6px 0 28px rgba(0,0,0,.18);animation:slideInRight .22s ease">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
         <div style="font-size:16px;font-weight:900;color:var(--navy2)">⚙️ Salary Rules</div>
         <button onclick="document.getElementById('sal-rules-panel').remove()" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:#f0f4ff;cursor:pointer;font-size:16px">✕</button>
@@ -16629,7 +16629,7 @@ function _dbShowDisciplineModal(warnings, blocks, doSave){
   const hasBlocks = blocks.length>0;
   const div = document.createElement('div');
   div.id = '_bf_disc_modal';
-  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900;display:flex;align-items:flex-end;justify-content:center';
+  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900;display:flex;align-items:stretch;justify-content:flex-end';
 
   const blockHTML = blocks.map(b=>`
     <div style="display:flex;gap:10px;padding:10px 12px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:var(--r2);margin-bottom:7px">
@@ -16646,7 +16646,7 @@ function _dbShowDisciplineModal(warnings, blocks, doSave){
     </div>`).join('');
 
   div.innerHTML = `
-    <div style="background:#fff;border-radius:var(--r) var(--r) 0 0;width:100%;max-width:520px;max-height:85vh;overflow-y:auto">
+    <div style="background:#fff;border-radius:16px 0 0 16px;width:420px;max-width:92vw;height:100%;max-height:100vh;overflow-y:auto;box-sizing:border-box;animation:slideInRight .22s ease;box-shadow:-6px 0 28px rgba(0,0,0,.18)">
       <div style="padding:14px 16px 10px;border-bottom:1px solid var(--border)">
         <div style="font-size:15px;font-weight:900;color:var(--navy2)">🎯 Discipline Check</div>
         <div style="font-size:10px;color:var(--muted);margin-top:2px">${hasBlocks?'Kuch issues fix karne honge pehle':'Warnings hain — review karo'}</div>
@@ -16751,10 +16751,10 @@ function _dbQuickCat(entryId, evt){
   pop.id = '_db_qcat_pop';
   pop.style.cssText = `
     position:fixed;inset:0;background:rgba(0,0,0,.45);
-    z-index:700;display:flex;align-items:flex-end;justify-content:center;
+    z-index:700;display:flex;align-items:stretch;justify-content:flex-end;
   `;
   pop.innerHTML = `
-    <div style="background:#fff;border-radius:var(--r) var(--r) 0 0;width:100%;max-width:520px;padding:18px;max-height:80vh;overflow-y:auto">
+    <div style="background:#fff;border-radius:16px 0 0 16px;width:400px;max-width:92vw;padding:18px;height:100%;max-height:100vh;overflow-y:auto;box-sizing:border-box;animation:slideInRight .22s ease;box-shadow:-6px 0 28px rgba(0,0,0,.18)">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <div>
           <div style="font-size:13px;font-weight:900;color:var(--navy2)">✏️ Category Badlo</div>
@@ -17009,7 +17009,7 @@ function _dbHealthCheck(){
   if(!el){
     el = document.createElement('div');
     el.id='db-health-modal';
-    el.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:970;align-items:flex-end;justify-content:center;';
+    el.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:970;align-items:stretch;justify-content:flex-end;';
     document.body.appendChild(el);
   }
 
@@ -17067,7 +17067,7 @@ function _dbHealthCheck(){
       ${_dbHealthRenderSideEntries(_dbHealthSideDate)}
     </div>` : '';
 
-  el.innerHTML = `<div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:${_dbHealthSideDate?'920px':'560px'};max-height:88vh;overflow-y:auto">
+  el.innerHTML = `<div style="background:#fff;border-radius:16px 0 0 16px;padding:20px 16px 32px;width:${_dbHealthSideDate?'920px':'560px'};max-width:96vw;height:100%;max-height:100vh;overflow-y:auto;box-sizing:border-box;animation:slideInRight .22s ease;box-shadow:-6px 0 28px rgba(0,0,0,.18)">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
       <div style="font-size:15px;font-weight:800;color:var(--navy2)">🩺 Daybook Health Check</div>
       <button onclick="_dbHealthSideDate=null;document.getElementById('db-health-modal').style.display='none'" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
@@ -20090,8 +20090,8 @@ authBootstrap();
 <!-- ════ INVENTORY MODALS (outside script tag) ════ -->
 
 <!-- Adjust Stock Modal -->
-<div class="modal-bg" id="inv-adj-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:flex-end;justify-content:center;">
-  <div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:500px;animation:slideUp .25s ease;max-height:90vh;overflow-y:auto;">
+<div class="modal-bg" id="inv-adj-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:stretch;justify-content:flex-end;">
+  <div style="background:#fff;border-radius:16px 0 0 16px;padding:20px 16px 32px;width:420px;max-width:92vw;height:100%;max-height:100vh;overflow-y:auto;box-sizing:border-box;animation:slideInRight .25s ease;box-shadow:-6px 0 28px rgba(0,0,0,.18);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div style="font-size:15px;font-weight:800;color:var(--navy2)">📦 Stock Adjust Karo</div>
       <button onclick="invCloseAdjModal()" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
@@ -20118,8 +20118,8 @@ authBootstrap();
 </div>
 
 <!-- Add Material Modal -->
-<div class="modal-bg" id="inv-addmat-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:flex-end;justify-content:center;">
-  <div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:500px;animation:slideUp .25s ease;max-height:90vh;overflow-y:auto;">
+<div class="modal-bg" id="inv-addmat-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:stretch;justify-content:flex-end;">
+  <div style="background:#fff;border-radius:16px 0 0 16px;padding:20px 16px 32px;width:420px;max-width:92vw;height:100%;max-height:100vh;overflow-y:auto;box-sizing:border-box;animation:slideInRight .25s ease;box-shadow:-6px 0 28px rgba(0,0,0,.18);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div style="font-size:15px;font-weight:800;color:var(--navy2)">➕ Naya Material Add Karo</div>
       <button onclick="invCloseAddMatModal()" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
@@ -20149,8 +20149,8 @@ authBootstrap();
 </div>
 
 <!-- Edit Material Modal -->
-<div class="modal-bg" id="inv-editmat-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:flex-end;justify-content:center;">
-  <div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:500px;animation:slideUp .25s ease;max-height:90vh;overflow-y:auto;">
+<div class="modal-bg" id="inv-editmat-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:stretch;justify-content:flex-end;">
+  <div style="background:#fff;border-radius:16px 0 0 16px;padding:20px 16px 32px;width:420px;max-width:92vw;height:100%;max-height:100vh;overflow-y:auto;box-sizing:border-box;animation:slideInRight .25s ease;box-shadow:-6px 0 28px rgba(0,0,0,.18);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div style="font-size:15px;font-weight:800;color:var(--navy2)" id="inv-em-title">✏️ Edit Material</div>
       <button onclick="invCloseEditMatModal()" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
@@ -20184,8 +20184,8 @@ authBootstrap();
 </div>
 
 <!-- Quick Add Material (from BOM screen) Modal -->
-<div class="modal-bg" id="bqm-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:flex-end;justify-content:center;">
-  <div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:500px;animation:slideUp .25s ease;max-height:90vh;overflow-y:auto;">
+<div class="modal-bg" id="bqm-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:stretch;justify-content:flex-end;">
+  <div style="background:#fff;border-radius:16px 0 0 16px;padding:20px 16px 32px;width:420px;max-width:92vw;height:100%;max-height:100vh;overflow-y:auto;box-sizing:border-box;animation:slideInRight .25s ease;box-shadow:-6px 0 28px rgba(0,0,0,.18);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div style="font-size:15px;font-weight:800;color:var(--navy2)">➕ Naya Material — Is Product Ki BOM Ke Liye</div>
       <button onclick="closeBomQuickAddMat()" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
