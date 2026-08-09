@@ -2783,7 +2783,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 </div>
 
 <!-- Day Book Add/Edit Modal -->
-<div id="db-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:flex-end;justify-content:center">
+<div id="db-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:990;align-items:flex-end;justify-content:center">
   <div style="background:#fff;border-radius:var(--r) var(--r) 0 0;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;padding:20px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div style="font-size:16px;font-weight:900;color:var(--navy2)" id="db-modal-title">📔 Naya Kharcha</div>
@@ -16696,6 +16696,7 @@ function _dbSaveEntry(){
     save('bf9_daybook', DAYBOOK);
     _dbCloseModal();
     renderDaybook();
+    if(document.getElementById('db-health-modal')?.style.display==='flex') _dbHealthCheck();
     if(_dbQueueActive){
       _dbQueueStats.saved++;
       _dbQueueIdx++;
@@ -16935,7 +16936,69 @@ function _dbFindBadData(){
     (e.type!=='income' && e.type!=='expense')
   );
 }
+let _dbHealthSideDate = null; // jab set ho, health check ke saath us date ki entries side panel mein khulti hain
+
+function _dbHealthEnsureStyle(){
+  if(document.getElementById('db-health-style')) return;
+  const st = document.createElement('style');
+  st.id = 'db-health-style';
+  st.textContent = `
+    .db-health-flex{display:flex;gap:16px;align-items:flex-start}
+    .db-health-left{flex:1;min-width:0}
+    .db-health-side{flex:1;min-width:0;border-left:2px solid var(--border);padding-left:16px;position:sticky;top:0;align-self:flex-start;max-height:80vh;overflow-y:auto}
+    @media (max-width:760px){
+      .db-health-flex{flex-direction:column}
+      .db-health-side{border-left:none;border-top:2px solid var(--border);padding-left:0;padding-top:14px;position:static;max-height:none;width:100%}
+    }
+  `;
+  document.head.appendChild(st);
+}
+
+function _dbHealthRenderSideEntries(date){
+  const entries = [...DAYBOOK].filter(e=>e.date===date).sort((a,b)=>(b.id||'').localeCompare(a.id||''));
+  if(!entries.length) return '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">Is date ki koi entry nahi bachi</div>';
+  return entries.map(e=>{
+    const cat = (DB_CATS[e.type]||[]).find(c=>c.id===e.category);
+    return `<div style="border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px;background:#fff">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div style="min-width:0">
+          <div style="font-size:12px;font-weight:800;color:${e.type==='income'?'var(--green-dark)':'var(--red-dark)'}">${e.type==='income'?'💰':'💸'} ₹${_fmtAmt(e.amount)}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${cat?esc(cat.label):esc(e.category||'—')}${e.supplier?' · '+esc(e.supplier):''}</div>
+          ${e.note?`<div style="font-size:11px;color:#555;margin-top:2px">${esc(e.note)}</div>`:''}
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button onclick="_dbHealthEditFromSide('${e.id}')" style="padding:4px 8px;background:#f0f4ff;border:1px solid var(--border);border-radius:6px;font-size:11px;cursor:pointer;color:var(--navy2);font-weight:800">✏️</button>
+          <button onclick="_dbHealthSideDelete('${e.id}')" style="padding:4px 8px;background:var(--red-bg);border:1px solid #fca5a5;border-radius:6px;font-size:11px;cursor:pointer;color:var(--red-dark);font-weight:800">🗑</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function _dbHealthOpenDate(date){
+  _dbHealthSideDate = date;
+  _dbHealthCheck();
+}
+function _dbHealthCloseSide(){
+  _dbHealthSideDate = null;
+  _dbHealthCheck();
+}
+function _dbHealthEditFromSide(id){
+  _dbOpenEdit(id); // edit modal upar khulega, health check + side panel neeche as-is rahenge
+}
+function _dbHealthSideDelete(id){
+  if(!confirm('Ye entry permanently delete karo?')) return;
+  const entry = DAYBOOK.find(e=>e.id===id);
+  _dbLogAction('delete', entry, null);
+  DAYBOOK = DAYBOOK.filter(e=>e.id!==id);
+  save('bf9_daybook', DAYBOOK);
+  renderDaybook();
+  toast('🗑 Delete ho gaya');
+  _dbHealthCheck(); // dono panel refresh, side date same rehta hai
+}
+
 function _dbHealthCheck(){
+  _dbHealthEnsureStyle();
   const dupGroups = _dbFindDuplicates();
   const badData   = _dbFindBadData();
   const dupCount  = dupGroups.reduce((s,g)=>s+g.length-1,0); // extra copies
@@ -16953,7 +17016,10 @@ function _dbHealthCheck(){
   const dupHtml = dupGroups.length ? dupGroups.map((g,gi)=>{
     const cat = (DB_CATS[g[0].type]||[]).find(c=>c.id===g[0].category);
     return `<div style="border:1px solid #fca5a5;background:#fef2f2;border-radius:10px;padding:10px;margin-bottom:8px">
-      <div style="font-size:12px;font-weight:800;color:#991b1b;margin-bottom:6px">${g[0].date} · ${cat?cat.label:g[0].category} · ₹${_fmtAmt(g[0].amount)} × ${g.length} baar${g[0].supplier?' · '+esc(g[0].supplier):''}</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
+        <div style="font-size:12px;font-weight:800;color:#991b1b">${g[0].date} · ${cat?cat.label:g[0].category} · ₹${_fmtAmt(g[0].amount)} × ${g.length} baar${g[0].supplier?' · '+esc(g[0].supplier):''}</div>
+        <button onclick="_dbHealthOpenDate('${g[0].date}')" style="flex-shrink:0;padding:4px 9px;background:${_dbHealthSideDate===g[0].date?'#7c3aed':'#fff'};color:${_dbHealthSideDate===g[0].date?'#fff':'#7c3aed'};border:1px solid #7c3aed;border-radius:6px;font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap">👁️ Side mein dekho</button>
+      </div>
       ${g.map((e,i)=>`<div style="display:flex;align-items:center;gap:8px;font-size:11px;color:#555;padding:3px 0">
         <span style="flex:1">${i===0?'✅ Rakhenge':'❌ Extra copy'} — ${esc(e.note||'(no note)')}</span>
         ${i>0?`<button onclick="_dbHealthDelete('${e.id}')" style="padding:4px 8px;background:#dc2626;color:#fff;border:none;border-radius:6px;font-size:10px;font-weight:800;cursor:pointer">Delete</button>`:''}
@@ -16974,11 +17040,7 @@ function _dbHealthCheck(){
     </div>`;
   }).join('') : '<div style="text-align:center;padding:10px;color:var(--muted);font-size:12px">Koi recent activity nahi</div>';
 
-  el.innerHTML = `<div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:560px;max-height:88vh;overflow-y:auto">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <div style="font-size:15px;font-weight:800;color:var(--navy2)">🩺 Daybook Health Check</div>
-      <button onclick="document.getElementById('db-health-modal').style.display='none'" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
-    </div>
+  const leftHtml = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
       <div style="background:${dupCount>0?'#fef2f2':'#f0fdf4'};border-radius:10px;padding:10px;text-align:center">
         <div style="font-size:20px;font-weight:900;color:${dupCount>0?'#dc2626':'#16a34a'}">${dupCount}</div>
@@ -16994,7 +17056,26 @@ function _dbHealthCheck(){
     <div style="font-size:13px;font-weight:800;color:var(--navy2);margin:14px 0 8px">Corrupt / Invalid Entries</div>
     ${badHtml}
     <div style="font-size:13px;font-weight:800;color:var(--navy2);margin:14px 0 8px">Recent Add/Edit/Delete (is device)</div>
-    ${auditHtml}
+    ${auditHtml}`;
+
+  const sideHtml = _dbHealthSideDate ? `
+    <div class="db-health-side">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:13px;font-weight:800;color:var(--navy2)">📅 ${esc(_dbHealthSideDate)} ki entries</div>
+        <button onclick="_dbHealthCloseSide()" style="width:26px;height:26px;border:none;background:#eaf4fa;border-radius:7px;cursor:pointer;font-size:14px">✕</button>
+      </div>
+      ${_dbHealthRenderSideEntries(_dbHealthSideDate)}
+    </div>` : '';
+
+  el.innerHTML = `<div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:${_dbHealthSideDate?'920px':'560px'};max-height:88vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-size:15px;font-weight:800;color:var(--navy2)">🩺 Daybook Health Check</div>
+      <button onclick="_dbHealthSideDate=null;document.getElementById('db-health-modal').style.display='none'" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
+    </div>
+    <div class="db-health-flex">
+      <div class="db-health-left">${leftHtml}</div>
+      ${sideHtml}
+    </div>
   </div>`;
   el.style.display='flex';
 }
