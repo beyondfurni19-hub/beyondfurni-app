@@ -1918,12 +1918,13 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
   </div>
 
   <!-- Search + filter -->
-  <div style="display:flex;gap:7px;margin-bottom:10px">
+  <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
     <input id="stk-search" class="finp" placeholder="🔍 Search material..." oninput="renderStock()" style="flex:1;padding:8px 12px;font-size:12px">
-    <select id="stk-cat-filter" class="finp" onchange="renderStock()" style="width:120px;padding:8px 10px;font-size:11px">
-      <option value="">All Categories</option>
-      <option>Raw Material</option><option>Hardware</option>
-      <option>Semi-Finished</option><option>Packaging</option><option>Chemical</option><option>Other</option>
+    <select id="stk-cat-filter" class="finp" onchange="_stkPopulateSubcatFilter();renderStock()" style="width:110px;padding:8px 10px;font-size:11px">
+      <option value="">All Cat</option>
+    </select>
+    <select id="stk-subcat-filter" class="finp" onchange="renderStock()" style="width:110px;padding:8px 10px;font-size:11px">
+      <option value="">All Sub-Cat</option>
     </select>
   </div>
 
@@ -4325,8 +4326,8 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 
     <!-- Category + Sub-category + Importance -->
     <div style="display:grid;grid-template-columns:1fr 1fr 90px;gap:7px;margin-bottom:10px">
-      <div class="fg" style="margin:0"><label>Category</label><select class="finp" id="stk-em-cat"></select></div>
-      <div class="fg" style="margin:0"><label>Sub-Category</label><input class="finp" id="stk-em-subcat" placeholder="e.g. Pipe, Angle..."></div>
+      <div class="fg" style="margin:0"><label>Category</label><input class="finp" id="stk-em-cat" list="stk-cat-datalist" placeholder="e.g. Raw Material..."><datalist id="stk-cat-datalist"></datalist></div>
+      <div class="fg" style="margin:0"><label>Sub-Category</label><input class="finp" id="stk-em-subcat" list="stk-subcat-datalist" placeholder="e.g. Pipe, Angle..."><datalist id="stk-subcat-datalist"></datalist></div>
       <div class="fg" style="margin:0"><label>Importance</label>
         <select class="finp" id="stk-em-importance">
           <option>High</option><option>Normal</option><option>Low</option>
@@ -6577,6 +6578,22 @@ function stkFilter(f){
   renderStock();
 }
 
+function _stkPopulateCatFilter(){
+  const sel=document.getElementById('stk-cat-filter'); if(!sel) return;
+  const cur=sel.value;
+  const cats=[...new Set(STK.map(i=>i.cat).filter(Boolean))].sort();
+  sel.innerHTML='<option value="">All Cat</option>'+cats.map(c=>`<option ${c===cur?'selected':''}>${esc(c)}</option>`).join('');
+  if(cats.includes(cur)) sel.value=cur;
+}
+function _stkPopulateSubcatFilter(){
+  const sel=document.getElementById('stk-subcat-filter'); if(!sel) return;
+  const cur=sel.value;
+  const catF=document.getElementById('stk-cat-filter')?.value||'';
+  const pool=catF?STK.filter(i=>i.cat===catF):STK;
+  const subcats=[...new Set(pool.map(i=>i.subcat).filter(Boolean))].sort();
+  sel.innerHTML='<option value="">All Sub-Cat</option>'+subcats.map(s=>`<option ${s===cur?'selected':''}>${esc(s)}</option>`).join('');
+  if(subcats.includes(cur)) sel.value=cur; else sel.value='';
+}
 function renderStock(){
   const alerts=getStockAlerts();
   const navBtn=document.querySelector('.bnav[data-tab="stock"]');
@@ -6603,13 +6620,17 @@ function renderStock(){
   if(sub) sub.textContent=STK.length+' materials';
 
   // Filter + search
+  _stkPopulateCatFilter();
+  _stkPopulateSubcatFilter();
   const search=(document.getElementById('stk-search')?.value||'').toLowerCase();
   const catF=document.getElementById('stk-cat-filter')?.value||'';
+  const subcatF=document.getElementById('stk-subcat-filter')?.value||'';
   let filtered=STK.filter(it=>{
     if(_stkFilter==='crit' && getStockStatus(it)!=='crit') return false;
     if(_stkFilter==='low'  && getStockStatus(it)!=='low')  return false;
     if(_stkFilter==='ok'   && getStockStatus(it)!=='ok')   return false;
     if(catF && it.cat!==catF) return false;
+    if(subcatF && (it.subcat||'')!==subcatF) return false;
     if(search && !it.name.toLowerCase().includes(search)) return false;
     return true;
   });
@@ -6638,7 +6659,7 @@ function renderStock(){
       <div style="font-size:16px;text-align:center">${it.ico||'📦'}</div>
       <div>
         <div style="font-size:12px;font-weight:800;color:var(--navy2)">${esc(it.name)}</div>
-        <div style="font-size:9px;color:var(--muted);font-weight:700">${it.cat}${hasConv?` · ${purUnit}→${it.unit}(×${it.convRatio})`:''}</div>
+        <div style="font-size:9px;color:var(--muted);font-weight:700">${esc(it.cat||'')}${it.subcat?' / '+esc(it.subcat):''}${hasConv?` · ${purUnit}→${it.unit}(×${it.convRatio})`:''}</div>
       </div>
       <div style="font-size:12px;font-weight:800;color:${col};text-align:right">${+parseFloat(it.current||0).toFixed(4)} <span style="font-size:9px;font-weight:700">${it.unit}</span></div>
       <div style="font-size:11px;font-weight:700;color:var(--muted);text-align:right">₹${(it.rate||0).toLocaleString('en-IN')}</div>
@@ -6775,12 +6796,16 @@ function openStkEditModal(id){
   const it=STK.find(i=>i.id===id); if(!it) return;
   const purUnit=it.purUnit||it.unit;
   const units=['pcs','nos','kg','meter','liter','box','roll','set'];
-  const cats=['Raw Material','Hardware','Semi-Finished','Packaging','Chemical','Other'];
+  const cats=[...new Set(STK.map(i=>i.cat).filter(Boolean))];
+  if(!cats.length) cats.push('Raw Material','Hardware','Semi-Finished','Packaging','Chemical','Other');
+  const subcats=[...new Set(STK.map(i=>i.subcat).filter(Boolean))];
   document.getElementById('stk-em-id').value=id;
   document.getElementById('stk-em-title').textContent=(it.ico||'📦')+' '+it.name;
   document.getElementById('stk-em-name').value=it.name;
   document.getElementById('stk-em-code').value=it.code||'';
-  document.getElementById('stk-em-cat').innerHTML=cats.map(c=>`<option ${it.cat===c?'selected':''}>${c}</option>`).join('');
+  document.getElementById('stk-cat-datalist').innerHTML=cats.map(c=>`<option value="${esc(c)}">`).join('');
+  document.getElementById('stk-em-cat').value=it.cat||'';
+  document.getElementById('stk-subcat-datalist').innerHTML=subcats.map(s=>`<option value="${esc(s)}">`).join('');
   document.getElementById('stk-em-subcat').value=it.subcat||'';
   document.getElementById('stk-em-importance').value=it.importance||'Normal';
   document.getElementById('stk-em-icon').value=it.ico||'📦';
@@ -6818,7 +6843,7 @@ function saveStkEditModal(){
   const idx=STK.findIndex(i=>i.id===id); if(idx<0) return;
   STK[idx].name=document.getElementById('stk-em-name').value.trim()||STK[idx].name;
   STK[idx].code=document.getElementById('stk-em-code').value.trim();
-  STK[idx].cat=document.getElementById('stk-em-cat').value;
+  STK[idx].cat=document.getElementById('stk-em-cat').value.trim()||'Other';
   STK[idx].subcat=document.getElementById('stk-em-subcat').value.trim();
   STK[idx].importance=document.getElementById('stk-em-importance').value;
   STK[idx].ico=document.getElementById('stk-em-icon').value.trim()||'📦';
