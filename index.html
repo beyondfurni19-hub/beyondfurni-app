@@ -4365,16 +4365,25 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
       <input class="finp" type="number" id="stk-em-orderqty" min="0">
     </div>
 
-    <!-- Unit Conversion -->
+    <!-- Stock Unit (always) + Unit Conversion (toggleable) -->
     <div style="background:var(--yellow-bg);border:1px solid #fde68a;border-radius:var(--r2);padding:10px 12px;margin-bottom:10px">
-      <div style="font-size:11px;font-weight:800;color:var(--yellow-dark);margin-bottom:8px">🔄 Unit Conversion (Purchase → Stock)</div>
-      <div class="g2">
-        <div class="fg" style="margin:0"><label>Purchase Unit</label><select class="finp" id="stk-em-purunit" onchange="stkUpdateConvLabel()"></select></div>
-        <div class="fg" style="margin:0"><label>Stock Unit</label><select class="finp" id="stk-em-stockunit"></select></div>
+      <div class="fg" style="margin:0 0 8px"><label>Stock Unit</label><select class="finp" id="stk-em-stockunit" onchange="stkUpdateConvLabel()"></select></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;padding-top:8px;border-top:1px dashed #fde68a">
+        <div>
+          <div style="font-size:11px;font-weight:800;color:var(--yellow-dark)">🔄 Purchase Unit Alag Hai?</div>
+          <div style="font-size:10px;color:#6b7a99;font-weight:600">Agar purchase unit stock unit se alag hai toh yes karo</div>
+        </div>
+        <label for="stk-em-hasconv" style="position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0;cursor:pointer">
+          <input type="checkbox" id="stk-em-hasconv" onchange="stkToggleConvSection()" style="opacity:0;width:0;height:0;position:absolute">
+          <span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#cbd5e1;border-radius:22px;transition:.3s" id="stk-em-hasconv-slider"></span>
+        </label>
       </div>
-      <div class="fg" style="margin-bottom:0">
-        <label id="stk-em-conv-lbl">1 unit =</label>
-        <input class="finp" type="number" id="stk-em-convratio" min="0" step="any" placeholder="1">
+      <div id="stk-em-conv-fields" style="display:none">
+        <div class="fg" style="margin:0"><label>Purchase Unit</label><select class="finp" id="stk-em-purunit" onchange="stkUpdateConvLabel()"></select></div>
+        <div class="fg" style="margin-bottom:0">
+          <label id="stk-em-conv-lbl">1 unit =</label>
+          <input class="finp" type="number" id="stk-em-convratio" min="0" step="any" placeholder="1">
+        </div>
       </div>
     </div>
 
@@ -6829,6 +6838,11 @@ function openStkEditModal(id){
   ismfgCb.checked=!!it.isMfg;
   stkToggleMfgSection();
   if(it.isMfg) stkLoadIngredientRows(it.ingredients||[]);
+  // Unit Conversion toggle setup — ON only if item actually has a real conversion
+  const hasConv=(it.convRatio&&it.convRatio!==1)||(purUnit!==it.unit);
+  const hasConvCb=document.getElementById('stk-em-hasconv');
+  hasConvCb.checked=hasConv;
+  stkToggleConvSection();
   stkUpdateConvLabel();
   document.getElementById('stk-edit-modal').classList.add('show');
 }
@@ -6836,6 +6850,18 @@ function stkUpdateConvLabel(){
   const pu=document.getElementById('stk-em-purunit')?.value||'unit';
   const lbl=document.getElementById('stk-em-conv-lbl');
   if(lbl) lbl.textContent='1 '+pu+' =';
+}
+function stkToggleConvSection(){
+  const cb=document.getElementById('stk-em-hasconv');
+  const fields=document.getElementById('stk-em-conv-fields');
+  const slider=document.getElementById('stk-em-hasconv-slider');
+  if(cb.checked){
+    fields.style.display='block';
+    slider.style.background='#f59e0b';
+  } else {
+    fields.style.display='none';
+    slider.style.background='#cbd5e1';
+  }
 }
 function closeStkEditModal(){ document.getElementById('stk-edit-modal')?.classList.remove('show'); }
 function saveStkEditModal(){
@@ -6857,9 +6883,15 @@ function saveStkEditModal(){
   STK[idx].reorder=parseFloat(document.getElementById('stk-em-reorder').value)||0;
   STK[idx].leadTime=parseFloat(document.getElementById('stk-em-leadtime').value)||0;
   STK[idx].orderQty=parseFloat(document.getElementById('stk-em-orderqty').value)||0;
-  STK[idx].purUnit=document.getElementById('stk-em-purunit').value;
+  const hasConvOn=document.getElementById('stk-em-hasconv').checked;
   STK[idx].unit=document.getElementById('stk-em-stockunit').value;
-  STK[idx].convRatio=parseFloat(document.getElementById('stk-em-convratio').value)||1;
+  if(hasConvOn){
+    STK[idx].purUnit=document.getElementById('stk-em-purunit').value;
+    STK[idx].convRatio=parseFloat(document.getElementById('stk-em-convratio').value)||1;
+  } else {
+    STK[idx].purUnit=STK[idx].unit; // no conversion needed — purchase unit = stock unit
+    STK[idx].convRatio=1;
+  }
   STK[idx].desc=document.getElementById('stk-em-desc').value.trim();
   STK[idx].notes=document.getElementById('stk-em-notes').value.trim();
   STK[idx].isMfg=document.getElementById('stk-em-ismfg').checked;
