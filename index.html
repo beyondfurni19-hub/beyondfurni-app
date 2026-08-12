@@ -1482,14 +1482,6 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
     </button>
   </div>
 
-  <!-- Finance Tools -->
-  <div class="sb-section">
-    <div class="sb-section-label">Finance</div>
-    <button class="sbnav" data-tab="fintools" onclick="sw('fintools',this)">
-      <span class="sb-ico">📊</span><span class="sb-lbl">Finance Tools</span>
-    </button>
-  </div>
-
   <!-- Settings -->
   <div class="sb-section" style="margin-top:auto;border-top:1px solid #1e3060;padding-top:8px">
     <div id="auth-user-badge" style="display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:6px">
@@ -1926,13 +1918,12 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
   </div>
 
   <!-- Search + filter -->
-  <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
+  <div style="display:flex;gap:7px;margin-bottom:10px">
     <input id="stk-search" class="finp" placeholder="🔍 Search material..." oninput="renderStock()" style="flex:1;padding:8px 12px;font-size:12px">
-    <select id="stk-cat-filter" class="finp" onchange="_stkPopulateSubcatFilter();renderStock()" style="width:110px;padding:8px 10px;font-size:11px">
-      <option value="">All Cat</option>
-    </select>
-    <select id="stk-subcat-filter" class="finp" onchange="renderStock()" style="width:110px;padding:8px 10px;font-size:11px">
-      <option value="">All Sub-Cat</option>
+    <select id="stk-cat-filter" class="finp" onchange="renderStock()" style="width:120px;padding:8px 10px;font-size:11px">
+      <option value="">All Categories</option>
+      <option>Raw Material</option><option>Hardware</option>
+      <option>Semi-Finished</option><option>Packaging</option><option>Chemical</option><option>Other</option>
     </select>
   </div>
 
@@ -2765,7 +2756,6 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
       <button onclick="_dbOpenCatManager()" style="padding:9px 14px;background:#f0f4ff;color:var(--navy2);border:1px solid var(--border2);border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🏷️ Categories</button>
       <button onclick="_dbDownloadReport()" style="padding:9px 14px;background:var(--green);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">⬇️ Report</button>
       <button onclick="openDbStatement()" style="padding:9px 14px;background:#1d4ed8;color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🏦 Statement</button>
-      <button onclick="_dbHealthCheck()" style="padding:9px 14px;background:#7c3aed;color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🩺 Health Check</button>
     </div>
   </div>
 
@@ -2792,7 +2782,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 </div>
 
 <!-- Day Book Add/Edit Modal -->
-<div id="db-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:990;align-items:flex-end;justify-content:center">
+<div id="db-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:flex-end;justify-content:center">
   <div style="background:#fff;border-radius:var(--r) var(--r) 0 0;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;padding:20px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div style="font-size:16px;font-weight:900;color:var(--navy2)" id="db-modal-title">📔 Naya Kharcha</div>
@@ -3310,15 +3300,6 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
       <div id="_restore_status" style="display:none;margin-top:10px;padding:10px 12px;border-radius:var(--r2);font-size:12px;font-weight:800;"></div>
     </div>
 
-    <!-- Cloud Snapshot History -->
-    <div style="background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:var(--r2);padding:14px;margin-bottom:10px;">
-      <div style="font-size:13px;font-weight:900;color:#5b21b6;margin-bottom:4px;">📜 Snapshot History (Cloud)</div>
-      <div style="font-size:11px;color:#555;margin-bottom:12px;line-height:1.6;">Har thodi der mein automatic ek safe copy cloud pe save hoti hai. Agar kabhi data kam dikhe, yahan se purani snapshot dekh ke restore kar sakte ho.</div>
-      <button onclick="openSnapshotHistoryModal()" style="width:100%;padding:12px;background:#7c3aed;color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;">
-        📜 Snapshot History Dekho
-      </button>
-    </div>
-
     <!-- How to move safely -->
     <div style="background:#fff8e6;border:1.5px solid #fde68a;border-radius:var(--r2);padding:12px;">
       <div style="font-size:11px;font-weight:800;color:var(--yellow-dark);margin-bottom:6px;">📋 File Move Karne ka Safe Tarika:</div>
@@ -3532,164 +3513,231 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 </div></div>
 </div>
 
-<!-- ════ FINANCE TOOLS ════ -->
-<div class="sc" id="s-fintools">
-  <div style="display:flex;gap:5px;margin-bottom:10px;background:var(--card);border-radius:var(--r);padding:5px;border:1px solid var(--border);flex-wrap:wrap">
-    <button class="htab active" id="fttab-costing"   onclick="setFtTab('costing')">📊 Costing</button>
-    <button class="htab" id="fttab-inventory" onclick="setFtTab('inventory')">📦 Inventory</button>
-    <button class="htab" id="fttab-cashflow"  onclick="setFtTab('cashflow')">💰 Cash Flow</button>
-    <button class="htab" id="fttab-gst"       onclick="setFtTab('gst')">🧾 GST &amp; MIS</button>
-  </div>
-
-  <!-- ══ COSTING & BREAK-EVEN ══ -->
-  <div id="ft-costing-pane">
-    <div class="card">
-      <div class="card-hdr"><div class="card-title">📊 Product Costing &amp; Break-Even</div><div class="card-sub">BOM se material cost auto-fetch hota hai</div></div>
-      <div class="fg"><label>Product</label>
-        <select class="finp" id="ft-cost-product" onchange="ftCostingLoad()"></select>
-      </div>
-      <div class="g2">
-        <div class="fg"><label>Material Cost/unit (auto)</label><input class="finp" id="ft-cost-material" readonly style="background:#f0f4ff;font-weight:800"></div>
-        <div class="fg"><label>Labor Cost/unit ₹</label><input class="finp" type="number" id="ft-cost-labor" placeholder="0" oninput="ftCalcCosting()"></div>
-      </div>
-      <div class="g2">
-        <div class="fg"><label>Other Overhead/unit ₹</label><input class="finp" type="number" id="ft-cost-overhead" placeholder="0" oninput="ftCalcCosting()"></div>
-        <div class="fg"><label>Selling Price/unit ₹</label><input class="finp" type="number" id="ft-cost-price" placeholder="0" oninput="ftCalcCosting()"></div>
-      </div>
-      <div class="fg"><label>Monthly Fixed Costs ₹ (rent, salary, etc.)</label><input class="finp" type="number" id="ft-cost-fixed" placeholder="0" oninput="ftCalcCosting()"></div>
-    </div>
-    <div class="card" id="ft-cost-result"></div>
-  </div>
-
-  <!-- ══ INVENTORY INTELLIGENCE ══ -->
-  <div id="ft-inventory-pane" style="display:none">
-    <div class="card">
-      <div class="card-hdr"><div class="card-title">🔺 ABC Inventory Analysis</div><div class="card-sub">Live Stock module data se, value ke hisaab se</div></div>
-      <div id="ft-abc-summary" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px"></div>
-      <div id="ft-abc-list"></div>
-    </div>
-    <div class="card">
-      <div class="card-hdr"><div class="card-title">💀 Dead Stock (90+ din se movement nahi)</div></div>
-      <div id="ft-deadstock-list"></div>
-    </div>
-    <div class="card">
-      <div class="card-hdr"><div class="card-title">🧮 EOQ Calculator</div><div class="card-sub">Economic Order Quantity — optimal order size</div></div>
-      <div class="fg"><label>Material</label>
-        <select class="finp" id="ft-eoq-mat" onchange="ftEoqLoad()"></select>
-      </div>
-      <div class="g3">
-        <div class="fg"><label>Annual Demand (auto est.)</label><input class="finp" type="number" id="ft-eoq-demand" oninput="ftCalcEoq()"></div>
-        <div class="fg"><label>Ordering Cost ₹/order</label><input class="finp" type="number" id="ft-eoq-order-cost" placeholder="500" oninput="ftCalcEoq()"></div>
-        <div class="fg"><label>Holding Cost ₹/unit/yr</label><input class="finp" type="number" id="ft-eoq-hold-cost" placeholder="0" oninput="ftCalcEoq()"></div>
-      </div>
-      <div id="ft-eoq-result"></div>
-    </div>
-  </div>
-
-  <!-- ══ CASH FLOW & AGING ══ -->
-  <div id="ft-cashflow-pane" style="display:none">
-    <div class="card">
-      <div class="card-hdr"><div class="card-title">⏳ Aging Snapshot</div><div class="card-sub">Detail ke liye Ledger → Ageing tab kholo</div></div>
-      <div id="ft-aging-summary" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px"></div>
-      <button class="btn-small btn-sm-blue" onclick="sw('ledger',document.querySelector('.sbnav[data-tab=ledger]'));setTimeout(()=>setLedTab('ageing'),50)">⏳ Full Ageing Report Kholo</button>
-    </div>
-    <div class="card">
-      <div class="card-hdr"><div class="card-title">📅 30-Day Cash Flow Projection</div></div>
-      <div class="fg"><label>Opening Cash/Bank Balance ₹</label><input class="finp" type="number" id="ft-cf-opening" placeholder="0" oninput="ftCalcCashflow()"></div>
-      <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;margin:8px 0 4px">Expected Outflows (next 30 din)</div>
-      <div class="g2">
-        <div class="fg"><label>Raw Material ₹</label><input class="finp" type="number" id="ft-cf-material" placeholder="0" oninput="ftCalcCashflow()"></div>
-        <div class="fg"><label>Salaries ₹</label><input class="finp" type="number" id="ft-cf-salary" placeholder="0" oninput="ftCalcCashflow()"></div>
-      </div>
-      <div class="g2">
-        <div class="fg"><label>Rent + Utilities ₹</label><input class="finp" type="number" id="ft-cf-rent" placeholder="0" oninput="ftCalcCashflow()"></div>
-        <div class="fg"><label>Other Expenses ₹</label><input class="finp" type="number" id="ft-cf-other" placeholder="0" oninput="ftCalcCashflow()"></div>
-      </div>
-    </div>
-    <div class="card" id="ft-cf-result"></div>
-  </div>
-
-  <!-- ══ GST/ITC & MIS ══ -->
-  <div id="ft-gst-pane" style="display:none">
-    <div class="card">
-      <div class="card-hdr"><div class="card-title">🧾 GST / ITC Tracker — <span id="ft-gst-month-lbl"></span></div></div>
-      <div class="g2">
-        <div class="fg"><label>GST Collected on Sales (auto)</label><input class="finp" id="ft-gst-output" readonly style="background:#f0f4ff;font-weight:800"></div>
-        <div class="fg"><label>GST Paid on Purchases (ITC) ₹</label><input class="finp" type="number" id="ft-gst-input" placeholder="0" oninput="ftCalcGst()"></div>
-      </div>
-      <div id="ft-gst-result"></div>
-    </div>
-    <div class="card">
-      <div class="card-hdr"><div class="card-title">📋 MIS Snapshot</div><div class="card-sub">Live ERP data se — owner ko dikhane laayak</div></div>
-      <div id="ft-mis-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
-    </div>
-    <div class="card">
-      <div class="card-hdr"><div class="card-title">📐 Quick Financial Ratios</div></div>
-      <div class="g2">
-        <div class="fg"><label>Cash in Hand/Bank ₹</label><input class="finp" type="number" id="ft-ratio-cash" placeholder="0" oninput="ftCalcRatios()"></div>
-        <div class="fg"><label>Current Liabilities ₹</label><input class="finp" type="number" id="ft-ratio-cl" placeholder="0" oninput="ftCalcRatios()"></div>
-      </div>
-      <div id="ft-ratio-result"></div>
-    </div>
-  </div>
-</div>
-
-
-<!-- ════ INVENTORY: PURCHASE ENTRY ════ -->
+<!-- ════ INVENTORY: SUPPLIER INVOICES (Purchase) ════ -->
 <div class="sc" id="s-inv-purchase">
-  <div class="card-title" style="font-size:14px;margin-bottom:12px">🛒 Purchase Entry</div>
 
-  <!-- Header details -->
-  <div class="card" style="margin-bottom:10px">
-    <div style="font-size:12px;font-weight:800;color:var(--navy2);margin-bottom:10px">📋 Bill Details</div>
-    <div class="g2">
-      <div class="fg" style="margin:0">
-        <label>Date *</label>
-        <input class="finp" type="date" id="inv-pur-date">
-      </div>
-      <div class="fg" style="margin:0">
-        <label>Bill / Invoice No.</label>
-        <input class="finp" type="text" id="inv-pur-billno" placeholder="e.g. INV-1234">
+  <!-- ═══════════ LIST VIEW ═══════════ -->
+  <div id="pur-view-list">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <div class="card-title" style="font-size:14px;margin:0">🛒 Supplier Invoices</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button onclick="_purSetView('trade')" style="padding:6px 10px;background:var(--navy2);color:#fff;border:none;border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;cursor:pointer">📊 Trade Report</button>
+        <button onclick="_purSetView('gst3b')" style="padding:6px 10px;background:var(--navy2);color:#fff;border:none;border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;cursor:pointer">🧾 GST-3B</button>
+        <button onclick="_purSetView('analysis')" style="padding:6px 10px;background:var(--navy2);color:#fff;border:none;border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;cursor:pointer">📈 Purchase Analysis</button>
       </div>
     </div>
-    <div class="fg" style="margin-bottom:0">
-      <label>Supplier</label>
-      <select class="finp" id="inv-pur-supplier-sel" onchange="invOnPurSupplierChange()" style="margin-bottom:6px">
-        <option value="">-- Supplier chunno --</option>
-      </select>
-      <input class="finp" type="text" id="inv-pur-supplier" placeholder="Ya naam type karo (naya supplier)" style="font-size:12px">
+
+    <div class="g2" style="margin-bottom:12px">
+      <div class="card" style="padding:14px;cursor:pointer" onclick="_purOpenInvoiceForm()">
+        <div style="font-size:22px;margin-bottom:4px">➕</div>
+        <div style="font-size:12px;font-weight:900;color:var(--navy2)">Enter Supplier Invoice</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">Purchase record karo — stock + ledger auto update</div>
+      </div>
+      <div class="card" style="padding:14px;cursor:pointer" onclick="_purOpenDebitForm()">
+        <div style="font-size:22px;margin-bottom:4px">↩️</div>
+        <div style="font-size:12px;font-weight:900;color:var(--navy2)">Enter Debit Note</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">Supplier return / adjustment</div>
+      </div>
+    </div>
+
+    <div class="card-title" style="font-size:13px;margin-bottom:8px">📋 Invoices</div>
+    <div id="inv-pur-log-mini"></div>
+  </div>
+
+  <!-- ═══════════ CREATE SUPPLIER INVOICE ═══════════ -->
+  <div id="pur-view-form" style="display:none">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <button onclick="_purSetView('list')" style="width:30px;height:30px;border:none;background:#f0f4ff;color:var(--navy2);border-radius:8px;cursor:pointer;font-size:14px;font-weight:800">←</button>
+      <div class="card-title" style="font-size:14px;margin:0">🧾 Create Supplier Invoice</div>
+    </div>
+
+    <!-- Basic Information -->
+    <div class="card" style="margin-bottom:10px">
+      <div style="font-size:12px;font-weight:800;color:var(--navy2);margin-bottom:10px">📋 Basic Information</div>
+      <div class="fg" style="margin-bottom:0">
+        <label>Supplier</label>
+        <select class="finp" id="inv-pur-supplier-sel" onchange="invOnPurSupplierChange()" style="margin-bottom:6px">
+          <option value="">-- Supplier chunno --</option>
+        </select>
+        <input class="finp" type="text" id="inv-pur-supplier" placeholder="Ya naam type karo (naya supplier)" style="font-size:12px">
+      </div>
+    </div>
+
+    <!-- Document Details -->
+    <div class="card" style="margin-bottom:10px">
+      <div style="font-size:12px;font-weight:800;color:var(--navy2);margin-bottom:10px">📄 Document Details</div>
+      <div class="g2">
+        <div class="fg" style="margin:0">
+          <label>Invoice No.</label>
+          <input class="finp" type="text" id="inv-pur-billno" placeholder="e.g. INV-1234">
+        </div>
+        <div class="fg" style="margin:0">
+          <label>Reference</label>
+          <input class="finp" type="text" id="inv-pur-ref" placeholder="optional">
+        </div>
+      </div>
+      <div class="g2">
+        <div class="fg" style="margin:0">
+          <label>Invoice Date *</label>
+          <input class="finp" type="date" id="inv-pur-date">
+        </div>
+        <div class="fg" style="margin:0">
+          <label>Due Date</label>
+          <input class="finp" type="date" id="inv-pur-duedate">
+        </div>
+      </div>
+    </div>
+
+    <!-- Items list -->
+    <div class="card" style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:800;color:var(--navy2)">📦 Item List</div>
+        <div style="display:flex;gap:6px">
+          <button onclick="invPurOpenNewMat()" style="padding:6px 11px;background:var(--orange-bg);border:1.5px solid var(--orange);border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer;color:var(--orange)">＋ Naya Material</button>
+          <button onclick="invPurAddRow()" style="padding:6px 13px;background:var(--navy);color:#fff;border:none;border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">＋ Item</button>
+        </div>
+      </div>
+      <div id="inv-pur-rows"></div>
+
+      <!-- Totals -->
+      <div style="background:#f0f4ff;border-radius:var(--r2);padding:10px 14px;margin-top:10px;font-size:11px;font-weight:700;color:var(--navy2)">
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span>Taxable Total</span><span id="inv-pur-taxable-total">₹0</span></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span>CGST</span><span id="inv-pur-cgst-total">₹0</span></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span>SGST</span><span id="inv-pur-sgst-total">₹0</span></div>
+      </div>
+      <div style="background:linear-gradient(135deg,var(--navy),var(--navy2));border-radius:var(--r2);padding:12px 14px;margin-top:8px;display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:12px;font-weight:800;color:rgba(255,255,255,.7)">Grand Total</div>
+        <div style="font-family:'Bebas Neue';font-size:26px;color:#fff" id="inv-pur-grand-total">₹0</div>
+      </div>
+    </div>
+
+    <!-- Terms & Notes -->
+    <div class="card" style="margin-bottom:10px">
+      <div class="fg" style="margin-bottom:8px">
+        <label>Terms & Conditions</label>
+        <textarea class="finp" id="inv-pur-terms" rows="3" style="font-size:11px;resize:vertical">1. 50% Advance and 50% at the time of delivery.
+2. Our responsibility ends once the goods are handed over to the carriers.
+3. Disputes under this bill are subject to local jurisdiction.</textarea>
+      </div>
+      <div class="fg" style="margin-bottom:0">
+        <label>Notes (optional)</label>
+        <input class="finp" type="text" id="inv-pur-note" placeholder="koi baat likhni ho">
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px">
+      <button class="btn-save" style="flex:1;text-align:center;justify-content:center;font-size:14px" onclick="invSavePurchase(false)">
+        ✅ Save
+      </button>
+      <button style="flex:1;background:var(--orange-bg);border:1.5px solid var(--orange);color:var(--orange);border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer" onclick="invSavePurchase(true)">
+        ➕ Save & Enter Another
+      </button>
     </div>
   </div>
 
-  <!-- Items list -->
-  <div class="card" style="margin-bottom:10px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <div style="font-size:12px;font-weight:800;color:var(--navy2)">📦 Items</div>
-      <div style="display:flex;gap:6px">
-        <button onclick="invPurOpenNewMat()" style="padding:6px 11px;background:var(--orange-bg);border:1.5px solid var(--orange);border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer;color:var(--orange)">＋ Naya Material</button>
-        <button onclick="invPurAddRow()" style="padding:6px 13px;background:var(--navy);color:#fff;border:none;border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">＋ Item</button>
+  <!-- ═══════════ DEBIT NOTE ═══════════ -->
+  <div id="pur-view-debit" style="display:none">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <button onclick="_purSetView('list')" style="width:30px;height:30px;border:none;background:#f0f4ff;color:var(--navy2);border-radius:8px;cursor:pointer;font-size:14px;font-weight:800">←</button>
+      <div class="card-title" style="font-size:14px;margin:0">↩️ Enter Debit Note</div>
+    </div>
+
+    <div class="card" style="margin-bottom:10px">
+      <div class="g2">
+        <div class="fg" style="margin:0">
+          <label>Date *</label>
+          <input class="finp" type="date" id="deb-date">
+        </div>
+        <div class="fg" style="margin:0">
+          <label>Debit Note No.</label>
+          <input class="finp" type="text" id="deb-billno" placeholder="e.g. DN-1001">
+        </div>
+      </div>
+      <div class="fg" style="margin-bottom:0">
+        <label>Supplier</label>
+        <select class="finp" id="deb-supplier-sel" style="margin-bottom:6px">
+          <option value="">-- Supplier chunno --</option>
+        </select>
+        <input class="finp" type="text" id="deb-supplier" placeholder="Ya naam type karo" style="font-size:12px">
+      </div>
+      <div class="fg" style="margin-bottom:0">
+        <label>Against Invoice No. (optional)</label>
+        <input class="finp" type="text" id="deb-ref-invoice" placeholder="e.g. INV-1234">
       </div>
     </div>
-    <div id="inv-pur-rows"></div>
 
-    <!-- Grand Total -->
-    <div style="background:linear-gradient(135deg,var(--navy),var(--navy2));border-radius:var(--r2);padding:12px 14px;margin-top:10px;display:flex;justify-content:space-between;align-items:center">
-      <div style="font-size:12px;font-weight:800;color:rgba(255,255,255,.7)">Grand Total</div>
-      <div style="font-family:'Bebas Neue';font-size:26px;color:#fff" id="inv-pur-grand-total">₹0</div>
+    <div class="card" style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:800;color:var(--navy2)">📦 Returned Items</div>
+        <button onclick="debAddRow()" style="padding:6px 13px;background:var(--navy);color:#fff;border:none;border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">＋ Item</button>
+      </div>
+      <div id="deb-rows"></div>
+      <div style="background:linear-gradient(135deg,var(--red-dark),#b91c1c);border-radius:var(--r2);padding:12px 14px;margin-top:10px;display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:12px;font-weight:800;color:rgba(255,255,255,.7)">Debit Total</div>
+        <div style="font-family:'Bebas Neue';font-size:26px;color:#fff" id="deb-grand-total">₹0</div>
+      </div>
     </div>
+
+    <div class="fg">
+      <label>Reason / Note</label>
+      <input class="finp" type="text" id="deb-note" placeholder="e.g. damaged goods, rate difference">
+    </div>
+
+    <button class="btn-save" style="width:100%;text-align:center;justify-content:center;font-size:15px;background:var(--red-dark)" onclick="debSaveNote()">
+      ✅ Save — Stock + Ledger Update Karo
+    </button>
   </div>
 
-  <div class="fg">
-    <label>Note (optional)</label>
-    <input class="finp" type="text" id="inv-pur-note" placeholder="koi baat likhni ho">
+  <!-- ═══════════ TRADE REPORT ═══════════ -->
+  <div id="pur-view-trade" style="display:none">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <button onclick="_purSetView('list')" style="width:30px;height:30px;border:none;background:#f0f4ff;color:var(--navy2);border-radius:8px;cursor:pointer;font-size:14px;font-weight:800">←</button>
+      <div class="card-title" style="font-size:14px;margin:0">📊 Trade Report</div>
+    </div>
+    <div class="card" style="margin-bottom:10px">
+      <div class="g2">
+        <div class="fg" style="margin:0"><label>From</label><input class="finp" type="date" id="trade-from" onchange="_purRenderTrade()"></div>
+        <div class="fg" style="margin:0"><label>To</label><input class="finp" type="date" id="trade-to" onchange="_purRenderTrade()"></div>
+      </div>
+      <div class="fg" style="margin-bottom:0">
+        <label>Supplier</label>
+        <select class="finp" id="trade-supplier" onchange="_purRenderTrade()"><option value="">Sab suppliers</option></select>
+      </div>
+    </div>
+    <div id="trade-summary" style="margin-bottom:10px"></div>
+    <div id="trade-table"></div>
   </div>
 
-  <button class="btn-save" style="width:100%;text-align:center;justify-content:center;font-size:15px" onclick="invSavePurchase()">
-    ✅ Save — Stock + Ledger Update Karo
-  </button>
+  <!-- ═══════════ GST-3B ═══════════ -->
+  <div id="pur-view-gst3b" style="display:none">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <button onclick="_purSetView('list')" style="width:30px;height:30px;border:none;background:#f0f4ff;color:var(--navy2);border-radius:8px;cursor:pointer;font-size:14px;font-weight:800">←</button>
+      <div class="card-title" style="font-size:14px;margin:0">🧾 GST-3B — Input Tax Credit (Purchase)</div>
+    </div>
+    <div class="card" style="margin-bottom:10px">
+      <div class="fg" style="margin-bottom:0">
+        <label>Month</label>
+        <input class="finp" type="month" id="gst3b-month" onchange="_purRenderGst3b()">
+      </div>
+    </div>
+    <div id="gst3b-kpis"></div>
+  </div>
 
-  <div class="card-title" style="font-size:13px;margin-bottom:8px;margin-top:14px">📋 Recent Purchases</div>
-  <div id="inv-pur-log-mini"></div>
+  <!-- ═══════════ PURCHASE ANALYSIS ═══════════ -->
+  <div id="pur-view-analysis" style="display:none">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <button onclick="_purSetView('list')" style="width:30px;height:30px;border:none;background:#f0f4ff;color:var(--navy2);border-radius:8px;cursor:pointer;font-size:14px;font-weight:800">←</button>
+      <div class="card-title" style="font-size:14px;margin:0">📈 Purchase Analysis</div>
+    </div>
+    <div id="pan-kpis" style="margin-bottom:10px"></div>
+    <div class="card" style="margin-bottom:10px">
+      <div style="font-size:12px;font-weight:800;color:var(--navy2);margin-bottom:8px">Monthly Purchase Trend</div>
+      <div style="height:200px"><canvas id="pan-chart"></canvas></div>
+    </div>
+    <div class="card-title" style="font-size:13px;margin-bottom:8px">🏭 Top Suppliers</div>
+    <div id="pan-suppliers"></div>
+  </div>
+
 </div>
 
 <!-- New Material from Purchase Entry Modal -->
@@ -4437,8 +4485,8 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 
     <!-- Category + Sub-category + Importance -->
     <div style="display:grid;grid-template-columns:1fr 1fr 90px;gap:7px;margin-bottom:10px">
-      <div class="fg" style="margin:0"><label>Category</label><input class="finp" id="stk-em-cat" list="stk-cat-datalist" placeholder="e.g. Raw Material..."><datalist id="stk-cat-datalist"></datalist></div>
-      <div class="fg" style="margin:0"><label>Sub-Category</label><input class="finp" id="stk-em-subcat" list="stk-subcat-datalist" placeholder="e.g. Pipe, Angle..."><datalist id="stk-subcat-datalist"></datalist></div>
+      <div class="fg" style="margin:0"><label>Category</label><select class="finp" id="stk-em-cat"></select></div>
+      <div class="fg" style="margin:0"><label>Sub-Category</label><input class="finp" id="stk-em-subcat" placeholder="e.g. Pipe, Angle..."></div>
       <div class="fg" style="margin:0"><label>Importance</label>
         <select class="finp" id="stk-em-importance">
           <option>High</option><option>Normal</option><option>Low</option>
@@ -4476,25 +4524,16 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
       <input class="finp" type="number" id="stk-em-orderqty" min="0">
     </div>
 
-    <!-- Stock Unit (always) + Unit Conversion (toggleable) -->
+    <!-- Unit Conversion -->
     <div style="background:var(--yellow-bg);border:1px solid #fde68a;border-radius:var(--r2);padding:10px 12px;margin-bottom:10px">
-      <div class="fg" style="margin:0 0 8px"><label>Stock Unit</label><select class="finp" id="stk-em-stockunit" onchange="stkUpdateConvLabel()"></select></div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;padding-top:8px;border-top:1px dashed #fde68a">
-        <div>
-          <div style="font-size:11px;font-weight:800;color:var(--yellow-dark)">🔄 Purchase Unit Alag Hai?</div>
-          <div style="font-size:10px;color:#6b7a99;font-weight:600">Agar purchase unit stock unit se alag hai toh yes karo</div>
-        </div>
-        <label for="stk-em-hasconv" style="position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0;cursor:pointer">
-          <input type="checkbox" id="stk-em-hasconv" onchange="stkToggleConvSection()" style="opacity:0;width:0;height:0;position:absolute">
-          <span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#cbd5e1;border-radius:22px;transition:.3s" id="stk-em-hasconv-slider"></span>
-        </label>
-      </div>
-      <div id="stk-em-conv-fields" style="display:none">
+      <div style="font-size:11px;font-weight:800;color:var(--yellow-dark);margin-bottom:8px">🔄 Unit Conversion (Purchase → Stock)</div>
+      <div class="g2">
         <div class="fg" style="margin:0"><label>Purchase Unit</label><select class="finp" id="stk-em-purunit" onchange="stkUpdateConvLabel()"></select></div>
-        <div class="fg" style="margin-bottom:0">
-          <label id="stk-em-conv-lbl">1 unit =</label>
-          <input class="finp" type="number" id="stk-em-convratio" min="0" step="any" placeholder="1">
-        </div>
+        <div class="fg" style="margin:0"><label>Stock Unit</label><select class="finp" id="stk-em-stockunit"></select></div>
+      </div>
+      <div class="fg" style="margin-bottom:0">
+        <label id="stk-em-conv-lbl">1 unit =</label>
+        <input class="finp" type="number" id="stk-em-convratio" min="0" step="any" placeholder="1">
       </div>
     </div>
 
@@ -5039,59 +5078,6 @@ let _gdSyncing   = false;
 let _gdPushTimer = null;
 let _gdLoaded    = false;
 
-/* ══════════════════════════════════════════════════════════
-   DATA-LOSS GUARD — koi bhi wholesale sync (push ya pull) jo
-   critical records ko achanak kam kar de, use auto-block karta
-   hai. Isse woh bug dobara nahi hoga jisme fresh/stale session
-   ne accha local data cloud ke khaali/purane data se overwrite
-   kar diya tha.
-══════════════════════════════════════════════════════════ */
-const CRITICAL_ARR_KEYS = ['bf9_daybook','bf9_batches','bf9_invoices','bf9_orders','bf9_customers','bf9_ledger','bf9_att','bf9_stxn','bf9_trips','bf9_assets','bf9_advances'];
-const GUARD_DROP_PCT = 0.15; // 15% se zyada gira toh block
-
-function _arrCount(jsonStr){
-  try{ const v = JSON.parse(jsonStr); return Array.isArray(v) ? v.length : 0; }catch(e){ return 0; }
-}
-function _countsOf(src){ // src: 'local' ya {key: jsonString} object (cloud data)
-  const out={};
-  CRITICAL_ARR_KEYS.forEach(k=>{
-    out[k] = _arrCount(src==='local' ? localStorage.getItem(k) : src[k]);
-  });
-  return out;
-}
-function _findDataLossDrops(fromCounts, toCounts){
-  const drops=[];
-  CRITICAL_ARR_KEYS.forEach(k=>{
-    if(fromCounts[k]>=5 && toCounts[k] < fromCounts[k]*(1-GUARD_DROP_PCT)){
-      drops.push({key:k, from:fromCounts[k], to:toCounts[k]});
-    }
-  });
-  return drops;
-}
-function _applyCloudData(cloud){
-  let restored=0;
-  GD_KEYS.forEach(k=>{
-    if(cloud[k]!==undefined && cloud[k]!=='' && cloud[k]!=='null'){
-      localStorage.setItem(k, cloud[k]);
-      restored++;
-    }
-  });
-  return restored;
-}
-function _showGuardBanner(drops, direction){
-  const msg = drops.map(d=>`${d.key.replace('bf9_','')}: ${d.from}→${d.to}`).join(' · ');
-  console.warn('🛑 SYNC BLOCKED — possible data loss ('+direction+'):', msg);
-  let el = document.getElementById('gd-guard-banner');
-  if(!el){
-    el = document.createElement('div');
-    el.id='gd-guard-banner';
-    el.style.cssText='position:fixed;top:0;left:0;right:0;background:#fee2e2;color:#991b1b;padding:10px 14px;font-size:12px;font-weight:800;z-index:9999;text-align:center;border-bottom:2px solid #ef4444;font-family:Nunito,sans-serif;';
-    document.body.prepend(el);
-  }
-  el.textContent = `⚠️ Auto-sync ROKA gaya (data-loss risk): ${msg}. Settings → Snapshot History se check karo, khud reload mat karo.`;
-  el.style.display='block';
-}
-
 /* ── localStorage helpers (unchanged) ── */
 function load(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; }}
 function save(k,v){
@@ -5135,40 +5121,11 @@ async function gdPush(){
     _gdSyncing = false;
     gdSetDot('ok');
     localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
-    _gdSaveHistorySnapshot(payload);
   } catch(e) {
     _gdSyncing = false;
     gdSetDot('err');
     console.warn('Supabase push failed:', e);
   }
-}
-
-/* ── Versioned snapshot history (apna khud ka point-in-time backup,
-   kyunki Supabase Free plan mein PITR nahi hota). Har push pe nahi,
-   max har 15 min mein ek snapshot — taaki table zyada bada na ho. ── */
-function _gdSaveHistorySnapshot(payload){
-  try{
-    const last = localStorage.getItem('bf9_hist_last');
-    const now = Date.now();
-    if(last && (now - parseInt(last,10)) < 15*60*1000) return;
-    localStorage.setItem('bf9_hist_last', String(now));
-    fetch(SB_URL+'/rest/v1/bf_sync_history', {
-      method:'POST',
-      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
-      body: JSON.stringify({ data: payload })
-    }).then(()=>{ if(Math.random()<0.1) _gdTrimHistory(); }).catch(()=>{});
-  }catch(e){}
-}
-/* ── Purane snapshots trim karo — sirf latest 300 rakho ── */
-function _gdTrimHistory(){
-  fetch(SB_URL+'/rest/v1/bf_sync_history?select=id&order=created_at.desc&offset=300',{
-    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
-  }).then(r=>r.json()).then(rows=>{
-    if(rows && rows.length){
-      const ids = rows.map(r=>r.id).join(',');
-      fetch(SB_URL+`/rest/v1/bf_sync_history?id=in.(${ids})`,{method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).catch(()=>{});
-    }
-  }).catch(()=>{});
 }
 
 /* ── Load from Supabase on startup ── */
@@ -5208,9 +5165,13 @@ async function _gdSmartSync(){
 
     // Case 2: Local has never synced → pull from cloud
     if(!localTime){
-      const drops2 = _findDataLossDrops(_countsOf('local'), _countsOf(cloud));
-      if(drops2.length){ _showGuardBanner(drops2,'pull-fresh-session'); _gdLoaded=true; gdSetDot('err'); return; }
-      const restored = _applyCloudData(cloud);
+      let restored = 0;
+      GD_KEYS.forEach(k=>{
+        if(cloud[k] !== undefined && cloud[k] !== '' && cloud[k] !== 'null'){
+          localStorage.setItem(k, cloud[k]);
+          restored++;
+        }
+      });
       localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
       _gdLoaded = true;
       gdSetDot('ok');
@@ -5219,16 +5180,29 @@ async function _gdSmartSync(){
     }
 
     // Case 3: Local is NEWER than cloud → push local to cloud
-    // BUT first check — agar local cloud se kaafi kam entries dikha raha hai (kisi bhi
-    // critical key mein), toh pehle cloud se pull karo — push mat karo (data loss prevention)
+    // BUT first verify local actually has meaningful data — agar local empty hai toh cloud se pull karo
     if(localTime >= cloudUpdatedAt){
-      const localCounts3 = _countsOf('local');
-      const cloudCounts3 = _countsOf(cloud);
-      const pullDrops = _findDataLossDrops(cloudCounts3, localCounts3); // local < cloud kahin?
+      const localDaybook = load('bf9_daybook');
+      const localBatches = load('bf9_batches');
+      const localInvoices = load('bf9_invoices');
+      const localHasData = (localDaybook && localDaybook.length > 0) ||
+                           (localBatches && localBatches.length > 0) ||
+                           (localInvoices && localInvoices.length > 0);
 
-      if(pullDrops.length){
-        console.warn('⚠️ Local kam entries dikha raha hai cloud se — pull kar rahe hain, push nahi', pullDrops);
-        const restored = _applyCloudData(cloud);
+      // Agar cloud mein data hai par local empty hai — cloud jeet-ta hai (data loss prevention)
+      const cloudDaybook = cloud['bf9_daybook'] ? JSON.parse(cloud['bf9_daybook']) : [];
+      const cloudHasData = cloudDaybook && cloudDaybook.length > 0;
+
+      if(!localHasData && cloudHasData){
+        // Local empty, cloud mein data hai — cloud se restore karo
+        console.warn('⚠️ Local data empty but cloud has data — pulling from cloud to prevent data loss');
+        let restored = 0;
+        GD_KEYS.forEach(k=>{
+          if(cloud[k] !== undefined && cloud[k] !== '' && cloud[k] !== 'null'){
+            localStorage.setItem(k, cloud[k]);
+            restored++;
+          }
+        });
         localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
         _gdLoaded = true;
         gdSetDot('ok');
@@ -5243,12 +5217,13 @@ async function _gdSmartSync(){
     }
 
     // Case 4: Cloud is NEWER than local → pull from cloud
-    const localCounts4 = _countsOf('local');
-    const cloudCounts4 = _countsOf(cloud);
-    const drops4 = _findDataLossDrops(localCounts4, cloudCounts4);
-    if(drops4.length){ _showGuardBanner(drops4,'pull-cloud-newer'); _gdLoaded=true; gdSetDot('err'); return; }
-
-    const restored = _applyCloudData(cloud);
+    let restored = 0;
+    GD_KEYS.forEach(k=>{
+      if(cloud[k] !== undefined && cloud[k] !== '' && cloud[k] !== 'null'){
+        localStorage.setItem(k, cloud[k]);
+        restored++;
+      }
+    });
     localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
     _gdLoaded = true;
     gdSetDot('ok');
@@ -5264,70 +5239,6 @@ async function _gdSmartSync(){
 }
 
 /* ── Force pull from Supabase (doosre device ka data lana) ── */
-/* ── Snapshot History modal — purani cloud snapshots dekho aur chuni hui restore karo ── */
-async function openSnapshotHistoryModal(){
-  if(!document.getElementById('snap-modal-bg')){
-    const m=document.createElement('div');
-    m.id='snap-modal-bg';
-    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:960;align-items:flex-end;justify-content:center;';
-    m.innerHTML='<div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:560px;max-height:88vh;overflow-y:auto">'
-      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
-      +'<div style="font-size:15px;font-weight:800;color:var(--navy2)">📜 Snapshot History</div>'
-      +'<button onclick="document.getElementById(\'snap-modal-bg\').style.display=\'none\'" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button></div>'
-      +'<div id="snap-list" style="display:flex;flex-direction:column;gap:8px"></div>'
-      +'</div>';
-    document.body.appendChild(m);
-  }
-  document.getElementById('snap-modal-bg').style.display='flex';
-  const el=document.getElementById('snap-list');
-  el.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">⏳ Load ho raha hai...</div>';
-  try{
-    const res=await fetch(SB_URL+'/rest/v1/bf_sync_history?select=id,data,created_at&order=created_at.desc&limit=30',{
-      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
-    });
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    const rows=await res.json();
-    if(!rows.length){ el.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">Abhi koi snapshot nahi hai — thodi der baad try karo</div>'; return; }
-    const curCounts=_countsOf('local');
-    el.innerHTML=rows.map(r=>{
-      const snapCounts=_countsOf(r.data);
-      const dt=new Date(r.created_at).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-      const dbDiff = snapCounts['bf9_daybook'] - curCounts['bf9_daybook'];
-      const diffTxt = dbDiff>0?`<span style="color:var(--green-dark)">+${dbDiff} daybook</span>`:dbDiff<0?`<span style="color:var(--red-dark)">${dbDiff} daybook</span>`:'<span style="color:var(--muted)">same</span>';
-      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r2)">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:12px;font-weight:800;color:var(--navy2)">${dt}</div>
-          <div style="font-size:11px;color:var(--muted);font-weight:700">Daybook: ${snapCounts['bf9_daybook']} · ${diffTxt}</div>
-        </div>
-        <button onclick="restoreSnapshot('${r.id}')" style="padding:8px 12px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:800;cursor:pointer">Restore</button>
-      </div>`;
-    }).join('');
-  }catch(e){
-    el.innerHTML=`<div style="text-align:center;padding:16px;color:var(--red-dark);font-size:12px;font-weight:700">❌ ${esc(e.message)}</div>`;
-  }
-}
-async function restoreSnapshot(id){
-  try{
-    const res=await fetch(SB_URL+`/rest/v1/bf_sync_history?id=eq.${id}&select=data,created_at`,{
-      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
-    });
-    const rows=await res.json();
-    if(!rows.length){ toast('❌ Snapshot nahi mila'); return; }
-    const snap=rows[0].data;
-    const curCounts=_countsOf('local');
-    const snapCounts=_countsOf(snap);
-    const lines=CRITICAL_ARR_KEYS.map(k=>`${k.replace('bf9_','')}: ${curCounts[k]} → ${snapCounts[k]}`).join('\n');
-    if(!confirm(`⚠️ Ye snapshot (${new Date(rows[0].created_at).toLocaleString('en-IN')}) restore karoge?\nAbhi ka data replace ho jayega:\n\n${lines}\n\nPakka karna hai?`)) return;
-    _applyCloudData(snap);
-    localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
-    localStorage.setItem('bf9_gd_reloaded','1');
-    toast('✅ Restore ho gaya — reload ho raha hai...');
-    setTimeout(()=>location.reload(), 1000);
-  }catch(e){
-    toast('❌ '+e.message);
-  }
-}
-
 function gdForcePull(){
   if(!confirm('⚠️ Supabase se saara data overwrite hoga!\nLocal data replace ho jayega.\n\nAage badhna hai?')) return;
   _gdFetch(true);
@@ -5508,10 +5419,9 @@ function sw(name,btn){
   // Close sidebar on mobile
   if(window.innerWidth<=768) closeSidebar();
   if(name==='inv-materials') { invRenderMaterials(); invCheckLowBadge(); }
-  if(name==='inv-purchase')  { invInitPurForm(); invRenderPurLogMini(); }
+  if(name==='inv-purchase')  { if(typeof _purSetView==='function') _purSetView('list'); else { invInitPurForm(); invRenderPurLogMini(); } }
   if(name==='inv-produce')   { invInitProdForm(); invRenderProdLogMini(); }
   if(name==='inv-bom')       { invRenderBOM(); invRenderConversion(); invRenderMatSettings(); invRenderProductChips(); invRenderBomMatQuickList(); }
-  if(name==='fintools')      renderFinanceTools();
 }
 
 function toggleSidebar(){
@@ -5527,365 +5437,6 @@ function closeSidebar(){
 function goMeeting(){
   const btn=document.querySelector('.bnav[data-tab="meeting"]');
   sw('meeting',btn);
-}
-
-/* ═══════════════ FINANCE TOOLS MODULE ═══════════════
-   Uses live ERP data: STK, STXN, LEDGER, CUSTOMERS, INVOICES
-   localStorage prefix: bf9_ft_ */
-const FT_SK='bf9_ft_';
-const FT_LS={
-  get:(k,d)=>{ try{ const v=localStorage.getItem(FT_SK+k); return v!=null?JSON.parse(v):d; }catch{return d;} },
-  set:(k,v)=>{ try{ localStorage.setItem(FT_SK+k,JSON.stringify(v)); clearTimeout(_gdPushTimer); _gdPushTimer=setTimeout(gdPush,3000); }catch{} }
-};
-
-function setFtTab(name){
-  ['costing','inventory','cashflow','gst'].forEach(t=>{
-    document.getElementById('ft-'+t+'-pane').style.display = t===name?'block':'none';
-    document.getElementById('fttab-'+t)?.classList.toggle('active',t===name);
-  });
-  if(name==='costing')   ftRenderCostingTab();
-  if(name==='inventory') ftRenderInventoryTab();
-  if(name==='cashflow')  ftRenderCashflowTab();
-  if(name==='gst')       ftRenderGstTab();
-}
-
-function renderFinanceTools(){ ftRenderCostingTab(); }
-
-/* ───────── TAB 1: COSTING & BREAK-EVEN ───────── */
-function ftRenderCostingTab(){
-  const sel=document.getElementById('ft-cost-product');
-  const products = (typeof invGetProducts==='function') ? invGetProducts() : [];
-  sel.innerHTML = products.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('') || '<option value="">Koi product nahi mila</option>';
-  ftCostingLoad();
-}
-
-function ftMaterialCostForProduct(pid){
-  if(!pid || typeof invGetBOMForProduct!=='function') return 0;
-  const bom = invGetBOMForProduct(pid);
-  let cost=0;
-  Object.keys(bom||{}).forEach(matId=>{
-    const qty=bom[matId]||0;
-    if(qty<=0) return;
-    const mat = (STK||[]).find(m=>m.id===matId);
-    if(mat) cost += qty * (mat.rate||0);
-  });
-  return cost;
-}
-
-function ftCostingLoad(){
-  const pid=document.getElementById('ft-cost-product').value;
-  const matCost=ftMaterialCostForProduct(pid);
-  document.getElementById('ft-cost-material').value = '₹'+matCost.toFixed(2);
-  const saved=FT_LS.get('costing_'+pid, {});
-  document.getElementById('ft-cost-labor').value    = saved.labor||'';
-  document.getElementById('ft-cost-overhead').value = saved.overhead||'';
-  document.getElementById('ft-cost-price').value    = saved.price||'';
-  document.getElementById('ft-cost-fixed').value    = saved.fixed||'';
-  ftCalcCosting();
-}
-
-function ftCalcCosting(){
-  const pid=document.getElementById('ft-cost-product').value;
-  const matCost=ftMaterialCostForProduct(pid);
-  const labor=parseFloat(document.getElementById('ft-cost-labor').value)||0;
-  const overhead=parseFloat(document.getElementById('ft-cost-overhead').value)||0;
-  const price=parseFloat(document.getElementById('ft-cost-price').value)||0;
-  const fixed=parseFloat(document.getElementById('ft-cost-fixed').value)||0;
-
-  FT_LS.set('costing_'+pid, {labor,overhead,price,fixed});
-
-  const totalCost = matCost+labor+overhead;
-  const variableCost = matCost+labor; // overhead treated as largely fixed/semi-fixed
-  const profitPerUnit = price-totalCost;
-  const marginPct = price>0 ? (profitPerUnit/price*100) : 0;
-  const contribution = price-variableCost;
-  const beUnits = contribution>0 ? Math.ceil(fixed/contribution) : null;
-  const beRevenue = beUnits!=null ? beUnits*price : null;
-
-  const el=document.getElementById('ft-cost-result');
-  if(price<=0){
-    el.innerHTML=`<div style="text-align:center;color:var(--muted);font-size:12px;font-weight:700;padding:14px">Selling price daalo calculation dekhne ke liye</div>`;
-    return;
-  }
-  el.innerHTML=`
-    <div class="card-title" style="margin-bottom:10px">📈 Result</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-      <div style="background:#f7fafc;border-radius:8px;padding:10px;text-align:center">
-        <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase">Total Cost/unit</div>
-        <div style="font-size:16px;font-weight:900;color:#1a202c">₹${totalCost.toFixed(2)}</div>
-      </div>
-      <div style="background:${profitPerUnit>=0?'#e6fff3':'#fff0f0'};border-radius:8px;padding:10px;text-align:center">
-        <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase">Profit/unit</div>
-        <div style="font-size:16px;font-weight:900;color:${profitPerUnit>=0?'var(--green-dark)':'var(--red-dark)'}">₹${profitPerUnit.toFixed(2)}</div>
-      </div>
-      <div style="background:#f7fafc;border-radius:8px;padding:10px;text-align:center">
-        <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase">Margin %</div>
-        <div style="font-size:16px;font-weight:900;color:#1a202c">${marginPct.toFixed(1)}%</div>
-      </div>
-      <div style="background:#f7fafc;border-radius:8px;padding:10px;text-align:center">
-        <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase">Contribution/unit</div>
-        <div style="font-size:16px;font-weight:900;color:#1a202c">₹${contribution.toFixed(2)}</div>
-      </div>
-    </div>
-    ${fixed>0 ? `
-    <div style="background:#eff6ff;border-radius:8px;padding:12px">
-      <div style="font-size:10px;font-weight:900;color:#1a365d;text-transform:uppercase;margin-bottom:6px">⚖️ Break-Even Point</div>
-      ${beUnits!=null ? `
-        <div style="font-size:13px;font-weight:800;color:#1a202c">${beUnits.toLocaleString('en-IN')} units/month</div>
-        <div style="font-size:11px;color:var(--muted);font-weight:700">= ₹${beRevenue.toLocaleString('en-IN')} revenue/month to cover fixed costs</div>
-      ` : `<div style="font-size:12px;color:var(--red-dark);font-weight:700">Contribution margin ≤0 — is price pe break-even possible nahi</div>`}
-    </div>` : `<div style="font-size:11px;color:var(--muted);font-weight:700;text-align:center">Monthly fixed cost daalo break-even units dekhne ke liye</div>`}
-  `;
-}
-
-/* ───────── TAB 2: INVENTORY INTELLIGENCE ───────── */
-function ftGetStockValued(){
-  return (STK||[]).map(m=>({...m, value:(m.current||0)*(m.rate||0)})).sort((a,b)=>b.value-a.value);
-}
-
-function ftRenderInventoryTab(){
-  const items=ftGetStockValued();
-  const totalValue=items.reduce((s,m)=>s+m.value,0);
-  let cum=0;
-  const classified=items.map(m=>{
-    cum+=m.value;
-    const cumPct = totalValue>0 ? (cum/totalValue*100) : 0;
-    const cls = cumPct<=80 ? 'A' : cumPct<=95 ? 'B' : 'C';
-    return {...m, cumPct, cls};
-  });
-  const counts={A:0,B:0,C:0}, vals={A:0,B:0,C:0};
-  classified.forEach(m=>{ counts[m.cls]++; vals[m.cls]+=m.value; });
-  const clsInfo={A:{color:'var(--red-dark)',bg:'var(--red-bg)',label:'A — High Value'},B:{color:'var(--yellow-dark)',bg:'var(--yellow-bg)',label:'B — Medium'},C:{color:'var(--green-dark)',bg:'var(--green-bg)',label:'C — Low Value'}};
-
-  document.getElementById('ft-abc-summary').innerHTML = ['A','B','C'].map(c=>`
-    <div style="background:${clsInfo[c].bg};border-radius:8px;padding:10px;text-align:center">
-      <div style="font-size:9px;font-weight:900;color:${clsInfo[c].color};text-transform:uppercase">${clsInfo[c].label}</div>
-      <div style="font-size:15px;font-weight:900;color:${clsInfo[c].color};margin-top:2px">${counts[c]} items</div>
-      <div style="font-size:10px;font-weight:700;color:${clsInfo[c].color}">₹${vals[c].toLocaleString('en-IN')}</div>
-    </div>`).join('');
-
-  document.getElementById('ft-abc-list').innerHTML = classified.filter(m=>m.value>0).slice(0,25).map(m=>`
-    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid #eef1f6">
-      <span style="width:20px;height:20px;border-radius:5px;background:${clsInfo[m.cls].bg};color:${clsInfo[m.cls].color};font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">${m.cls}</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:12px;font-weight:800;color:#1a202c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.name)}</div>
-        <div style="font-size:10px;color:var(--muted)">${(m.current||0).toLocaleString('en-IN')} ${m.unit||''} × ₹${m.rate||0}</div>
-      </div>
-      <div style="font-size:12px;font-weight:900;color:#1a202c">₹${m.value.toLocaleString('en-IN')}</div>
-    </div>`).join('') || `<div style="text-align:center;color:var(--muted);font-size:12px;font-weight:700;padding:14px">Stock mein rate set nahi hai kisi item ka</div>`;
-
-  // Dead stock — no 'out' transaction in last 90 days
-  const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-90);
-  const lastOut={};
-  (STXN||[]).filter(t=>t.type==='out').forEach(t=>{
-    const d=new Date(t.date);
-    if(!lastOut[t.itemId] || d>lastOut[t.itemId]) lastOut[t.itemId]=d;
-  });
-  const dead = items.filter(m=>(m.current||0)>0).map(m=>{
-    const last=lastOut[m.id];
-    const stale = !last || last<cutoff;
-    return {...m, last, stale};
-  }).filter(m=>m.stale).sort((a,b)=>b.value-a.value);
-
-  document.getElementById('ft-deadstock-list').innerHTML = dead.length ? dead.map(m=>`
-    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid #eef1f6">
-      <div style="flex:1;min-width:0">
-        <div style="font-size:12px;font-weight:800;color:#1a202c">${esc(m.name)}</div>
-        <div style="font-size:10px;color:var(--muted)">Last movement: ${m.last?_fmtDate(m.last.toISOString().split('T')[0]):'Kabhi nahi'}</div>
-      </div>
-      <div style="font-size:12px;font-weight:900;color:var(--red-dark)">₹${m.value.toLocaleString('en-IN')}</div>
-    </div>`).join('') : `<div style="text-align:center;color:var(--green-dark);font-size:12px;font-weight:700;padding:14px">✅ Koi dead stock nahi</div>`;
-
-  // EOQ material dropdown
-  const eoqSel=document.getElementById('ft-eoq-mat');
-  eoqSel.innerHTML = (STK||[]).map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('');
-  ftEoqLoad();
-}
-
-function ftAnnualUsageEstimate(matId){
-  const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-90);
-  const recent=(STXN||[]).filter(t=>t.itemId===matId && t.type==='out' && new Date(t.date)>=cutoff);
-  const sum90=recent.reduce((s,t)=>s+(t.qty||0),0);
-  return Math.round(sum90*4); // extrapolate 90-day usage to annual
-}
-
-function ftEoqLoad(){
-  const matId=document.getElementById('ft-eoq-mat').value;
-  const saved=FT_LS.get('eoq_'+matId, {});
-  document.getElementById('ft-eoq-demand').value = saved.demand!=null ? saved.demand : ftAnnualUsageEstimate(matId);
-  document.getElementById('ft-eoq-order-cost').value = saved.orderCost||'';
-  const mat=(STK||[]).find(m=>m.id===matId);
-  document.getElementById('ft-eoq-hold-cost').value = saved.holdCost!=null ? saved.holdCost : (mat?((mat.rate||0)*0.15).toFixed(2):'');
-  ftCalcEoq();
-}
-
-function ftCalcEoq(){
-  const matId=document.getElementById('ft-eoq-mat').value;
-  const demand=parseFloat(document.getElementById('ft-eoq-demand').value)||0;
-  const orderCost=parseFloat(document.getElementById('ft-eoq-order-cost').value)||0;
-  const holdCost=parseFloat(document.getElementById('ft-eoq-hold-cost').value)||0;
-  FT_LS.set('eoq_'+matId, {demand,orderCost,holdCost});
-
-  const el=document.getElementById('ft-eoq-result');
-  if(demand<=0 || orderCost<=0 || holdCost<=0){
-    el.innerHTML=`<div style="font-size:11px;color:var(--muted);font-weight:700;text-align:center;padding:8px">Demand, ordering cost aur holding cost teeno daalo</div>`;
-    return;
-  }
-  const eoq=Math.sqrt((2*demand*orderCost)/holdCost);
-  const ordersPerYear=demand/eoq;
-  const daysBetween=365/ordersPerYear;
-  el.innerHTML=`
-    <div style="background:#eff6ff;border-radius:8px;padding:12px;margin-top:8px">
-      <div style="font-size:10px;font-weight:900;color:#1a365d;text-transform:uppercase;margin-bottom:6px">Optimal Order Quantity</div>
-      <div style="font-size:18px;font-weight:900;color:#1a202c">${Math.round(eoq).toLocaleString('en-IN')} units/order</div>
-      <div style="font-size:11px;color:var(--muted);font-weight:700;margin-top:4px">≈ ${ordersPerYear.toFixed(1)} orders/year · har ${Math.round(daysBetween)} din mein ek order</div>
-    </div>`;
-}
-
-/* ───────── TAB 3: CASH FLOW & AGING ───────── */
-function ftReceivablesPayables(){
-  let receivable=0, payable=0;
-  (CUSTOMERS||[]).forEach(c=>{
-    const bal=_custBalance(c.id);
-    if(bal<=0) return;
-    if(c.type==='supplier') payable+=bal; else receivable+=bal;
-  });
-  return {receivable,payable};
-}
-
-function ftRenderCashflowTab(){
-  const {receivable,payable}=ftReceivablesPayables();
-  document.getElementById('ft-aging-summary').innerHTML = `
-    <div style="background:var(--red-bg);border-radius:8px;padding:12px;text-align:center">
-      <div style="font-size:9px;font-weight:900;color:var(--red-dark);text-transform:uppercase">Total Receivable</div>
-      <div style="font-size:16px;font-weight:900;color:var(--red-dark);margin-top:3px">₹${receivable.toLocaleString('en-IN')}</div>
-    </div>
-    <div style="background:var(--yellow-bg);border-radius:8px;padding:12px;text-align:center">
-      <div style="font-size:9px;font-weight:900;color:var(--yellow-dark);text-transform:uppercase">Total Payable</div>
-      <div style="font-size:16px;font-weight:900;color:var(--yellow-dark);margin-top:3px">₹${payable.toLocaleString('en-IN')}</div>
-    </div>`;
-
-  const saved=FT_LS.get('cashflow',{});
-  document.getElementById('ft-cf-opening').value=saved.opening||'';
-  document.getElementById('ft-cf-material').value=saved.material||'';
-  document.getElementById('ft-cf-salary').value=saved.salary||'';
-  document.getElementById('ft-cf-rent').value=saved.rent||'';
-  document.getElementById('ft-cf-other').value=saved.other||'';
-  ftCalcCashflow();
-}
-
-function ftCalcCashflow(){
-  const opening=parseFloat(document.getElementById('ft-cf-opening').value)||0;
-  const material=parseFloat(document.getElementById('ft-cf-material').value)||0;
-  const salary=parseFloat(document.getElementById('ft-cf-salary').value)||0;
-  const rent=parseFloat(document.getElementById('ft-cf-rent').value)||0;
-  const other=parseFloat(document.getElementById('ft-cf-other').value)||0;
-  FT_LS.set('cashflow',{opening,material,salary,rent,other});
-
-  const {receivable}=ftReceivablesPayables();
-  const totalOutflow=material+salary+rent+other;
-  const projected=opening+receivable-totalOutflow;
-
-  document.getElementById('ft-cf-result').innerHTML=`
-    <div class="card-title" style="margin-bottom:10px">📊 Projected Position (30 din baad)</div>
-    <div style="font-size:11px;color:var(--muted);font-weight:700;line-height:2">
-      Opening Balance &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;₹${opening.toLocaleString('en-IN')}<br>
-      + Expected Collections &nbsp;&nbsp;₹${receivable.toLocaleString('en-IN')}<br>
-      − Expected Outflows &nbsp;&nbsp;&nbsp;&nbsp;₹${totalOutflow.toLocaleString('en-IN')}
-    </div>
-    <div style="background:${projected>=0?'#e6fff3':'#fff0f0'};border-radius:8px;padding:12px;margin-top:8px;text-align:center">
-      <div style="font-size:9px;font-weight:900;color:${projected>=0?'var(--green-dark)':'var(--red-dark)'};text-transform:uppercase">Net Projected Cash</div>
-      <div style="font-size:20px;font-weight:900;color:${projected>=0?'var(--green-dark)':'var(--red-dark)'}">₹${projected.toLocaleString('en-IN')}</div>
-      ${projected<0?'<div style="font-size:10px;color:var(--red-dark);font-weight:700;margin-top:2px">⚠️ Cash crunch ka risk — collections tez karo ya payments prioritize karo</div>':''}
-    </div>`;
-}
-
-/* ───────── TAB 4: GST/ITC & MIS ───────── */
-function ftMonthGstOutput(){
-  const now=new Date();
-  const ym=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
-  const sum=(INVOICES||[]).filter(inv=>inv.isGST && (inv.date||'').startsWith(ym)).reduce((s,inv)=>s+(inv.gstAmt||0),0);
-  return {sum, ym};
-}
-
-function ftRenderGstTab(){
-  const {sum,ym}=ftMonthGstOutput();
-  document.getElementById('ft-gst-month-lbl').textContent=ym;
-  document.getElementById('ft-gst-output').value='₹'+sum.toFixed(2);
-  const saved=FT_LS.get('gst_'+ym,{});
-  document.getElementById('ft-gst-input').value=saved.input||'';
-  ftCalcGst();
-  ftRenderMis();
-
-  const rsaved=FT_LS.get('ratios',{});
-  document.getElementById('ft-ratio-cash').value=rsaved.cash||'';
-  document.getElementById('ft-ratio-cl').value=rsaved.cl||'';
-  ftCalcRatios();
-}
-
-function ftCalcGst(){
-  const {sum,ym}=ftMonthGstOutput();
-  const input=parseFloat(document.getElementById('ft-gst-input').value)||0;
-  FT_LS.set('gst_'+ym,{input});
-  const net=sum-input;
-  document.getElementById('ft-gst-result').innerHTML=`
-    <div style="background:${net>=0?'#fff0f0':'#e6fff3'};border-radius:8px;padding:12px;margin-top:8px;text-align:center">
-      <div style="font-size:9px;font-weight:900;color:${net>=0?'var(--red-dark)':'var(--green-dark)'};text-transform:uppercase">${net>=0?'Net GST Payable':'ITC Carry Forward'}</div>
-      <div style="font-size:18px;font-weight:900;color:${net>=0?'var(--red-dark)':'var(--green-dark)'}">₹${Math.abs(net).toLocaleString('en-IN')}</div>
-    </div>`;
-}
-
-function ftRenderMis(){
-  const stockValue=(STK||[]).reduce((s,m)=>s+((m.current||0)*(m.rate||0)),0);
-  const lowStock=(STK||[]).filter(m=>(m.current||0)<=(m.reorder||0)).length;
-  const {receivable,payable}=ftReceivablesPayables();
-  const now=new Date();
-  const ym=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
-  const monthSales=(INVOICES||[]).filter(inv=>(inv.date||'').startsWith(ym)).reduce((s,inv)=>s+(inv.grandTotal||0),0);
-
-  const items=[
-    {label:'This Month Sales',val:'₹'+monthSales.toLocaleString('en-IN'),color:'var(--green-dark)'},
-    {label:'Stock Value',val:'₹'+stockValue.toLocaleString('en-IN'),color:'#1a202c'},
-    {label:'Total Receivable',val:'₹'+receivable.toLocaleString('en-IN'),color:'var(--red-dark)'},
-    {label:'Total Payable',val:'₹'+payable.toLocaleString('en-IN'),color:'var(--yellow-dark)'},
-    {label:'Low Stock Alerts',val:lowStock+' items',color:lowStock>0?'var(--red-dark)':'var(--green-dark)'},
-  ];
-  document.getElementById('ft-mis-grid').innerHTML=items.map(it=>`
-    <div style="background:#f7fafc;border-radius:8px;padding:10px">
-      <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase">${it.label}</div>
-      <div style="font-size:14px;font-weight:900;color:${it.color};margin-top:2px">${it.val}</div>
-    </div>`).join('');
-}
-
-function ftCalcRatios(){
-  const cash=parseFloat(document.getElementById('ft-ratio-cash').value)||0;
-  const cl=parseFloat(document.getElementById('ft-ratio-cl').value)||0;
-  FT_LS.set('ratios',{cash,cl});
-
-  const stockValue=(STK||[]).reduce((s,m)=>s+((m.current||0)*(m.rate||0)),0);
-  const {receivable}=ftReceivablesPayables();
-  const currentAssets=cash+receivable+stockValue;
-  const quickAssets=cash+receivable;
-
-  const el=document.getElementById('ft-ratio-result');
-  if(cl<=0){
-    el.innerHTML=`<div style="font-size:11px;color:var(--muted);font-weight:700;text-align:center;padding:8px">Current Liabilities daalo ratios dekhne ke liye</div>`;
-    return;
-  }
-  const currentRatio=currentAssets/cl;
-  const quickRatio=quickAssets/cl;
-  el.innerHTML=`
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-      <div style="background:#f7fafc;border-radius:8px;padding:10px;text-align:center">
-        <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase">Current Ratio</div>
-        <div style="font-size:16px;font-weight:900;color:${currentRatio>=1.5?'var(--green-dark)':'var(--red-dark)'}">${currentRatio.toFixed(2)}</div>
-      </div>
-      <div style="background:#f7fafc;border-radius:8px;padding:10px;text-align:center">
-        <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase">Quick Ratio</div>
-        <div style="font-size:16px;font-weight:900;color:${quickRatio>=1?'var(--green-dark)':'var(--red-dark)'}">${quickRatio.toFixed(2)}</div>
-      </div>
-    </div>
-    <div style="font-size:10px;color:var(--muted);font-weight:700;text-align:center;margin-top:6px">Ideal: Current Ratio ≥1.5, Quick Ratio ≥1</div>`;
 }
 
 /* ═══════════════ DAILY ENTRY RENDER ═══════════════ */
@@ -7058,22 +6609,6 @@ function stkFilter(f){
   renderStock();
 }
 
-function _stkPopulateCatFilter(){
-  const sel=document.getElementById('stk-cat-filter'); if(!sel) return;
-  const cur=sel.value;
-  const cats=[...new Set(STK.map(i=>i.cat).filter(Boolean))].sort();
-  sel.innerHTML='<option value="">All Cat</option>'+cats.map(c=>`<option ${c===cur?'selected':''}>${esc(c)}</option>`).join('');
-  if(cats.includes(cur)) sel.value=cur;
-}
-function _stkPopulateSubcatFilter(){
-  const sel=document.getElementById('stk-subcat-filter'); if(!sel) return;
-  const cur=sel.value;
-  const catF=document.getElementById('stk-cat-filter')?.value||'';
-  const pool=catF?STK.filter(i=>i.cat===catF):STK;
-  const subcats=[...new Set(pool.map(i=>i.subcat).filter(Boolean))].sort();
-  sel.innerHTML='<option value="">All Sub-Cat</option>'+subcats.map(s=>`<option ${s===cur?'selected':''}>${esc(s)}</option>`).join('');
-  if(subcats.includes(cur)) sel.value=cur; else sel.value='';
-}
 function renderStock(){
   const alerts=getStockAlerts();
   const navBtn=document.querySelector('.bnav[data-tab="stock"]');
@@ -7100,17 +6635,13 @@ function renderStock(){
   if(sub) sub.textContent=STK.length+' materials';
 
   // Filter + search
-  _stkPopulateCatFilter();
-  _stkPopulateSubcatFilter();
   const search=(document.getElementById('stk-search')?.value||'').toLowerCase();
   const catF=document.getElementById('stk-cat-filter')?.value||'';
-  const subcatF=document.getElementById('stk-subcat-filter')?.value||'';
   let filtered=STK.filter(it=>{
     if(_stkFilter==='crit' && getStockStatus(it)!=='crit') return false;
     if(_stkFilter==='low'  && getStockStatus(it)!=='low')  return false;
     if(_stkFilter==='ok'   && getStockStatus(it)!=='ok')   return false;
     if(catF && it.cat!==catF) return false;
-    if(subcatF && (it.subcat||'')!==subcatF) return false;
     if(search && !it.name.toLowerCase().includes(search)) return false;
     return true;
   });
@@ -7139,7 +6670,7 @@ function renderStock(){
       <div style="font-size:16px;text-align:center">${it.ico||'📦'}</div>
       <div>
         <div style="font-size:12px;font-weight:800;color:var(--navy2)">${esc(it.name)}</div>
-        <div style="font-size:9px;color:var(--muted);font-weight:700">${esc(it.cat||'')}${it.subcat?' / '+esc(it.subcat):''}${hasConv?` · ${purUnit}→${it.unit}(×${it.convRatio})`:''}</div>
+        <div style="font-size:9px;color:var(--muted);font-weight:700">${it.cat}${hasConv?` · ${purUnit}→${it.unit}(×${it.convRatio})`:''}</div>
       </div>
       <div style="font-size:12px;font-weight:800;color:${col};text-align:right">${+parseFloat(it.current||0).toFixed(4)} <span style="font-size:9px;font-weight:700">${it.unit}</span></div>
       <div style="font-size:11px;font-weight:700;color:var(--muted);text-align:right">₹${(it.rate||0).toLocaleString('en-IN')}</div>
@@ -7276,16 +6807,12 @@ function openStkEditModal(id){
   const it=STK.find(i=>i.id===id); if(!it) return;
   const purUnit=it.purUnit||it.unit;
   const units=['pcs','nos','kg','meter','liter','box','roll','set'];
-  const cats=[...new Set(STK.map(i=>i.cat).filter(Boolean))];
-  if(!cats.length) cats.push('Raw Material','Hardware','Semi-Finished','Packaging','Chemical','Other');
-  const subcats=[...new Set(STK.map(i=>i.subcat).filter(Boolean))];
+  const cats=['Raw Material','Hardware','Semi-Finished','Packaging','Chemical','Other'];
   document.getElementById('stk-em-id').value=id;
   document.getElementById('stk-em-title').textContent=(it.ico||'📦')+' '+it.name;
   document.getElementById('stk-em-name').value=it.name;
   document.getElementById('stk-em-code').value=it.code||'';
-  document.getElementById('stk-cat-datalist').innerHTML=cats.map(c=>`<option value="${esc(c)}">`).join('');
-  document.getElementById('stk-em-cat').value=it.cat||'';
-  document.getElementById('stk-subcat-datalist').innerHTML=subcats.map(s=>`<option value="${esc(s)}">`).join('');
+  document.getElementById('stk-em-cat').innerHTML=cats.map(c=>`<option ${it.cat===c?'selected':''}>${c}</option>`).join('');
   document.getElementById('stk-em-subcat').value=it.subcat||'';
   document.getElementById('stk-em-importance').value=it.importance||'Normal';
   document.getElementById('stk-em-icon').value=it.ico||'📦';
@@ -7309,11 +6836,6 @@ function openStkEditModal(id){
   ismfgCb.checked=!!it.isMfg;
   stkToggleMfgSection();
   if(it.isMfg) stkLoadIngredientRows(it.ingredients||[]);
-  // Unit Conversion toggle setup — ON only if item actually has a real conversion
-  const hasConv=(it.convRatio&&it.convRatio!==1)||(purUnit!==it.unit);
-  const hasConvCb=document.getElementById('stk-em-hasconv');
-  hasConvCb.checked=hasConv;
-  stkToggleConvSection();
   stkUpdateConvLabel();
   document.getElementById('stk-edit-modal').classList.add('show');
 }
@@ -7322,25 +6844,13 @@ function stkUpdateConvLabel(){
   const lbl=document.getElementById('stk-em-conv-lbl');
   if(lbl) lbl.textContent='1 '+pu+' =';
 }
-function stkToggleConvSection(){
-  const cb=document.getElementById('stk-em-hasconv');
-  const fields=document.getElementById('stk-em-conv-fields');
-  const slider=document.getElementById('stk-em-hasconv-slider');
-  if(cb.checked){
-    fields.style.display='block';
-    slider.style.background='#f59e0b';
-  } else {
-    fields.style.display='none';
-    slider.style.background='#cbd5e1';
-  }
-}
 function closeStkEditModal(){ document.getElementById('stk-edit-modal')?.classList.remove('show'); }
 function saveStkEditModal(){
   const id=document.getElementById('stk-em-id').value;
   const idx=STK.findIndex(i=>i.id===id); if(idx<0) return;
   STK[idx].name=document.getElementById('stk-em-name').value.trim()||STK[idx].name;
   STK[idx].code=document.getElementById('stk-em-code').value.trim();
-  STK[idx].cat=document.getElementById('stk-em-cat').value.trim()||'Other';
+  STK[idx].cat=document.getElementById('stk-em-cat').value;
   STK[idx].subcat=document.getElementById('stk-em-subcat').value.trim();
   STK[idx].importance=document.getElementById('stk-em-importance').value;
   STK[idx].ico=document.getElementById('stk-em-icon').value.trim()||'📦';
@@ -7354,15 +6864,9 @@ function saveStkEditModal(){
   STK[idx].reorder=parseFloat(document.getElementById('stk-em-reorder').value)||0;
   STK[idx].leadTime=parseFloat(document.getElementById('stk-em-leadtime').value)||0;
   STK[idx].orderQty=parseFloat(document.getElementById('stk-em-orderqty').value)||0;
-  const hasConvOn=document.getElementById('stk-em-hasconv').checked;
+  STK[idx].purUnit=document.getElementById('stk-em-purunit').value;
   STK[idx].unit=document.getElementById('stk-em-stockunit').value;
-  if(hasConvOn){
-    STK[idx].purUnit=document.getElementById('stk-em-purunit').value;
-    STK[idx].convRatio=parseFloat(document.getElementById('stk-em-convratio').value)||1;
-  } else {
-    STK[idx].purUnit=STK[idx].unit; // no conversion needed — purchase unit = stock unit
-    STK[idx].convRatio=1;
-  }
+  STK[idx].convRatio=parseFloat(document.getElementById('stk-em-convratio').value)||1;
   STK[idx].desc=document.getElementById('stk-em-desc').value.trim();
   STK[idx].notes=document.getElementById('stk-em-notes').value.trim();
   STK[idx].isMfg=document.getElementById('stk-em-ismfg').checked;
@@ -15319,6 +14823,24 @@ Tips:
 
 let DAYBOOK = load('bf9_daybook') || [];
 
+/* ── Pre-load Excel data if not already imported ── */
+(function _preloadExcelData(){
+  const IMPORTED_KEY = 'bf9_daybook_excel_v1';
+  if(localStorage.getItem(IMPORTED_KEY)) return; // already done
+  const excelData = [{"id":"db_import_0_1779255669","date":"2026-04-01","type":"income","category":"customer_payment","subcategory":"","amount":13000.0,"mode":"cash","note":"dhondiba advance (20 stand)","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_1_1779255669","date":"2026-04-01","type":"income","category":"customer_payment","subcategory":"","amount":6500.0,"mode":"cash","note":"tribhuvan kalyan (20 stand)","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_2_1779255669","date":"2026-04-01","type":"expense","category":"labour","subcategory":"","amount":5000.0,"mode":"cash","note":"savita tai","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_3_1779255669","date":"2026-04-01","type":"expense","category":"labour","subcategory":"","amount":5000.0,"mode":"cash","note":"lata tai","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_4_1779255669","date":"2026-04-01","type":"income","category":"customer_payment","subcategory":"","amount":50000.0,"mode":"cash","note":"dhule advance (100 stand)","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_5_1779255669","date":"2026-04-01","type":"expense","category":"personal_sanket","subcategory":"","amount":50000.0,"mode":"cash","note":"one card payment","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_6_1779255669","date":"2026-04-01","type":"income","category":"customer_payment","subcategory":"","amount":7020.0,"mode":"cash","note":"savta gaikwad advance","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_7_1779255669","date":"2026-04-01","type":"expense","category":"packaging","subcategory":"","amount":60.0,"mode":"cash","note":"packeging tape","cfo_field":"prodother","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_9_1779255669","date":"2026-04-01","type":"expense","category":"interest_emi","subcategory":"","amount":29342.24,"mode":"cash","note":"Onecard prashant","cfo_field":"interest","imported":true,"orig_cat":"Prashant","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_10_1779255669","date":"2026-04-01","type":"income","category":"inter_account_in","subcategory":"","amount":26969.4,"mode":"bank","note":"Onecard prashant (542.80 razorpay charges+ 1830.04 interest)","cfo_field":null,"imported":true,"orig_cat":"Cards","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_11_1779255669","date":"2026-04-01","type":"expense","category":"marketing","subcategory":"","amount":2000.0,"mode":"cash","note":"venux ads","cfo_field":"marketing","imported":true,"orig_cat":"Prashant","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_12_1779255669","date":"2026-04-01","type":"expense","category":"marketing","subcategory":"","amount":2050.0,"mode":"cash","note":"shiprocket","cfo_field":"marketing","imported":true,"orig_cat":"Prashant","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_13_1779255669","date":"2026-04-01","type":"expense","category":"personal_sanket","subcategory":"","amount":950.0,"mode":"cash","note":"hair cut","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_14_1779255669","date":"2026-04-01","type":"income","category":"customer_payment","subcategory":"","amount":10000.0,"mode":"cash","note":"pratik jalgaon","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_15_1779255669","date":"2026-04-01","type":"expense","category":"personal_sanket","subcategory":"","amount":280.0,"mode":"cash","note":"bouqute","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_16_1779255669","date":"2026-04-01","type":"expense","category":"interest_emi","subcategory":"","amount":4000.0,"mode":"cash","note":"emi","cfo_field":"interest","imported":true,"orig_cat":"Sanket","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_17_1779255669","date":"2026-04-01","type":"expense","category":"interest_emi","subcategory":"","amount":4500.0,"mode":"cash","note":"emi","cfo_field":"interest","imported":true,"orig_cat":"Prashant","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_18_1779255669","date":"2026-04-01","type":"expense","category":"powder_coating","subcategory":"","amount":2465.0,"mode":"cash","note":"pc 350 pipe and 90 bracket","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_19_1779255669","date":"2026-04-01","type":"expense","category":"labour","subcategory":"","amount":200.0,"mode":"cash","note":"juned advance","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_20_1779255669","date":"2026-04-01","type":"expense","category":"personal_sanket","subcategory":"","amount":500.0,"mode":"cash","note":"give to rani","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_21_1779255669","date":"2026-04-02","type":"expense","category":"powder_coating","subcategory":"","amount":4000.0,"mode":"cash","note":"lucky shairing","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-04-02T00:00:00.000Z"},{"id":"db_import_22_1779255669","date":"2026-04-02","type":"expense","category":"powder_coating","subcategory":"","amount":5000.0,"mode":"cash","note":"bagul febcration","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-04-02T00:00:00.000Z"},{"id":"db_import_23_1779255669","date":"2026-04-02","type":"expense","category":"repair_maint","subcategory":"","amount":20.0,"mode":"cash","note":"fan capacitor","cfo_field":"prodother","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-02T00:00:00.000Z"},{"id":"db_import_24_1779255669","date":"2026-04-02","type":"income","category":"customer_payment","subcategory":"","amount":2000.0,"mode":"cash","note":"pratik jalgaon","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-02T00:00:00.000Z"},{"id":"db_import_25_1779255669","date":"2026-04-02","type":"expense","category":"labour","subcategory":"","amount":500.0,"mode":"cash","note":"all worker lunch","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-02T00:00:00.000Z"},{"id":"db_import_26_1779255669","date":"2026-04-02","type":"income","category":"customer_payment","subcategory":"","amount":4450.0,"mode":"cash","note":"savta gaikwad advance","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-02T00:00:00.000Z"},{"id":"db_import_27_1779255669","date":"2026-04-02","type":"expense","category":"packaging","subcategory":"","amount":160.0,"mode":"cash","note":"packeging  dhori","cfo_field":"prodother","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-02T00:00:00.000Z"},{"id":"db_import_28_1779255669","date":"2026-04-02","type":"income","category":"customer_payment","subcategory":"","amount":4000.0,"mode":"cash","note":"savta gaikwad advance","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-02T00:00:00.000Z"},{"id":"db_import_29_1779255669","date":"2026-04-02","type":"expense","category":"powder_coating","subcategory":"","amount":10000.0,"mode":"cash","note":"Shree Balaji","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-04-02T00:00:00.000Z"},{"id":"db_import_30_1779255669","date":"2026-04-03","type":"expense","category":"packaging","subcategory":"","amount":11283.0,"mode":"cash","note":"polytech packaging cash and beyondfuri payment paid","cfo_field":"prodother","imported":true,"orig_cat":"Party","createdAt":"2026-04-03T00:00:00.000Z"},{"id":"db_import_31_1779255669","date":"2026-04-03","type":"expense","category":"labour","subcategory":"","amount":300.0,"mode":"cash","note":"juned advance","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-03T00:00:00.000Z"},{"id":"db_import_32_1779255669","date":"2026-04-03","type":"expense","category":"personal_sanket","subcategory":"","amount":50.0,"mode":"cash","note":"friend help","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-03T00:00:00.000Z"},{"id":"db_import_33_1779255669","date":"2026-04-04","type":"income","category":"customer_payment","subcategory":"","amount":62000.0,"mode":"cash","note":"shital marketing","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-04T00:00:00.000Z"},{"id":"db_import_34_1779255669","date":"2026-04-05","type":"expense","category":"raw_material","subcategory":"","amount":54450.0,"mode":"cash","note":"steel center (200 stand material) + transport 400","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-05T00:00:00.000Z"},{"id":"db_import_35_1779255669","date":"2026-04-05","type":"expense","category":"raw_material","subcategory":"","amount":5015.0,"mode":"cash","note":"wheel material 1 bag","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-05T00:00:00.000Z"},{"id":"db_import_36_1779255669","date":"2026-04-05","type":"expense","category":"interest_emi","subcategory":"","amount":33264.0,"mode":"cash","note":"EMI","cfo_field":"interest","imported":true,"orig_cat":"Prashant","createdAt":"2026-04-05T00:00:00.000Z"},{"id":"db_import_37_1779255669","date":"2026-04-05","type":"income","category":"customer_payment","subcategory":"","amount":4000.0,"mode":"cash","note":"savta gaikwad advance","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-05T00:00:00.000Z"},{"id":"db_import_38_1779255669","date":"2026-04-05","type":"expense","category":"powder_coating","subcategory":"","amount":4000.0,"mode":"cash","note":"ss powder coating","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-04-05T00:00:00.000Z"},{"id":"db_import_39_1779255669","date":"2026-04-01","type":"expense","category":"personal_prashant","subcategory":"","amount":2000.0,"mode":"cash","note":"sound rent for funcation","cfo_field":null,"imported":true,"orig_cat":"Prashant","createdAt":"2026-04-01T00:00:00.000Z"},{"id":"db_import_40_1779255669","date":"2026-03-29","type":"expense","category":"interest_emi","subcategory":"","amount":699.0,"mode":"cash","note":"auto dabit app","cfo_field":"interest","imported":true,"orig_cat":"Sanket","createdAt":"2026-03-29T00:00:00.000Z"},{"id":"db_import_41_1779255669","date":"2026-04-08","type":"income","category":"inter_account_in","subcategory":"","amount":7000.0,"mode":"cash","note":"pp black and decoration","cfo_field":null,"imported":true,"orig_cat":"Prashant","createdAt":"2026-04-08T00:00:00.000Z"},{"id":"db_import_42_1779255669","date":"2026-04-08","type":"expense","category":"raw_material","subcategory":"","amount":3000.0,"mode":"cash","note":"pp black","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-08T00:00:00.000Z"},{"id":"db_import_43_1779255669","date":"2026-04-08","type":"expense","category":"personal_prashant","subcategory":"","amount":4000.0,"mode":"cash","note":"decoration","cfo_field":null,"imported":true,"orig_cat":"Prashant","createdAt":"2026-04-08T00:00:00.000Z"},{"id":"db_import_44_1779255669","date":"2026-04-09","type":"expense","category":"admin_misc","subcategory":"","amount":560.0,"mode":"cash","note":"jio wifi","cfo_field":"admin","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-09T00:00:00.000Z"},{"id":"db_import_45_1779255669","date":"2026-04-09","type":"income","category":"personal_in","subcategory":"","amount":560.0,"mode":"cash","note":"jio wifi","cfo_field":null,"imported":true,"orig_cat":"Prashant","createdAt":"2026-04-09T00:00:00.000Z"},{"id":"db_import_46_1779255669","date":"2026-04-09","type":"income","category":"customer_payment","subcategory":"","amount":19800.0,"mode":"cash","note":"Ar refergration","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-09T00:00:00.000Z"},{"id":"db_import_47_1779255669","date":"2026-04-09","type":"expense","category":"interest_emi","subcategory":"","amount":19800.0,"mode":"cash","note":"emi sanket","cfo_field":"interest","imported":true,"orig_cat":"Bank Charges / Interest Expense","createdAt":"2026-04-09T00:00:00.000Z"},{"id":"db_import_48_1779255669","date":"2026-04-09","type":"expense","category":"personal_sanket","subcategory":"","amount":80.0,"mode":"cash","note":"home use","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-09T00:00:00.000Z"},{"id":"db_import_49_1779255669","date":"2026-04-09","type":"income","category":"customer_payment","subcategory":"","amount":13000.0,"mode":"cash","note":"raju ambejogi","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-09T00:00:00.000Z"},{"id":"db_import_50_1779255669","date":"2026-04-10","type":"expense","category":"personal_sanket","subcategory":"","amount":10.0,"mode":"cash","note":"cholate","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-10T00:00:00.000Z"},{"id":"db_import_51_1779255669","date":"2026-04-10","type":"expense","category":"powder_coating","subcategory":"","amount":4725.0,"mode":"cash","note":"nap pc payment","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-04-10T00:00:00.000Z"},{"id":"db_import_52_1779255669","date":"2026-04-10","type":"expense","category":"powder_coating","subcategory":"","amount":3000.0,"mode":"cash","note":"nashik argone","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-04-10T00:00:00.000Z"},{"id":"db_import_53_1779255669","date":"2026-04-10","type":"expense","category":"transport","subcategory":"","amount":300.0,"mode":"cash","note":"alfa diesel","cfo_field":"transport","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-10T00:00:00.000Z"},{"id":"db_import_54_1779255669","date":"2026-04-10","type":"expense","category":"powder_coating","subcategory":"","amount":0,"mode":"cash","note":"baba nagar","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-04-10T00:00:00.000Z"},{"id":"db_import_55_1779255669","date":"2026-04-10","type":"expense","category":"personal_sanket","subcategory":"","amount":2835.0,"mode":"cash","note":"home use","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-10T00:00:00.000Z"},{"id":"db_import_56_1779255669","date":"2026-04-11","type":"expense","category":"labour","subcategory":"","amount":300.0,"mode":"cash","note":"juned advance","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-11T00:00:00.000Z"},{"id":"db_import_57_1779255669","date":"2026-04-11","type":"expense","category":"raw_material","subcategory":"","amount":10000.0,"mode":"cash","note":"kalki fastner","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-11T00:00:00.000Z"},{"id":"db_import_58_1779255669","date":"2026-04-11","type":"expense","category":"packaging","subcategory":"","amount":3000.0,"mode":"cash","note":"paykia tape","cfo_field":"prodother","imported":true,"orig_cat":"Party","createdAt":"2026-04-11T00:00:00.000Z"},{"id":"db_import_59_1779255669","date":"2026-04-11","type":"expense","category":"raw_material","subcategory":"","amount":480.0,"mode":"cash","note":"subham fastner m6 bolt nut washer","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-11T00:00:00.000Z"},{"id":"db_import_60_1779255669","date":"2026-04-11","type":"expense","category":"raw_material","subcategory":"","amount":60.0,"mode":"cash","note":"white tape","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-11T00:00:00.000Z"},{"id":"db_import_61_1779255669","date":"2026-04-11","type":"income","category":"customer_payment","subcategory":"","amount":950.0,"mode":"cash","note":"ranjeet patil (metal stand)","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-11T00:00:00.000Z"},{"id":"db_import_62_1779255669","date":"2026-04-11","type":"expense","category":"interest_emi","subcategory":"","amount":1833.0,"mode":"cash","note":"sbi cradit card","cfo_field":"interest","imported":true,"orig_cat":"Bank Charges / Interest Expense","createdAt":"2026-04-11T00:00:00.000Z"},{"id":"db_import_63_1779255669","date":"2026-04-10","type":"expense","category":"personal_sanket","subcategory":"","amount":179.0,"mode":"cash","note":"pabalo cradle bag","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-10T00:00:00.000Z"},{"id":"db_import_64_1779255669","date":"2026-04-13","type":"income","category":"customer_payment","subcategory":"","amount":700.0,"mode":"cash","note":"pravin patil","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-13T00:00:00.000Z"},{"id":"db_import_65_1779255669","date":"2026-04-13","type":"expense","category":"raw_material","subcategory":"","amount":5015.0,"mode":"cash","note":"accord enterprises","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-13T00:00:00.000Z"},{"id":"db_import_66_1779255669","date":"2026-04-13","type":"expense","category":"admin_misc","subcategory":"","amount":180.0,"mode":"cash","note":"cat food","cfo_field":"admin","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-13T00:00:00.000Z"},{"id":"db_import_67_1779255669","date":"2026-04-14","type":"income","category":"personal_in","subcategory":"","amount":1000.0,"mode":"cash","note":"recived to mom","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-14T00:00:00.000Z"},{"id":"db_import_68_1779255669","date":"2026-04-14","type":"income","category":"customer_payment","subcategory":"","amount":6500.0,"mode":"cash","note":"trinhavan","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-14T00:00:00.000Z"},{"id":"db_import_69_1779255669","date":"2026-04-14","type":"expense","category":"packaging","subcategory":"","amount":3500.0,"mode":"cash","note":"plastic bag","cfo_field":"prodother","imported":true,"orig_cat":"Party","createdAt":"2026-04-14T00:00:00.000Z"},{"id":"db_import_70_1779255669","date":"2026-04-14","type":"expense","category":"personal_sanket","subcategory":"","amount":140.0,"mode":"cash","note":"home use","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-14T00:00:00.000Z"},{"id":"db_import_71_1779255669","date":"2026-04-14","type":"expense","category":"personal_sanket","subcategory":"","amount":20.0,"mode":"cash","note":"home use","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-14T00:00:00.000Z"},{"id":"db_import_72_1779255669","date":"2026-04-14","type":"expense","category":"personal_sanket","subcategory":"","amount":40.0,"mode":"cash","note":"home use","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-14T00:00:00.000Z"},{"id":"db_import_73_1779255669","date":"2026-04-14","type":"expense","category":"personal_sanket","subcategory":"","amount":40.0,"mode":"cash","note":"home use","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-14T00:00:00.000Z"},{"id":"db_import_74_1779255669","date":"2026-04-15","type":"expense","category":"transport","subcategory":"","amount":300.0,"mode":"cash","note":"alfa diesel","cfo_field":"transport","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-15T00:00:00.000Z"},{"id":"db_import_75_1779255669","date":"2026-04-15","type":"expense","category":"raw_material","subcategory":"","amount":10000.0,"mode":"cash","note":"subham fastner m6 bolt nut washer","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-15T00:00:00.000Z"},{"id":"db_import_76_1779255669","date":"2026-04-15","type":"expense","category":"admin_misc","subcategory":"","amount":2000.0,"mode":"cash","note":"tea bill","cfo_field":"admin","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-15T00:00:00.000Z"},{"id":"db_import_77_1779255669","date":"2026-04-16","type":"expense","category":"repair_maint","subcategory":"","amount":290.0,"mode":"cash","note":"flap wheel","cfo_field":"prodother","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-16T00:00:00.000Z"},{"id":"db_import_78_1779255669","date":"2026-04-16","type":"expense","category":"labour","subcategory":"","amount":200.0,"mode":"cash","note":"juned advance","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-16T00:00:00.000Z"},{"id":"db_import_79_1779255669","date":"2026-04-16","type":"expense","category":"personal_sanket","subcategory":"","amount":894.16,"mode":"cash","note":"account settle","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-16T00:00:00.000Z"},{"id":"db_import_80_1779255669","date":"2026-04-17","type":"income","category":"personal_in","subcategory":"","amount":40000.0,"mode":"cash","note":"from dad","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-17T00:00:00.000Z"},{"id":"db_import_81_1779255669","date":"2026-04-17","type":"expense","category":"raw_material","subcategory":"","amount":35210.0,"mode":"cash","note":"steel center (200 stand material without angle) + transport 400","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-17T00:00:00.000Z"},{"id":"db_import_82_1779255669","date":"2026-04-17","type":"expense","category":"labour","subcategory":"","amount":200.0,"mode":"cash","note":"juned advance","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-17T00:00:00.000Z"},{"id":"db_import_83_1779255669","date":"2026-04-20","type":"income","category":"venux_income","subcategory":"","amount":80500.0,"mode":"cash","note":"venux","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-20T00:00:00.000Z"},{"id":"db_import_84_1779255669","date":"2026-04-20","type":"expense","category":"powder_coating","subcategory":"","amount":10000.0,"mode":"cash","note":"bagul febcration (cash paid)","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-04-20T00:00:00.000Z"},{"id":"db_import_85_1779255669","date":"2026-04-20","type":"expense","category":"powder_coating","subcategory":"","amount":2000.0,"mode":"cash","note":"nashik argone ( cash paid)","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-04-20T00:00:00.000Z"},{"id":"db_import_86_1779255669","date":"2026-04-20","type":"expense","category":"rent","subcategory":"","amount":20200.0,"mode":"cash","note":"shop rent and light bill ( cash paid )","cfo_field":"rent","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-20T00:00:00.000Z"},{"id":"db_import_87_1779255669","date":"2026-04-20","type":"expense","category":"transport","subcategory":"","amount":300.0,"mode":"cash","note":"alfa diesel ( cash paid )","cfo_field":"transport","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-20T00:00:00.000Z"},{"id":"db_import_88_1779255669","date":"2026-04-21","type":"expense","category":"raw_material","subcategory":"","amount":7000.0,"mode":"cash","note":"subham fastner m6 bolt nut washer CASH PAID","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-21T00:00:00.000Z"},{"id":"db_import_89_1779255669","date":"2026-04-21","type":"expense","category":"raw_material","subcategory":"","amount":4200.0,"mode":"cash","note":"pp material black 2 bag 45 rs ( 1800 +2250 cash paid )","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-21T00:00:00.000Z"},{"id":"db_import_90_1779255669","date":"2026-04-21","type":"income","category":"customer_payment","subcategory":"","amount":10000.0,"mode":"cash","note":"A Square advance 20 stand","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-21T00:00:00.000Z"},{"id":"db_import_91_1779255669","date":"2026-04-21","type":"expense","category":"tax_govt","subcategory":"","amount":2000.0,"mode":"cash","note":"SR GST PAID","cfo_field":"tax","imported":true,"orig_cat":"Bank Charges / Interest Expense","createdAt":"2026-04-21T00:00:00.000Z"},{"id":"db_import_92_1779255669","date":"2026-04-22","type":"expense","category":"powder_coating","subcategory":"","amount":3500.0,"mode":"cash","note":"lucky shairing CASH PAID","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-04-22T00:00:00.000Z"},{"id":"db_import_93_1779255669","date":"2026-04-22","type":"expense","category":"raw_material","subcategory":"","amount":27000.0,"mode":"cash","note":"angale and pipe CASH PAID","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-22T00:00:00.000Z"},{"id":"db_import_94_1779255669","date":"2026-04-22","type":"expense","category":"repair_maint","subcategory":"","amount":140.0,"mode":"cash","note":"belt tapping machine","cfo_field":"prodother","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-22T00:00:00.000Z"},{"id":"db_import_95_1779255669","date":"2026-04-22","type":"income","category":"venux_income","subcategory":"","amount":40000.0,"mode":"cash","note":"venux CASH PAID","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-22T00:00:00.000Z"},{"id":"db_import_96_1779255669","date":"2026-04-22","type":"income","category":"customer_payment","subcategory":"","amount":6200.0,"mode":"cash","note":"mayur enterprises","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-22T00:00:00.000Z"},{"id":"db_import_97_1779255669","date":"2026-04-22","type":"expense","category":"labour","subcategory":"","amount":7000.0,"mode":"cash","note":"savita tai CASH PAID","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-22T00:00:00.000Z"},{"id":"db_import_98_1779255669","date":"2026-04-22","type":"expense","category":"labour","subcategory":"","amount":7000.0,"mode":"cash","note":"lata tai CASH PAID","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-22T00:00:00.000Z"},{"id":"db_import_99_1779255669","date":"2026-04-22","type":"expense","category":"labour","subcategory":"","amount":6000.0,"mode":"cash","note":"juned advance CASH PAID","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-22T00:00:00.000Z"},{"id":"db_import_100_1779255669","date":"2026-04-23","type":"expense","category":"raw_material","subcategory":"","amount":1000.0,"mode":"cash","note":"subham fastner m6 bolt nut washer CASH PAID","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-23T00:00:00.000Z"},{"id":"db_import_101_1779255669","date":"2026-04-21","type":"expense","category":"labour","subcategory":"","amount":300.0,"mode":"cash","note":"juned advance","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-21T00:00:00.000Z"},{"id":"db_import_102_1779255669","date":"2026-04-22","type":"expense","category":"personal_sanket","subcategory":"","amount":228.0,"mode":"cash","note":"pabalo dress","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-22T00:00:00.000Z"},{"id":"db_import_103_1779255669","date":"2026-04-23","type":"expense","category":"transport","subcategory":"","amount":300.0,"mode":"cash","note":"alfa diseal","cfo_field":"transport","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-23T00:00:00.000Z"},{"id":"db_import_104_1779255669","date":"2026-04-23","type":"expense","category":"labour","subcategory":"","amount":2000.0,"mode":"cash","note":"lata payment CASH PAID","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-23T00:00:00.000Z"},{"id":"db_import_105_1779255669","date":"2026-04-24","type":"expense","category":"repair_maint","subcategory":"","amount":140.0,"mode":"cash","note":"moulding spary","cfo_field":"prodother","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-24T00:00:00.000Z"},{"id":"db_import_106_1779255669","date":"2026-04-24","type":"expense","category":"transport","subcategory":"","amount":300.0,"mode":"cash","note":"alfa diesel","cfo_field":"transport","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-24T00:00:00.000Z"},{"id":"db_import_107_1779255669","date":"2026-04-24","type":"expense","category":"personal_sanket","subcategory":"","amount":15.0,"mode":"cash","note":"pablo  khau","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-24T00:00:00.000Z"},{"id":"db_import_108_1779255669","date":"2026-04-25","type":"expense","category":"repair_maint","subcategory":"","amount":240.0,"mode":"cash","note":"cutting wheel","cfo_field":"prodother","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-25T00:00:00.000Z"},{"id":"db_import_109_1779255669","date":"2026-04-25","type":"income","category":"customer_payment","subcategory":"","amount":53950.0,"mode":"cash","note":"annapurna trade wings kolkatta","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-25T00:00:00.000Z"},{"id":"db_import_110_1779255669","date":"2026-04-25","type":"expense","category":"labour","subcategory":"","amount":4000.0,"mode":"cash","note":"juned advance","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-25T00:00:00.000Z"},{"id":"db_import_111_1779255669","date":"2026-04-25","type":"expense","category":"personal_sanket","subcategory":"","amount":1000.0,"mode":"cash","note":"car ac","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-25T00:00:00.000Z"},{"id":"db_import_112_1779255669","date":"2026-04-25","type":"expense","category":"personal_sanket","subcategory":"","amount":50.0,"mode":"cash","note":"ies cream","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-25T00:00:00.000Z"},{"id":"db_import_113_1779255669","date":"2026-04-26","type":"expense","category":"personal_sanket","subcategory":"","amount":7200.0,"mode":"cash","note":"car ac","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-26T00:00:00.000Z"},{"id":"db_import_114_1779255669","date":"2026-04-26","type":"expense","category":"personal_sanket","subcategory":"","amount":30.0,"mode":"cash","note":"pablo  khau","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-26T00:00:00.000Z"},{"id":"db_import_115_1779255669","date":"2026-04-26","type":"expense","category":"powder_coating","subcategory":"","amount":800.0,"mode":"cash","note":"nashik argon","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-04-26T00:00:00.000Z"},{"id":"db_import_116_1779255669","date":"2026-04-26","type":"expense","category":"personal_sanket","subcategory":"","amount":200.0,"mode":"cash","note":"cake mom and dad","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-26T00:00:00.000Z"},{"id":"db_import_117_1779255669","date":"2026-04-27","type":"expense","category":"interest_emi","subcategory":"","amount":20000.0,"mode":"cash","note":"for cc sbi","cfo_field":"interest","imported":true,"orig_cat":"Prashant","createdAt":"2026-04-27T00:00:00.000Z"},{"id":"db_import_118_1779255669","date":"2026-04-27","type":"expense","category":"packaging","subcategory":"","amount":10000.0,"mode":"cash","note":"polytech packaging cash and beyondfuri payment paid","cfo_field":"prodother","imported":true,"orig_cat":"Party","createdAt":"2026-04-27T00:00:00.000Z"},{"id":"db_import_119_1779255669","date":"2026-04-27","type":"expense","category":"raw_material","subcategory":"","amount":5000.0,"mode":"cash","note":"S A Polymer","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-27T00:00:00.000Z"},{"id":"db_import_120_1779255669","date":"2026-04-27","type":"expense","category":"interest_emi","subcategory":"","amount":8000.0,"mode":"cash","note":"sbi cc (20000+8000=28000 )","cfo_field":"interest","imported":true,"orig_cat":"Bank Charges / Interest Expense","createdAt":"2026-04-27T00:00:00.000Z"},{"id":"db_import_121_1779255669","date":"2026-04-27","type":"expense","category":"personal_sanket","subcategory":"","amount":72.0,"mode":"cash","note":"nasta","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-27T00:00:00.000Z"},{"id":"db_import_122_1779255669","date":"2026-04-28","type":"expense","category":"raw_material","subcategory":"","amount":3000.0,"mode":"cash","note":"black pp","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-28T00:00:00.000Z"},{"id":"db_import_123_1779255669","date":"2026-04-28","type":"expense","category":"admin_misc","subcategory":"","amount":824.82,"mode":"cash","note":"company wifi","cfo_field":"admin","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-28T00:00:00.000Z"},{"id":"db_import_124_1779255669","date":"2026-04-28","type":"expense","category":"powder_coating","subcategory":"","amount":6705.0,"mode":"cash","note":"ashish pc","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-04-28T00:00:00.000Z"},{"id":"db_import_125_1779255669","date":"2026-04-29","type":"expense","category":"personal_sanket","subcategory":"","amount":2843.0,"mode":"cash","note":"home use","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-29T00:00:00.000Z"},{"id":"db_import_126_1779255669","date":"2026-04-29","type":"expense","category":"raw_material","subcategory":"","amount":1000.0,"mode":"cash","note":"black pp","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-29T00:00:00.000Z"},{"id":"db_import_127_1779255669","date":"2026-04-29","type":"expense","category":"raw_material","subcategory":"","amount":27850.0,"mode":"cash","note":"steel center +transport","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-29T00:00:00.000Z"},{"id":"db_import_128_1779255669","date":"2026-04-29","type":"income","category":"venux_income","subcategory":"","amount":3960.0,"mode":"cash","note":"venux advance payment ( 260+350+3350=39600","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-29T00:00:00.000Z"},{"id":"db_import_129_1779255669","date":"2026-04-30","type":"income","category":"customer_payment","subcategory":"","amount":10000.0,"mode":"cash","note":"dhondiba advance","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-30T00:00:00.000Z"},{"id":"db_import_130_1779255669","date":"2026-04-30","type":"expense","category":"packaging","subcategory":"","amount":3349.0,"mode":"cash","note":"paykia tape","cfo_field":"prodother","imported":true,"orig_cat":"Party","createdAt":"2026-04-30T00:00:00.000Z"},{"id":"db_import_131_1779255669","date":"2026-04-30","type":"expense","category":"transport","subcategory":"","amount":300.0,"mode":"cash","note":"alfa diesel","cfo_field":"transport","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-30T00:00:00.000Z"},{"id":"db_import_132_1779255669","date":"2026-04-30","type":"expense","category":"raw_material","subcategory":"","amount":50.0,"mode":"cash","note":"subham fastner 6nut","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-04-30T00:00:00.000Z"},{"id":"db_import_133_1779255669","date":"2026-04-30","type":"expense","category":"personal_sanket","subcategory":"","amount":353.0,"mode":"cash","note":"recharge","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-04-30T00:00:00.000Z"},{"id":"db_import_134_1779255669","date":"2026-04-30","type":"income","category":"venux_income","subcategory":"","amount":349.0,"mode":"cash","note":"VENUX","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-04-30T00:00:00.000Z"},{"id":"db_import_135_1779255669","date":"2026-04-30","type":"expense","category":"labour","subcategory":"","amount":7000.0,"mode":"cash","note":"dhanshree tai","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-04-30T00:00:00.000Z"},{"id":"db_import_136_1779255669","date":"2026-05-01","type":"income","category":"venux_income","subcategory":"","amount":4000.0,"mode":"cash","note":"venux fund","cfo_field":null,"imported":true,"orig_cat":"Party, Bank Charges / Interest Expense","createdAt":"2026-05-01T00:00:00.000Z"},{"id":"db_import_137_1779255669","date":"2026-05-02","type":"expense","category":"interest_emi","subcategory":"","amount":4000.0,"mode":"cash","note":"sanket emi","cfo_field":"interest","imported":true,"orig_cat":"Bank Charges / Interest Expense","createdAt":"2026-05-02T00:00:00.000Z"},{"id":"db_import_138_1779255669","date":"2026-05-05","type":"income","category":"customer_payment","subcategory":"","amount":3000.0,"mode":"cash","note":"A Square advance 20 stand","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-05-05T00:00:00.000Z"},{"id":"db_import_139_1779255669","date":"2026-05-05","type":"expense","category":"personal_sanket","subcategory":"","amount":5500.0,"mode":"cash","note":"give to tejas","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-05-05T00:00:00.000Z"},{"id":"db_import_140_1779255669","date":"2026-05-06","type":"income","category":"customer_payment","subcategory":"","amount":45500.0,"mode":"cash","note":"COOL CARE ADVANCE (70 STAND )","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-05-06T00:00:00.000Z"},{"id":"db_import_141_1779255669","date":"2026-05-06","type":"expense","category":"raw_material","subcategory":"","amount":25750.0,"mode":"cash","note":"steel center 100 m +transport","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-05-06T00:00:00.000Z"},{"id":"db_import_142_1779255669","date":"2026-05-06","type":"income","category":"customer_payment","subcategory":"","amount":22500.0,"mode":"cash","note":"dhondiba advance 50 stand","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-05-06T00:00:00.000Z"},{"id":"db_import_143_1779255669","date":"2026-05-06","type":"expense","category":"personal_sanket","subcategory":"","amount":994.0,"mode":"cash","note":"pabalo hosptil","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-05-06T00:00:00.000Z"},{"id":"db_import_144_1779255669","date":"2026-05-07","type":"expense","category":"repair_maint","subcategory":"","amount":5000.0,"mode":"cash","note":"mangal murti service gunjal","cfo_field":"prodother","imported":true,"orig_cat":"Party","createdAt":"2026-05-07T00:00:00.000Z"},{"id":"db_import_145_1779255669","date":"2026-05-07","type":"expense","category":"personal_sanket","subcategory":"","amount":523.0,"mode":"cash","note":"sanket oetrol","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-05-07T00:00:00.000Z"},{"id":"db_import_146_1779255669","date":"2026-05-08","type":"income","category":"venux_income","subcategory":"","amount":2300.0,"mode":"cash","note":"VENUX","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-05-08T00:00:00.000Z"},{"id":"db_import_147_1779255669","date":"2026-05-08","type":"expense","category":"raw_material","subcategory":"","amount":5300.0,"mode":"cash","note":"S A Polymer","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-05-08T00:00:00.000Z"},{"id":"db_import_148_1779255669","date":"2026-05-09","type":"expense","category":"personal_sanket","subcategory":"","amount":569.0,"mode":"cash","note":"D MART","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-05-09T00:00:00.000Z"},{"id":"db_import_149_1779255669","date":"2026-05-09","type":"expense","category":"interest_emi","subcategory":"","amount":22000.0,"mode":"cash","note":"HOME EMI","cfo_field":"interest","imported":true,"orig_cat":"Bank Charges / Interest Expense","createdAt":"2026-05-09T00:00:00.000Z"},{"id":"db_import_150_1779255669","date":"2026-05-10","type":"expense","category":"transport","subcategory":"","amount":300.0,"mode":"cash","note":"alfa diseal","cfo_field":"transport","imported":true,"orig_cat":"operating expense","createdAt":"2026-05-10T00:00:00.000Z"},{"id":"db_import_151_1779255669","date":"2026-05-10","type":"expense","category":"repair_maint","subcategory":"","amount":400.0,"mode":"cash","note":"m8 tap","cfo_field":"prodother","imported":true,"orig_cat":"operating expense","createdAt":"2026-05-10T00:00:00.000Z"},{"id":"db_import_152_1779255669","date":"2026-05-11","type":"expense","category":"packaging","subcategory":"","amount":320.0,"mode":"cash","note":"packeging dori","cfo_field":"prodother","imported":true,"orig_cat":"operating expense","createdAt":"2026-05-11T00:00:00.000Z"},{"id":"db_import_153_1779255669","date":"2026-05-11","type":"income","category":"customer_payment","subcategory":"","amount":31000.0,"mode":"cash","note":"shital marketing","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-05-11T00:00:00.000Z"},{"id":"db_import_154_1779255669","date":"2026-05-11","type":"expense","category":"raw_material","subcategory":"","amount":10000.0,"mode":"cash","note":"subham fastner","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-05-11T00:00:00.000Z"},{"id":"db_import_155_1779255669","date":"2026-05-11","type":"expense","category":"powder_coating","subcategory":"","amount":5608.0,"mode":"cash","note":"nap pc payment","cfo_field":"outsource","imported":true,"orig_cat":"Party","createdAt":"2026-05-11T00:00:00.000Z"},{"id":"db_import_156_1779255669","date":"2026-05-12","type":"expense","category":"raw_material","subcategory":"","amount":4543.0,"mode":"cash","note":"pp vergine wheel","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-05-12T00:00:00.000Z"},{"id":"db_import_157_1779255669","date":"2026-05-12","type":"expense","category":"personal_sanket","subcategory":"","amount":90.0,"mode":"cash","note":"medical","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-05-12T00:00:00.000Z"},{"id":"db_import_158_1779255669","date":"2026-05-13","type":"income","category":"customer_payment","subcategory":"","amount":31500.0,"mode":"cash","note":"baba jalana","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-05-13T00:00:00.000Z"},{"id":"db_import_159_1779255669","date":"2026-05-13","type":"expense","category":"raw_material","subcategory":"","amount":59100.0,"mode":"cash","note":"steel center","cfo_field":"rawmat","imported":true,"orig_cat":"Party","createdAt":"2026-05-13T00:00:00.000Z"},{"id":"db_import_160_1779255669","date":"2026-05-13","type":"income","category":"customer_payment","subcategory":"","amount":25000.0,"mode":"cash","note":"baba nagar","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-05-13T00:00:00.000Z"},{"id":"db_import_161_1779255669","date":"2026-05-13","type":"expense","category":"repair_maint","subcategory":"","amount":120.0,"mode":"cash","note":"hand gloves","cfo_field":"prodother","imported":true,"orig_cat":"operating expense","createdAt":"2026-05-13T00:00:00.000Z"},{"id":"db_import_162_1779255669","date":"2026-05-13","type":"expense","category":"personal_sanket","subcategory":"","amount":200.0,"mode":"cash","note":"leta tai cake","cfo_field":null,"imported":true,"orig_cat":"operating expense","createdAt":"2026-05-13T00:00:00.000Z"},{"id":"db_import_163_1779255669","date":"2026-05-13","type":"expense","category":"interest_emi","subcategory":"","amount":7462.0,"mode":"cash","note":"sbi card","cfo_field":"interest","imported":true,"orig_cat":"Bank Charges / Interest Expense","createdAt":"2026-05-13T00:00:00.000Z"},{"id":"db_import_164_1779255669","date":"2026-05-13","type":"expense","category":"labour","subcategory":"","amount":5000.0,"mode":"cash","note":"juned and sanjeevani ( 2500/2500) payment","cfo_field":"labour","imported":true,"orig_cat":"operating expense","createdAt":"2026-05-13T00:00:00.000Z"},{"id":"db_import_165_1779255669","date":"2026-05-14","type":"expense","category":"personal_sanket","subcategory":"","amount":994.0,"mode":"cash","note":"pabalo hosptil","cfo_field":null,"imported":true,"orig_cat":"Sanket","createdAt":"2026-05-14T00:00:00.000Z"},{"id":"db_import_166_1779255669","date":"2026-05-14","type":"expense","category":"transport","subcategory":"","amount":300.0,"mode":"cash","note":"alfa diseal","cfo_field":"transport","imported":true,"orig_cat":"operating expense","createdAt":"2026-05-14T00:00:00.000Z"},{"id":"db_import_167_1779255669","date":"2026-05-15","type":"income","category":"venux_income","subcategory":"","amount":500.0,"mode":"cash","note":"venux","cfo_field":null,"imported":true,"orig_cat":"Party","createdAt":"2026-05-15T00:00:00.000Z"}];
+  if(!excelData.length) return;
+  const existing = new Set(DAYBOOK.map(e=>`${e.date}|${e.amount}|${(e.note||'').slice(0,20)}`));
+  let added = 0;
+  excelData.forEach(e=>{
+    const key = `${e.date}|${e.amount}|${(e.note||'').slice(0,20)}`;
+    if(!existing.has(key)){ DAYBOOK.push(e); added++; }
+  });
+  if(added > 0){
+    try{ localStorage.setItem('bf9_daybook', JSON.stringify(DAYBOOK)); }catch(e){}
+  }
+  localStorage.setItem(IMPORTED_KEY, '1');
+  console.log(`✅ Daybook: ${added} Excel entries pre-loaded`);
+})();
 let _dbEditId = null;
 let _dbType = 'expense';
 let _dbMode = 'cash';
@@ -17157,7 +16679,7 @@ function _dbShowDisciplineModal(warnings, blocks, doSave){
   const hasBlocks = blocks.length>0;
   const div = document.createElement('div');
   div.id = '_bf_disc_modal';
-  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:995;display:flex;align-items:flex-end;justify-content:center';
+  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900;display:flex;align-items:flex-end;justify-content:center';
 
   const blockHTML = blocks.map(b=>`
     <div style="display:flex;gap:10px;padding:10px 12px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:var(--r2);margin-bottom:7px">
@@ -17195,7 +16717,6 @@ function _dbShowDisciplineModal(warnings, blocks, doSave){
 }
 
 function _dbSaveEntry(){
-  if(_dbSaving) return; // double-tap / double-click guard
   const amount   = parseFloat(document.getElementById('db-amount').value)||0;
   const date     = document.getElementById('db-date').value;
   const category = document.getElementById('db-category').value;
@@ -17207,31 +16728,23 @@ function _dbSaveEntry(){
   if(!category)    { toast('⚠️ Category chunno!'); return; }
 
   const doSave = function(){
-    _dbSaving = true;
     if(_dbEditId){
       const idx = DAYBOOK.findIndex(e=>e.id===_dbEditId);
-      if(idx>=0){
-        _dbLogAction('edit', DAYBOOK[idx], {type:_dbType, category, supplier, amount, date, mode:_dbMode, note});
-        DAYBOOK[idx] = {...DAYBOOK[idx], type:_dbType, category, supplier, amount, date, mode:_dbMode, note};
-      }
+      if(idx>=0) DAYBOOK[idx] = {...DAYBOOK[idx], type:_dbType, category, supplier, amount, date, mode:_dbMode, note};
       toast('✅ Entry update ho gayi!');
     } else {
-      const newEntry = {id:'db_'+Date.now()+'_'+Math.random().toString(36).slice(2,8), date, type:_dbType, category, supplier, amount, mode:_dbMode, note, createdAt:new Date().toISOString()};
-      DAYBOOK.push(newEntry);
-      _dbLogAction('add', null, newEntry);
+      DAYBOOK.push({id:'db_'+Date.now(), date, type:_dbType, category, supplier, amount, mode:_dbMode, note, createdAt:new Date().toISOString()});
       toast('✅ Entry save ho gayi!');
     }
     save('bf9_daybook', DAYBOOK);
     _dbCloseModal();
     renderDaybook();
-    if(document.getElementById('db-health-modal')?.style.display==='flex') _dbHealthCheck();
     if(_dbQueueActive){
       _dbQueueStats.saved++;
       _dbQueueIdx++;
       _dbRemoveQueueBanner();
       _dbProcessQueueItem();
     }
-    setTimeout(()=>{ _dbSaving = false; }, 1200);
   };
 
   const {warnings, blocks} = _dbRunDiscipline(amount, date, category, note, supplier, _dbMode);
@@ -17241,23 +16754,9 @@ function _dbSaveEntry(){
     doSave();
   }
 }
-let _dbSaving = false;
-
-/* ── Local audit log — kisne/kab edit ya delete kiya, taaki "entry gayab"
-   lagne pe khud verify kar sako ki kya hua tha ── */
-function _dbLogAction(action, before, after){
-  try{
-    const log = JSON.parse(localStorage.getItem('bf9_db_audit')||'[]');
-    log.unshift({ action, before, after, at: new Date().toISOString() });
-    if(log.length>200) log.length=200;
-    localStorage.setItem('bf9_db_audit', JSON.stringify(log));
-  }catch(e){}
-}
 
 function _dbDelete(id){
   if(!confirm('Yeh entry delete karo?')) return;
-  const entry = DAYBOOK.find(e=>e.id===id);
-  _dbLogAction('delete', entry, null);
   DAYBOOK = DAYBOOK.filter(e=>e.id!==id);
   save('bf9_daybook', DAYBOOK);
   renderDaybook();
@@ -17444,180 +16943,6 @@ function _dbResetCats(){
 }
 
 /* ── Day Book Report Download ── */
-/* ══════════════════════════════════════════════════════════
-   DAYBOOK HEALTH CHECK — duplicate entries, bad data, aur
-   recent edit/delete history ek jagah dikhata hai taaki
-   "total galat" ya "entry gayab" lagne pe khud verify kar sako.
-══════════════════════════════════════════════════════════ */
-function _dbFindDuplicates(){
-  const groups = {};
-  DAYBOOK.forEach(e=>{
-    const key = `${e.date}|${e.type}|${e.category}|${e.amount}|${(e.supplier||'').trim().toLowerCase()}`;
-    (groups[key] = groups[key]||[]).push(e);
-  });
-  return Object.values(groups).filter(g=>g.length>1);
-}
-function _dbFindBadData(){
-  return DAYBOOK.filter(e=>
-    typeof e.amount!=='number' || isNaN(e.amount) || e.amount<=0 ||
-    !e.date || !/^\d{4}-\d{2}-\d{2}$/.test(e.date) ||
-    (e.type!=='income' && e.type!=='expense')
-  );
-}
-let _dbHealthSideDate = null; // jab set ho, health check ke saath us date ki entries side panel mein khulti hain
-
-function _dbHealthEnsureStyle(){
-  if(document.getElementById('db-health-style')) return;
-  const st = document.createElement('style');
-  st.id = 'db-health-style';
-  st.textContent = `
-    .db-health-flex{display:flex;gap:16px;align-items:flex-start}
-    .db-health-left{flex:1;min-width:0}
-    .db-health-side{flex:1;min-width:0;border-left:2px solid var(--border);padding-left:16px;position:sticky;top:0;align-self:flex-start;max-height:80vh;overflow-y:auto}
-    @media (max-width:760px){
-      .db-health-flex{flex-direction:column}
-      .db-health-side{border-left:none;border-top:2px solid var(--border);padding-left:0;padding-top:14px;position:static;max-height:none;width:100%}
-    }
-  `;
-  document.head.appendChild(st);
-}
-
-function _dbHealthRenderSideEntries(date){
-  const entries = [...DAYBOOK].filter(e=>e.date===date).sort((a,b)=>(b.id||'').localeCompare(a.id||''));
-  if(!entries.length) return '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">Is date ki koi entry nahi bachi</div>';
-  return entries.map(e=>{
-    const cat = (DB_CATS[e.type]||[]).find(c=>c.id===e.category);
-    return `<div style="border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px;background:#fff">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-        <div style="min-width:0">
-          <div style="font-size:12px;font-weight:800;color:${e.type==='income'?'var(--green-dark)':'var(--red-dark)'}">${e.type==='income'?'💰':'💸'} ₹${_fmtAmt(e.amount)}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">${cat?esc(cat.label):esc(e.category||'—')}${e.supplier?' · '+esc(e.supplier):''}</div>
-          ${e.note?`<div style="font-size:11px;color:#555;margin-top:2px">${esc(e.note)}</div>`:''}
-        </div>
-        <div style="display:flex;gap:6px;flex-shrink:0">
-          <button onclick="_dbHealthEditFromSide('${e.id}')" style="padding:4px 8px;background:#f0f4ff;border:1px solid var(--border);border-radius:6px;font-size:11px;cursor:pointer;color:var(--navy2);font-weight:800">✏️</button>
-          <button onclick="_dbHealthSideDelete('${e.id}')" style="padding:4px 8px;background:var(--red-bg);border:1px solid #fca5a5;border-radius:6px;font-size:11px;cursor:pointer;color:var(--red-dark);font-weight:800">🗑</button>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function _dbHealthOpenDate(date){
-  _dbHealthSideDate = date;
-  _dbHealthCheck();
-}
-function _dbHealthCloseSide(){
-  _dbHealthSideDate = null;
-  _dbHealthCheck();
-}
-function _dbHealthEditFromSide(id){
-  _dbOpenEdit(id); // edit modal upar khulega, health check + side panel neeche as-is rahenge
-}
-function _dbHealthSideDelete(id){
-  if(!confirm('Ye entry permanently delete karo?')) return;
-  const entry = DAYBOOK.find(e=>e.id===id);
-  _dbLogAction('delete', entry, null);
-  DAYBOOK = DAYBOOK.filter(e=>e.id!==id);
-  save('bf9_daybook', DAYBOOK);
-  renderDaybook();
-  toast('🗑 Delete ho gaya');
-  _dbHealthCheck(); // dono panel refresh, side date same rehta hai
-}
-
-function _dbHealthCheck(){
-  _dbHealthEnsureStyle();
-  const dupGroups = _dbFindDuplicates();
-  const badData   = _dbFindBadData();
-  const dupCount  = dupGroups.reduce((s,g)=>s+g.length-1,0); // extra copies
-  const dupAmt    = dupGroups.reduce((s,g)=>s+g.slice(1).reduce((s2,e)=>s2+(e.amount||0),0),0);
-  const audit     = JSON.parse(localStorage.getItem('bf9_db_audit')||'[]').slice(0,15);
-
-  let el = document.getElementById('db-health-modal');
-  if(!el){
-    el = document.createElement('div');
-    el.id='db-health-modal';
-    el.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:970;align-items:flex-end;justify-content:center;';
-    document.body.appendChild(el);
-  }
-
-  const dupHtml = dupGroups.length ? dupGroups.map((g,gi)=>{
-    const cat = (DB_CATS[g[0].type]||[]).find(c=>c.id===g[0].category);
-    return `<div style="border:1px solid #fca5a5;background:#fef2f2;border-radius:10px;padding:10px;margin-bottom:8px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
-        <div style="font-size:12px;font-weight:800;color:#991b1b">${g[0].date} · ${cat?cat.label:g[0].category} · ₹${_fmtAmt(g[0].amount)} × ${g.length} baar${g[0].supplier?' · '+esc(g[0].supplier):''}</div>
-        <button onclick="_dbHealthOpenDate('${g[0].date}')" style="flex-shrink:0;padding:4px 9px;background:${_dbHealthSideDate===g[0].date?'#7c3aed':'#fff'};color:${_dbHealthSideDate===g[0].date?'#fff':'#7c3aed'};border:1px solid #7c3aed;border-radius:6px;font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap">👁️ Side mein dekho</button>
-      </div>
-      ${g.map((e,i)=>`<div style="display:flex;align-items:center;gap:8px;font-size:11px;color:#555;padding:3px 0">
-        <span style="flex:1">${i===0?'✅ Rakhenge':'❌ Extra copy'} — ${esc(e.note||'(no note)')}</span>
-        ${i>0?`<button onclick="_dbHealthDelete('${e.id}')" style="padding:4px 8px;background:#dc2626;color:#fff;border:none;border-radius:6px;font-size:10px;font-weight:800;cursor:pointer">Delete</button>`:''}
-      </div>`).join('')}
-    </div>`;
-  }).join('') : '<div style="text-align:center;padding:14px;color:var(--muted);font-size:12px">✅ Koi duplicate entry nahi mili</div>';
-
-  const badHtml = badData.length ? badData.map(e=>`<div style="border:1px solid #fca5a5;background:#fef2f2;border-radius:10px;padding:8px 10px;margin-bottom:6px;font-size:11px;color:#991b1b">
-      ${esc(e.date||'(no date)')} · amount: ${JSON.stringify(e.amount)} · type: ${e.type||'(missing)'} — <button onclick="_dbHealthDelete('${e.id}')" style="padding:3px 8px;background:#dc2626;color:#fff;border:none;border-radius:6px;font-size:10px;font-weight:800;cursor:pointer">Delete</button>
-    </div>`).join('') : '<div style="text-align:center;padding:10px;color:var(--muted);font-size:12px">✅ Koi corrupt/invalid entry nahi</div>';
-
-  const auditHtml = audit.length ? audit.map(a=>{
-    const dt = new Date(a.at).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-    const ref = a.after||a.before||{};
-    const lbl = a.action==='add'?'➕ Add':a.action==='edit'?'✏️ Edit':'🗑 Delete';
-    return `<div style="display:flex;justify-content:space-between;font-size:11px;color:#555;padding:4px 0;border-bottom:1px solid #eee">
-      <span>${lbl} · ${ref.date||''} · ₹${_fmtAmt(ref.amount||0)}</span><span style="color:var(--muted)">${dt}</span>
-    </div>`;
-  }).join('') : '<div style="text-align:center;padding:10px;color:var(--muted);font-size:12px">Koi recent activity nahi</div>';
-
-  const leftHtml = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
-      <div style="background:${dupCount>0?'#fef2f2':'#f0fdf4'};border-radius:10px;padding:10px;text-align:center">
-        <div style="font-size:20px;font-weight:900;color:${dupCount>0?'#dc2626':'#16a34a'}">${dupCount}</div>
-        <div style="font-size:10px;color:var(--muted);font-weight:700">Duplicate copies${dupCount>0?` (₹${_fmtAmt(dupAmt)})`:''}</div>
-      </div>
-      <div style="background:${badData.length>0?'#fef2f2':'#f0fdf4'};border-radius:10px;padding:10px;text-align:center">
-        <div style="font-size:20px;font-weight:900;color:${badData.length>0?'#dc2626':'#16a34a'}">${badData.length}</div>
-        <div style="font-size:10px;color:var(--muted);font-weight:700">Corrupt entries</div>
-      </div>
-    </div>
-    <div style="font-size:13px;font-weight:800;color:var(--navy2);margin-bottom:8px">Duplicate Entries</div>
-    ${dupHtml}
-    <div style="font-size:13px;font-weight:800;color:var(--navy2);margin:14px 0 8px">Corrupt / Invalid Entries</div>
-    ${badHtml}
-    <div style="font-size:13px;font-weight:800;color:var(--navy2);margin:14px 0 8px">Recent Add/Edit/Delete (is device)</div>
-    ${auditHtml}`;
-
-  const sideHtml = _dbHealthSideDate ? `
-    <div class="db-health-side">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <div style="font-size:13px;font-weight:800;color:var(--navy2)">📅 ${esc(_dbHealthSideDate)} ki entries</div>
-        <button onclick="_dbHealthCloseSide()" style="width:26px;height:26px;border:none;background:#eaf4fa;border-radius:7px;cursor:pointer;font-size:14px">✕</button>
-      </div>
-      ${_dbHealthRenderSideEntries(_dbHealthSideDate)}
-    </div>` : '';
-
-  el.innerHTML = `<div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:${_dbHealthSideDate?'920px':'560px'};max-height:88vh;overflow-y:auto">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <div style="font-size:15px;font-weight:800;color:var(--navy2)">🩺 Daybook Health Check</div>
-      <button onclick="_dbHealthSideDate=null;document.getElementById('db-health-modal').style.display='none'" style="width:30px;height:30px;border:none;background:#eaf4fa;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
-    </div>
-    <div class="db-health-flex">
-      <div class="db-health-left">${leftHtml}</div>
-      ${sideHtml}
-    </div>
-  </div>`;
-  el.style.display='flex';
-}
-function _dbHealthDelete(id){
-  if(!confirm('Ye entry permanently delete karo?')) return;
-  const entry = DAYBOOK.find(e=>e.id===id);
-  _dbLogAction('delete', entry, null);
-  DAYBOOK = DAYBOOK.filter(e=>e.id!==id);
-  save('bf9_daybook', DAYBOOK);
-  renderDaybook();
-  toast('🗑 Delete ho gaya');
-  _dbHealthCheck(); // refresh modal
-}
-
 function _dbDownloadReport(){
   const filterDate  = document.getElementById('db-filter-date')?.value  || '';
   const filterMonth = document.getElementById('db-filter-month')?.value || '';
@@ -19311,9 +18636,11 @@ function invInitPurForm(){
       suppliers.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
   }
   // Reset fields
-  ['inv-pur-supplier','inv-pur-note','inv-pur-billno'].forEach(id=>{
+  ['inv-pur-supplier','inv-pur-note','inv-pur-billno','inv-pur-ref','inv-pur-duedate'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
+  const termsEl = document.getElementById('inv-pur-terms');
+  if(termsEl) termsEl.value = '1. 50% Advance and 50% at the time of delivery.\n2. Our responsibility ends once the goods are handed over to the carriers.\n3. Disputes under this bill are subject to local jurisdiction.';
   const dateEl = document.getElementById('inv-pur-date');
   if(dateEl) dateEl.value = new Date().toISOString().split('T')[0];
   if(supSel) supSel.value='';
@@ -19332,7 +18659,7 @@ function invOnPurSupplierChange(){
 
 function invPurAddRow(){
   const id = 'pr_'+(++_purRowCounter);
-  _purRows.push({id, matId:'', qty:0, rate:0, convRatio:0});
+  _purRows.push({id, matId:'', qty:0, rate:0, convRatio:0, hsn:'', discAmt:0, gstPct:0});
   invPurRenderRows();
 }
 
@@ -19375,6 +18702,28 @@ function invPurRenderRows(){
           <input class="finp" type="number" id="purrate-${row.id}" value="${row.rate>0?row.rate:''}" min="0" step="any" placeholder="0"
             oninput="invPurRowCalc('${row.id}')" style="font-size:13px">
         </div>
+      </div>
+
+      <!-- HSN/SAC + Discount -->
+      <div class="g2" style="margin-bottom:6px">
+        <div class="fg" style="margin:0">
+          <label style="font-size:10px">HSN/SAC</label>
+          <input class="finp" type="text" id="purhsn-${row.id}" value="${row.hsn||''}" placeholder="e.g. 9403"
+            oninput="invPurRowCalc('${row.id}')" style="font-size:12px">
+        </div>
+        <div class="fg" style="margin:0">
+          <label style="font-size:10px">Discount (₹)</label>
+          <input class="finp" type="number" id="purdisc-${row.id}" value="${row.discAmt>0?row.discAmt:''}" min="0" step="any" placeholder="0"
+            oninput="invPurRowCalc('${row.id}')" style="font-size:13px">
+        </div>
+      </div>
+
+      <!-- GST% -->
+      <div class="fg" style="margin-bottom:6px">
+        <label style="font-size:10px">GST %</label>
+        <select class="finp" id="purgst-${row.id}" onchange="invPurRowCalc('${row.id}')" style="font-size:12px">
+          ${[0,5,12,18,28].map(g=>`<option value="${g}" ${((row.gstPct||0)==g)?'selected':''}>${g}%</option>`).join('')}
+        </select>
       </div>
 
       <!-- Conversion — always toggleable -->
@@ -19484,12 +18833,20 @@ function invPurRowCalc(rowId){
   if(!row) return;
   row.qty = parseFloat(document.getElementById('purqty-'+rowId)?.value)||0;
   row.rate = parseFloat(document.getElementById('purrate-'+rowId)?.value)||0;
+  row.hsn = document.getElementById('purhsn-'+rowId)?.value?.trim()||'';
+  row.discAmt = parseFloat(document.getElementById('purdisc-'+rowId)?.value)||0;
+  row.gstPct = parseFloat(document.getElementById('purgst-'+rowId)?.value)||0;
   row.convRatio = parseFloat(document.getElementById('purconvratio-'+rowId)?.value)||0;
   row.convToUnit = document.getElementById('purconvto-'+rowId)?.value?.trim()||'pcs';
 
-  const rowTotal = row.qty * row.rate;
+  const rowSub = row.qty * row.rate;
+  row.taxable = Math.max(0, rowSub - row.discAmt);
+  row.cgst = row.taxable * row.gstPct / 200;
+  row.sgst = row.taxable * row.gstPct / 200;
+  row.amount = row.taxable + row.cgst + row.sgst;
+
   const totalEl = document.getElementById('purrowtotal-'+rowId);
-  if(totalEl) totalEl.textContent = '₹'+rowTotal.toLocaleString('en-IN',{maximumFractionDigits:2});
+  if(totalEl) totalEl.textContent = '₹'+row.amount.toLocaleString('en-IN',{maximumFractionDigits:2});
 
   // Update toggle label
   const toggleLbl = document.getElementById('purconvtoggle-'+rowId);
@@ -19510,9 +18867,16 @@ function invPurRowCalc(rowId){
 }
 
 function invPurUpdateGrandTotal(){
-  const grand = _purRows.reduce((s,r)=>s+(r.qty*r.rate),0);
+  const taxable = _purRows.reduce((s,r)=>s+(r.taxable||0),0);
+  const cgst = _purRows.reduce((s,r)=>s+(r.cgst||0),0);
+  const sgst = _purRows.reduce((s,r)=>s+(r.sgst||0),0);
+  const grand = taxable + cgst + sgst;
+  const fmt = v=>'₹'+v.toLocaleString('en-IN',{maximumFractionDigits:2});
+  const tEl = document.getElementById('inv-pur-taxable-total'); if(tEl) tEl.textContent = fmt(taxable);
+  const cEl = document.getElementById('inv-pur-cgst-total'); if(cEl) cEl.textContent = fmt(cgst);
+  const sEl = document.getElementById('inv-pur-sgst-total'); if(sEl) sEl.textContent = fmt(sgst);
   const el = document.getElementById('inv-pur-grand-total');
-  if(el) el.textContent='₹'+grand.toLocaleString('en-IN',{maximumFractionDigits:2});
+  if(el) el.textContent=fmt(grand);
 }
 
 function invCalcPurTotal(){ invPurUpdateGrandTotal(); }
@@ -19566,9 +18930,12 @@ function invPurSaveNewMat(){
   }
 }
 
-function invSavePurchase(){
+function invSavePurchase(keepOpen){
   const date = document.getElementById('inv-pur-date').value||new Date().toISOString().split('T')[0];
   const billno = document.getElementById('inv-pur-billno').value.trim();
+  const reference = document.getElementById('inv-pur-ref')?.value.trim()||'';
+  const dueDate = document.getElementById('inv-pur-duedate')?.value||'';
+  const terms = document.getElementById('inv-pur-terms')?.value||'';
   const supplierSelId = document.getElementById('inv-pur-supplier-sel').value;
   const supplierManual = document.getElementById('inv-pur-supplier').value.trim();
   const note = document.getElementById('inv-pur-note').value.trim();
@@ -19578,7 +18945,7 @@ function invSavePurchase(){
   if(!validRows.length){ invToast('Kam se kam 1 item complete karo!','err'); return; }
 
   const conv = invGetConv();
-  let grandTotal = 0;
+  let grandTaxable = 0, grandCgst = 0, grandSgst = 0, grandTotal = 0;
   const logItems = [];
 
   // ── Process each item — update STK ──
@@ -19586,8 +18953,13 @@ function invSavePurchase(){
     const idx = STK.findIndex(m=>m.id===row.matId);
     if(idx<0) return;
     const mat = STK[idx];
-    const rowTotal = row.qty * row.rate;
-    grandTotal += rowTotal;
+    const rowSub = row.qty * row.rate;
+    const discAmt = row.discAmt||0;
+    const taxable = Math.max(0, rowSub - discAmt);
+    const gstPct = row.gstPct||0;
+    const cgst = taxable*gstPct/200, sgst = taxable*gstPct/200;
+    const rowAmount = taxable + cgst + sgst;
+    grandTaxable += taxable; grandCgst += cgst; grandSgst += sgst; grandTotal += rowAmount;
 
     // Conversion — use STK settings or row override
     const purUnit = mat.purUnit||mat.unit;
@@ -19611,7 +18983,8 @@ function invSavePurchase(){
       qty:row.qty, punit:purUnit,
       stockAdded:stockToAdd, stockUnit,
       convRatio:useRatio>1?useRatio:null,
-      rate:row.rate, total:rowTotal
+      hsn:row.hsn||'', discAmt, gstPct, taxable, cgst, sgst,
+      rate:row.rate, total:rowAmount
     });
   });
 
@@ -19645,44 +19018,50 @@ function invSavePurchase(){
   // ── Purchase log ──
   const log = invGetPurLog();
   log.unshift({
-    id:invUID(), ts:Date.now(),
-    date, billno, supplierId, supplierName,
-    items:logItems, grandTotal, note
+    id:invUID(), ts:Date.now(), docType:'invoice',
+    date, billno, reference, dueDate, terms, supplierId, supplierName,
+    items:logItems, grandTaxable, grandCgst, grandSgst, grandTotal, note
   });
   invSetPurLog(log);
 
   invToast(`✅ ${logItems.length} items saved · ₹${grandTotal.toLocaleString('en-IN')}${supplierId?' · Ledger ✓':''}`);
-  invInitPurForm();
   invRenderPurLogMini();
   invCheckLowBadge();
+
+  if(keepOpen){
+    invInitPurForm();
+  } else {
+    _purSetView('list');
+  }
 }
 function invRenderPurLogMini(){
-  const log = invGetPurLog().slice(0,6);
+  const log = invGetPurLog().slice(0,20);
   const el = document.getElementById('inv-pur-log-mini');
   if(!el) return;
   if(!log.length){
-    el.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">Koi purchase nahi abhi</div>';
+    el.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">Koi invoice nahi abhi</div>';
     return;
   }
   el.innerHTML = log.map(l=>{
     const items = l.items || [{matName:l.matName, qty:l.qty, punit:l.punit, stockAdded:l.stockAdded||l.qty, stockUnit:l.stockUnit||l.punit, convRatio:l.convRatio, rate:l.rate, total:l.total}];
     const grand = l.grandTotal || l.total || 0;
     const dateStr = l.date || new Date(l.ts).toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
+    const isDebit = l.docType==='debit';
     return `
       <div class="inv-log-row">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-          <div style="font-size:11px;font-weight:800;color:var(--navy2)">${l.supplierName||l.supplier||'—'}</div>
+          <div style="font-size:11px;font-weight:800;color:var(--navy2)">${isDebit?'↩️ ':'🧾 '}${l.supplierName||l.supplier||'—'}</div>
           <div style="display:flex;align-items:center;gap:7px">
-            <div style="font-family:'Bebas Neue';font-size:16px;color:var(--green-dark)">₹${grand.toLocaleString('en-IN')}</div>
+            <div style="font-family:'Bebas Neue';font-size:16px;color:${isDebit?'var(--red-dark)':'var(--green-dark)'}">${isDebit?'-':''}₹${grand.toLocaleString('en-IN')}</div>
             <button onclick="invDeletePurchase('${l.id||l.ts}')" style="width:24px;height:24px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800" title="Delete">🗑</button>
           </div>
         </div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:5px">${dateStr}${l.billno?' · '+l.billno:''}${l.supplierId?' <span style="background:#e6fff3;color:var(--green-dark);padding:1px 5px;border-radius:6px;font-weight:800">✓ Ledger</span>':''}</div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:5px">${dateStr}${l.billno?' · '+l.billno:''}${isDebit?' <span style="background:#fef2f2;color:var(--red-dark);padding:1px 5px;border-radius:6px;font-weight:800">Debit Note</span>':''}${l.supplierId?' <span style="background:#e6fff3;color:var(--green-dark);padding:1px 5px;border-radius:6px;font-weight:800">✓ Ledger</span>':''}</div>
         ${items.map(i=>`
           <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-top:1px solid var(--border)">
             <div style="font-size:11px;font-weight:700">${i.matName}</div>
             <div style="font-size:10px;color:var(--muted)">
-              ${i.convRatio?`${i.qty}${i.punit}×${i.convRatio}=<b style="color:var(--green-dark)">${i.stockAdded}${i.stockUnit}</b>`:`+${i.stockAdded||i.qty} ${i.stockUnit||i.punit}`}
+              ${i.convRatio?`${i.qty}${i.punit}×${i.convRatio}=<b style="color:var(--green-dark)">${i.stockAdded}${i.stockUnit}</b>`:`${isDebit?'-':'+'}${i.stockAdded||i.qty} ${i.stockUnit||i.punit}`}
               · ₹${(i.total||0).toLocaleString('en-IN')}
             </div>
           </div>
@@ -19693,30 +19072,347 @@ function invRenderPurLogMini(){
 }
 
 function invDeletePurchase(entryId){
-  if(!confirm('Yeh purchase entry delete karo?\n\n⚠️ Stock reverse nahi hoga — manually adjust karna padega.')) return;
   let log = invGetPurLog();
   const entry = log.find(l=>(l.id||l.ts)==entryId);
   if(!entry){ toast('Entry nahi mili!'); return; }
+  const isDebit = entry.docType==='debit';
+  if(!confirm(`Yeh ${isDebit?'debit note':'purchase entry'} delete karo?\n\n⚠️ Stock ${isDebit?'wapas add':'reverse'} ho jayega.`)) return;
 
   // Remove from log
   log = log.filter(l=>(l.id||l.ts)!=entryId);
   invSetPurLog(log);
 
-  // Reverse stock
+  // Reverse stock — invoice ka stock wapas ghatao, debit note ka stock wapas jodo
   const items = entry.items || [{matId:entry.matId, stockAdded:entry.stockAdded||entry.qty}];
   const allStk = load('bf9_stk')||[];
   items.forEach(item=>{
     if(!item.matId) return;
     const mat = allStk.find(m=>m.id===item.matId);
     if(!mat) return;
-    mat.current = Math.max(0, (mat.current||0) - (item.stockAdded||item.qty||0));
+    const qty = item.stockAdded||item.qty||0;
+    mat.current = Math.max(0, (mat.current||0) + (isDebit ? qty : -qty));
   });
   save('bf9_stk', allStk);
   STK = allStk;
 
   invRenderPurLogMini();
   renderStock();
-  toast('🗑 Purchase entry delete ho gayi — stock reverse hua!');
+  toast(isDebit ? '🗑 Debit note delete ho gayi — stock wapas add hua!' : '🗑 Purchase entry delete ho gayi — stock reverse hua!');
+}
+
+/* ══════════════════════════════════════════
+   SUPPLIER INVOICES — VIEW SWITCHING
+══════════════════════════════════════════ */
+function _purSetView(view){
+  ['list','form','debit','trade','gst3b','analysis'].forEach(v=>{
+    const el = document.getElementById('pur-view-'+v);
+    if(el) el.style.display = (v===view) ? '' : 'none';
+  });
+  if(view==='list'){ invRenderPurLogMini(); }
+  else if(view==='trade'){ _purInitTradeFilters(); _purRenderTrade(); }
+  else if(view==='gst3b'){ _purInitGst3bFilter(); _purRenderGst3b(); }
+  else if(view==='analysis'){ _purRenderAnalysis(); }
+}
+function _purOpenInvoiceForm(){ _purSetView('form'); invInitPurForm(); }
+function _purOpenDebitForm(){ _purSetView('debit'); debInitForm(); }
+
+/* ══════════════════════════════════════════
+   DEBIT NOTE
+══════════════════════════════════════════ */
+let _debRows = [];
+let _debRowCounter = 0;
+
+function debInitForm(){
+  const supSel = document.getElementById('deb-supplier-sel');
+  if(supSel){
+    const suppliers = CUSTOMERS.filter(c=>c.type==='supplier').sort((a,b)=>a.name.localeCompare(b.name));
+    supSel.innerHTML = '<option value="">-- Supplier chunno --</option>' +
+      suppliers.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
+  }
+  ['deb-supplier','deb-billno','deb-ref-invoice','deb-note'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  const dateEl = document.getElementById('deb-date');
+  if(dateEl) dateEl.value = new Date().toISOString().split('T')[0];
+  _debRows = []; _debRowCounter = 0;
+  debAddRow();
+  debUpdateGrandTotal();
+}
+
+function debAddRow(){
+  const id = 'dr_'+(++_debRowCounter);
+  _debRows.push({id, matId:'', qty:0, rate:0, gstPct:0});
+  debRenderRows();
+}
+function debRemoveRow(id){
+  if(_debRows.length<=1){ invToast('Kam se kam 1 item chahiye!','err'); return; }
+  _debRows = _debRows.filter(r=>r.id!==id);
+  debRenderRows();
+  debUpdateGrandTotal();
+}
+function debRenderRows(){
+  const matOptions = '<option value="">-- Material --</option>' +
+    STK.map(m=>`<option value="${m.id}">${m.ico||'📦'} ${m.name} (${m.unit})</option>`).join('');
+
+  document.getElementById('deb-rows').innerHTML = _debRows.map((row,i)=>`
+    <div style="border:1.5px solid var(--border);border-radius:var(--r2);padding:10px;margin-bottom:8px;background:${i%2===0?'#fef2f2':'#fff'}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:11px;font-weight:800;color:var(--muted)">Item ${i+1}</div>
+        <button onclick="debRemoveRow('${row.id}')" style="width:24px;height:24px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800">✕</button>
+      </div>
+      <div class="fg" style="margin-bottom:8px">
+        <select class="finp" id="debmat-${row.id}" onchange="debRowCalc('${row.id}')" style="font-size:12px">
+          ${matOptions.replace(`value="${row.matId}"`,`value="${row.matId}" selected`)}
+        </select>
+      </div>
+      <div class="g2" style="margin-bottom:6px">
+        <div class="fg" style="margin:0">
+          <label style="font-size:10px">Qty Return</label>
+          <input class="finp" type="number" id="debqty-${row.id}" value="${row.qty>0?row.qty:''}" min="0" step="any" placeholder="0"
+            oninput="debRowCalc('${row.id}')" style="font-size:13px">
+        </div>
+        <div class="fg" style="margin:0">
+          <label style="font-size:10px">Rate (₹/unit)</label>
+          <input class="finp" type="number" id="debrate-${row.id}" value="${row.rate>0?row.rate:''}" min="0" step="any" placeholder="0"
+            oninput="debRowCalc('${row.id}')" style="font-size:13px">
+        </div>
+      </div>
+      <div class="fg" style="margin-bottom:6px">
+        <label style="font-size:10px">GST %</label>
+        <select class="finp" id="debgst-${row.id}" onchange="debRowCalc('${row.id}')" style="font-size:12px">
+          ${[0,5,12,18,28].map(g=>`<option value="${g}" ${((row.gstPct||0)==g)?'selected':''}>${g}%</option>`).join('')}
+        </select>
+      </div>
+      <div style="display:flex;justify-content:flex-end">
+        <div style="font-size:14px;font-weight:900;color:var(--red-dark)" id="debrowtotal-${row.id}">₹0</div>
+      </div>
+    </div>
+  `).join('');
+}
+function debRowCalc(rowId){
+  const row = _debRows.find(r=>r.id===rowId);
+  if(!row) return;
+  row.matId = document.getElementById('debmat-'+rowId)?.value||'';
+  row.qty = parseFloat(document.getElementById('debqty-'+rowId)?.value)||0;
+  row.rate = parseFloat(document.getElementById('debrate-'+rowId)?.value)||0;
+  row.gstPct = parseFloat(document.getElementById('debgst-'+rowId)?.value)||0;
+  row.taxable = row.qty*row.rate;
+  row.cgst = row.taxable*row.gstPct/200;
+  row.sgst = row.taxable*row.gstPct/200;
+  row.amount = row.taxable+row.cgst+row.sgst;
+  const el = document.getElementById('debrowtotal-'+rowId);
+  if(el) el.textContent = '₹'+row.amount.toLocaleString('en-IN',{maximumFractionDigits:2});
+  debUpdateGrandTotal();
+}
+function debUpdateGrandTotal(){
+  const grand = _debRows.reduce((s,r)=>s+(r.amount||0),0);
+  const el = document.getElementById('deb-grand-total');
+  if(el) el.textContent = '₹'+grand.toLocaleString('en-IN',{maximumFractionDigits:2});
+}
+function debSaveNote(){
+  const date = document.getElementById('deb-date').value||new Date().toISOString().split('T')[0];
+  const billno = document.getElementById('deb-billno').value.trim();
+  const refInvoice = document.getElementById('deb-ref-invoice').value.trim();
+  const supplierSelId = document.getElementById('deb-supplier-sel').value;
+  const supplierManual = document.getElementById('deb-supplier').value.trim();
+  const note = document.getElementById('deb-note').value.trim();
+
+  const validRows = _debRows.filter(r=>r.matId && r.qty>0);
+  if(!validRows.length){ invToast('Kam se kam 1 item complete karo!','err'); return; }
+
+  let grandTaxable=0, grandCgst=0, grandSgst=0, grandTotal=0;
+  const logItems = [];
+
+  validRows.forEach(row=>{
+    const idx = STK.findIndex(m=>m.id===row.matId);
+    if(idx<0) return;
+    const mat = STK[idx];
+    const taxable = row.qty*row.rate;
+    const cgst = taxable*row.gstPct/200, sgst = taxable*row.gstPct/200;
+    const amount = taxable+cgst+sgst;
+    grandTaxable+=taxable; grandCgst+=cgst; grandSgst+=sgst; grandTotal+=amount;
+
+    STK[idx].current = Math.max(0, (mat.current||0) - row.qty);
+    STXN.push({
+      id:Date.now()+'_'+Math.random().toString(36).slice(2,5),
+      itemId:mat.id, type:'out', qty:row.qty,
+      note:'Debit Note'+(billno?' · '+billno:'')+(refInvoice?' · Against '+refInvoice:''),
+      date:new Date().toISOString()
+    });
+    logItems.push({matId:mat.id, matName:mat.name, qty:row.qty, punit:mat.unit, stockAdded:row.qty, stockUnit:mat.unit, rate:row.rate, gstPct:row.gstPct, taxable, cgst, sgst, total:amount});
+  });
+
+  save('bf9_stk', STK);
+  save('bf9_stxn', STXN);
+  if(typeof renderStock==='function') renderStock();
+
+  let supplierName='', supplierId=supplierSelId||null;
+  if(supplierSelId){ supplierName = CUSTOMERS.find(c=>c.id===supplierSelId)?.name||''; }
+  else if(supplierManual){ supplierName = supplierManual; }
+
+  if(supplierId && grandTotal>0){
+    if(!LEDGER[supplierId]) LEDGER[supplierId]=[];
+    const itemsSummary = logItems.map(i=>i.matName+' ×'+i.qty).join(', ');
+    LEDGER[supplierId].push({
+      id:'deb_'+Date.now().toString(36),
+      date, type:'cr', amt:grandTotal,
+      note:'Debit Note: '+itemsSummary+(billno?' · '+billno:'')+(note?' · '+note:''),
+      ref:'debit_note'
+    });
+    save('bf9_ledger',LEDGER);
+  }
+
+  const log = invGetPurLog();
+  log.unshift({
+    id:invUID(), ts:Date.now(), docType:'debit',
+    date, billno, reference:refInvoice, supplierId, supplierName,
+    items:logItems, grandTaxable, grandCgst, grandSgst, grandTotal, note
+  });
+  invSetPurLog(log);
+
+  invToast(`✅ Debit note saved · ₹${grandTotal.toLocaleString('en-IN')}${supplierId?' · Ledger ✓':''}`);
+  invCheckLowBadge();
+  _purSetView('list');
+}
+
+/* ══════════════════════════════════════════
+   TRADE REPORT
+══════════════════════════════════════════ */
+function _purInitTradeFilters(){
+  const supSel = document.getElementById('trade-supplier');
+  if(supSel && supSel.options.length<=1){
+    const suppliers = CUSTOMERS.filter(c=>c.type==='supplier').sort((a,b)=>a.name.localeCompare(b.name));
+    supSel.innerHTML = '<option value="">Sab suppliers</option>' + suppliers.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
+  }
+  const fromEl = document.getElementById('trade-from'), toEl = document.getElementById('trade-to');
+  if(fromEl && !fromEl.value){
+    const d = new Date(); d.setDate(1);
+    fromEl.value = d.toISOString().split('T')[0];
+  }
+  if(toEl && !toEl.value) toEl.value = new Date().toISOString().split('T')[0];
+}
+function _purRenderTrade(){
+  const from = document.getElementById('trade-from')?.value||'';
+  const to = document.getElementById('trade-to')?.value||'';
+  const supId = document.getElementById('trade-supplier')?.value||'';
+  let entries = invGetPurLog().filter(l=>{
+    if(from && l.date<from) return false;
+    if(to && l.date>to) return false;
+    if(supId && l.supplierId!==supId) return false;
+    return true;
+  });
+  entries.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+
+  const totalInvoice = entries.filter(e=>e.docType!=='debit').reduce((s,e)=>s+(e.grandTotal||0),0);
+  const totalDebit = entries.filter(e=>e.docType==='debit').reduce((s,e)=>s+(e.grandTotal||0),0);
+  const netTotal = totalInvoice - totalDebit;
+  const fmt = v=>'₹'+v.toLocaleString('en-IN',{maximumFractionDigits:0});
+
+  document.getElementById('trade-summary').innerHTML = `
+    <div class="g2">
+      <div class="card" style="padding:12px;text-align:center"><div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase">Purchases</div><div style="font-family:'Bebas Neue';font-size:20px;color:var(--navy2)">${fmt(totalInvoice)}</div></div>
+      <div class="card" style="padding:12px;text-align:center"><div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase">Debit Notes</div><div style="font-family:'Bebas Neue';font-size:20px;color:var(--red-dark)">${fmt(totalDebit)}</div></div>
+    </div>
+    <div class="card" style="padding:12px;text-align:center;margin-top:8px;background:linear-gradient(135deg,var(--navy),var(--navy2))">
+      <div style="font-size:9px;font-weight:800;color:rgba(255,255,255,.7);text-transform:uppercase">Net Purchase Value</div>
+      <div style="font-family:'Bebas Neue';font-size:24px;color:#fff">${fmt(netTotal)}</div>
+    </div>`;
+
+  const tableEl = document.getElementById('trade-table');
+  if(!entries.length){
+    tableEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">Is period mein koi entry nahi</div>';
+    return;
+  }
+  tableEl.innerHTML = entries.map(e=>`
+    <div class="inv-log-row" style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:11px;font-weight:800;color:var(--navy2)">${e.docType==='debit'?'↩️ ':'🧾 '}${e.supplierName||'—'}</div>
+        <div style="font-size:10px;color:var(--muted)">${e.date}${e.billno?' · '+e.billno:''}</div>
+      </div>
+      <div style="font-family:'Bebas Neue';font-size:16px;color:${e.docType==='debit'?'var(--red-dark)':'var(--green-dark)'}">${e.docType==='debit'?'-':''}${fmt(e.grandTotal||0)}</div>
+    </div>
+  `).join('');
+}
+
+/* ══════════════════════════════════════════
+   GST-3B (Purchase-side ITC)
+══════════════════════════════════════════ */
+function _purInitGst3bFilter(){
+  const el = document.getElementById('gst3b-month');
+  if(el && !el.value) el.value = new Date().toISOString().slice(0,7);
+}
+function _purRenderGst3b(){
+  const month = document.getElementById('gst3b-month')?.value||new Date().toISOString().slice(0,7);
+  const entries = invGetPurLog().filter(l=>(l.date||'').slice(0,7)===month);
+  const sign = e=>e.docType==='debit'?-1:1;
+  const taxable = entries.reduce((s,e)=>s+sign(e)*(e.grandTaxable||0),0);
+  const cgst = entries.reduce((s,e)=>s+sign(e)*(e.grandCgst||0),0);
+  const sgst = entries.reduce((s,e)=>s+sign(e)*(e.grandSgst||0),0);
+  const totalTax = cgst+sgst;
+  const fmt = v=>'₹'+v.toLocaleString('en-IN',{maximumFractionDigits:0});
+  const invCount = entries.filter(e=>e.docType!=='debit').length;
+  const debCount = entries.filter(e=>e.docType==='debit').length;
+
+  document.getElementById('gst3b-kpis').innerHTML = `
+    <div class="g2" style="margin-bottom:10px">
+      <div class="card" style="padding:14px;text-align:center"><div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase">Taxable Value</div><div style="font-family:'Bebas Neue';font-size:22px;color:var(--navy2)">${fmt(taxable)}</div></div>
+      <div class="card" style="padding:14px;text-align:center"><div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase">Invoices / Debit Notes</div><div style="font-family:'Bebas Neue';font-size:22px;color:var(--navy2)">${invCount} / ${debCount}</div></div>
+    </div>
+    <div class="g2" style="margin-bottom:10px">
+      <div class="card" style="padding:14px;text-align:center"><div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase">CGST (ITC)</div><div style="font-family:'Bebas Neue';font-size:22px;color:var(--green-dark)">${fmt(cgst)}</div></div>
+      <div class="card" style="padding:14px;text-align:center"><div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase">SGST (ITC)</div><div style="font-family:'Bebas Neue';font-size:22px;color:var(--green-dark)">${fmt(sgst)}</div></div>
+    </div>
+    <div class="card" style="padding:14px;text-align:center;background:linear-gradient(135deg,var(--navy),var(--navy2))">
+      <div style="font-size:9px;font-weight:800;color:rgba(255,255,255,.7);text-transform:uppercase">Total Input Tax Credit</div>
+      <div style="font-family:'Bebas Neue';font-size:26px;color:#fff">${fmt(totalTax)}</div>
+    </div>
+    <div style="font-size:10px;color:var(--muted);margin-top:8px;text-align:center">⚠️ Yeh sirf purchase-side ITC estimate hai (supplier invoices se) — sales-side GST liability isme shamil nahi hai.</div>
+  `;
+}
+
+/* ══════════════════════════════════════════
+   PURCHASE ANALYSIS
+══════════════════════════════════════════ */
+function _purRenderAnalysis(){
+  const log = invGetPurLog();
+  const now = new Date();
+  const thisMonth = _ymLocal(now);
+  const monthEntries = log.filter(l=>(l.date||'').slice(0,7)===thisMonth);
+  const sign = e=>e.docType==='debit'?-1:1;
+  const monthTotal = monthEntries.reduce((s,e)=>s+sign(e)*(e.grandTotal||0),0);
+  const invoiceEntries = log.filter(e=>e.docType!=='debit');
+  const avgInvoice = invoiceEntries.length ? invoiceEntries.reduce((s,e)=>s+(e.grandTotal||0),0)/invoiceEntries.length : 0;
+  const fmt = v=>'₹'+v.toLocaleString('en-IN',{maximumFractionDigits:0});
+
+  // Top suppliers
+  const bySupplier = {};
+  log.forEach(e=>{
+    if(!e.supplierName) return;
+    bySupplier[e.supplierName] = (bySupplier[e.supplierName]||0) + sign(e)*(e.grandTotal||0);
+  });
+  const topSuppliers = Object.entries(bySupplier).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+  document.getElementById('pan-kpis').innerHTML = `
+    <div class="g2">
+      <div class="card" style="padding:14px;text-align:center"><div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase">This Month</div><div style="font-family:'Bebas Neue';font-size:22px;color:var(--navy2)">${fmt(monthTotal)}</div></div>
+      <div class="card" style="padding:14px;text-align:center"><div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase">Avg Invoice Value</div><div style="font-family:'Bebas Neue';font-size:22px;color:var(--navy2)">${fmt(avgInvoice)}</div></div>
+    </div>`;
+
+  // Monthly trend — last 6 months
+  const months = _anGetMonths ? _anGetMonths(6) : (()=>{
+    const arr=[]; for(let i=5;i>=0;i--){ const d=new Date(now.getFullYear(),now.getMonth()-i,1); arr.push(_ymLocal(d)); } return arr;
+  })();
+  const monthly = months.map(m=>log.filter(e=>(e.date||'').slice(0,7)===m).reduce((s,e)=>s+sign(e)*(e.grandTotal||0),0));
+  if(typeof _anMakeChart==='function'){
+    _anMakeChart('pan-chart','bar',months,[{label:'Purchases',data:monthly,backgroundColor:'#1d4ed8',borderRadius:6}]);
+  }
+
+  document.getElementById('pan-suppliers').innerHTML = topSuppliers.length ? topSuppliers.map(([name,amt])=>`
+    <div class="inv-log-row" style="display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:12px;font-weight:700">${esc(name)}</div>
+      <div style="font-family:'Bebas Neue';font-size:16px;color:var(--navy2)">${fmt(amt)}</div>
+    </div>
+  `).join('') : '<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">Koi data nahi abhi</div>';
 }
 
 /* ── PRODUCTION ── */
