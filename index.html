@@ -1569,6 +1569,24 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
     <div class="chart-canvas-wrap"><canvas id="dash-qty-chart"></canvas></div>
   </div>
 
+  <!-- Customer-wise Monthly Units -->
+  <div class="chart-card">
+    <div class="card-hdr" style="margin-bottom:0">
+      <div class="card-title">👤 Customer Monthly Units</div>
+      <select id="dash-cust-select" onchange="_renderCustUnitsChart(this.value)" style="font-size:11px;font-weight:700;padding:5px 8px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--navy2);max-width:150px"></select>
+    </div>
+    <div class="chart-canvas-wrap"><canvas id="dash-cust-chart"></canvas></div>
+  </div>
+
+  <!-- This Month — Units by Customer table -->
+  <div class="chart-card">
+    <div class="card-hdr" style="margin-bottom:0">
+      <div class="card-title">📋 Is Mahine — Customer-wise Units</div>
+      <div class="card-sub" id="dash-cust-table-month">—</div>
+    </div>
+    <div id="dash-cust-table-wrap" style="padding:4px 2px"></div>
+  </div>
+
   <!-- Status Breakdown Donuts -->
   <div class="donut-row">
     <div class="donut-card">
@@ -12853,6 +12871,54 @@ function renderDashboard(){
       }
     });
 
+    // ── Customer Monthly Units (Last 6 months) ──
+    const custMonthsArr=[];
+    for(let i=5;i>=0;i--) custMonthsArr.push(new Date(now.getFullYear(),now.getMonth()-i,1));
+    const custMonthLabels=custMonthsArr.map(d=>d.toLocaleString('en-IN',{month:'short'}));
+    const custMonthKeys=custMonthsArr.map(d=>_ymLocal(d));
+    window._dashCustMonthKeys=custMonthKeys;
+    window._dashCustMonthLabels=custMonthLabels;
+
+    const custUnitsTotal={};
+    INVOICES.filter(i=>custMonthKeys.includes((i.date||'').slice(0,7))).forEach(i=>{
+      const u=(i.items||[]).reduce((s,it)=>s+(Number(it.qty)||0),0);
+      custUnitsTotal[i.party]=(custUnitsTotal[i.party]||0)+u;
+    });
+    const custSorted=Object.entries(custUnitsTotal).sort((a,b)=>b[1]-a[1]).map(x=>x[0]);
+
+    const custSelEl=document.getElementById('dash-cust-select');
+    if(custSelEl){
+      const prevVal=custSelEl.value;
+      custSelEl.innerHTML=custSorted.length
+        ? custSorted.map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join('')
+        : '<option value="">Koi data nahi</option>';
+      const selectVal=(prevVal&&custSorted.includes(prevVal))?prevVal:custSorted[0];
+      if(selectVal) custSelEl.value=selectVal;
+      _renderCustUnitsChart(selectVal||'');
+    }
+
+    // This month units-by-customer table
+    const curMonthKey=_ymLocal(now);
+    const custThisMonth={};
+    INVOICES.filter(i=>(i.date||'').slice(0,7)===curMonthKey).forEach(i=>{
+      const u=(i.items||[]).reduce((s,it)=>s+(Number(it.qty)||0),0);
+      custThisMonth[i.party]=(custThisMonth[i.party]||0)+u;
+    });
+    const custThisMonthSorted=Object.entries(custThisMonth).sort((a,b)=>b[1]-a[1]);
+    const custTblEl=document.getElementById('dash-cust-table-wrap');
+    const custTblLbl=document.getElementById('dash-cust-table-month');
+    if(custTblLbl) custTblLbl.textContent=now.toLocaleString('en-IN',{month:'short',year:'numeric'});
+    if(custTblEl){
+      custTblEl.innerHTML=custThisMonthSorted.length
+        ? custThisMonthSorted.map(([party,units],i)=>`
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 6px;border-bottom:1px solid var(--border)">
+            <div style="width:20px;height:20px;border-radius:50%;background:var(--navy2);color:#fff;font-size:9px;font-weight:900;display:flex;align-items:center;justify-content:center">${i+1}</div>
+            <div style="flex:1;font-size:12px;font-weight:800;color:var(--navy2)">${esc(party)}</div>
+            <div style="font-size:13px;font-weight:900;color:var(--blue)">${units} units</div>
+          </div>`).join('')
+        : '<div style="color:var(--muted);font-size:12px;text-align:center;padding:12px">Is mahine koi invoice nahi</div>';
+    }
+
     // ── Invoice status donut ──
     const paidInv=INVOICES.filter(i=>i.status==='paid').length;
     const partialInv=INVOICES.filter(i=>i.status==='partial').length;
@@ -12917,6 +12983,27 @@ function renderDashboard(){
   _renderHealthCheck();
   // Smart Insights
   _renderSmartInsights();
+}
+
+function _renderCustUnitsChart(party){
+  const chartEl=document.getElementById('dash-cust-chart');
+  if(!chartEl || typeof _anMakeChart!=='function') return;
+  const monthKeys=window._dashCustMonthKeys||[];
+  const monthLabels=window._dashCustMonthLabels||[];
+  const data=monthKeys.map(mk=>{
+    return INVOICES.filter(i=>i.party===party && (i.date||'').slice(0,7)===mk)
+      .reduce((s,i)=>s+(i.items||[]).reduce((qs,it)=>qs+(Number(it.qty)||0),0),0);
+  });
+  _anMakeChart('dash-cust-chart','bar',monthLabels,[{
+    data, backgroundColor:'#8b5cf6', hoverBackgroundColor:'#a78bfa',
+    borderRadius:6, maxBarThickness:34
+  }],{
+    plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>c.parsed.y+' units'}} },
+    scales:{
+      x:{ ticks:{font:{family:'Nunito',size:10,weight:'700'}}, grid:{display:false} },
+      y:{ ticks:{font:{family:'Nunito',size:9}}, beginAtZero:true, grid:{color:'#eef1fa'} }
+    }
+  });
 }
 
 /* ═══════════════════════════════════════════════════
