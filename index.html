@@ -1903,27 +1903,42 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
       <div style="font-size:14px;font-weight:900;color:var(--navy2)">📦 Stock Inventory</div>
       <div id="stock-sub" style="font-size:11px;color:var(--muted);font-weight:700"></div>
     </div>
-    <div style="display:flex;gap:6px;flex-shrink:0">
+    <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
+      <button onclick="openReorderPanel()" title="Reorder Suggestions" style="padding:7px 10px;background:#fef3c7;color:#92400e;border:1.5px solid #fde68a;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">🛒 Reorder <span id="stk-reorder-badge" style="display:none;background:var(--red);color:#fff;border-radius:20px;padding:1px 6px;font-size:9px;margin-left:2px">0</span></button>
+      <button onclick="exportStockExcel()" title="Excel Export" style="padding:7px 10px;background:var(--green);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">⬇️ Excel</button>
+      <button onclick="document.getElementById('stk-import-file').click()" title="Excel Import" style="padding:7px 10px;background:#e0e7ff;color:#3730a3;border:1.5px solid #c7d2fe;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">⬆️ Import</button>
+      <input type="file" id="stk-import-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importStockExcel(this)">
       <button onclick="addStockItem()" style="padding:7px 12px;background:var(--orange);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">＋ Add</button>
       <button onclick="saveStock()" style="padding:7px 12px;background:var(--navy);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">💾 Save</button>
     </div>
   </div>
 
-  <!-- Summary chips -->
-  <div style="display:flex;gap:8px;margin-bottom:10px;overflow-x:auto;padding-bottom:2px">
+  <!-- Summary chips (stock status) -->
+  <div style="display:flex;gap:8px;margin-bottom:8px;overflow-x:auto;padding-bottom:2px">
     <div id="stk-chip-total" onclick="stkFilter('all')" style="padding:6px 13px;background:var(--navy);color:#fff;border-radius:20px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0">All <span id="stk-cnt-all">0</span></div>
     <div id="stk-chip-crit" onclick="stkFilter('crit')" style="padding:6px 13px;background:var(--red-bg);color:var(--red-dark);border:1.5px solid #fca5a5;border-radius:20px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0">🚨 Khatam <span id="stk-cnt-crit">0</span></div>
     <div id="stk-chip-low" onclick="stkFilter('low')" style="padding:6px 13px;background:var(--yellow-bg);color:var(--yellow-dark);border:1.5px solid #fde68a;border-radius:20px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0">⚠️ Low <span id="stk-cnt-low">0</span></div>
     <div id="stk-chip-ok" onclick="stkFilter('ok')" style="padding:6px 13px;background:var(--green-bg);color:var(--green-dark);border:1.5px solid #6ee7b7;border-radius:20px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0">✅ OK <span id="stk-cnt-ok">0</span></div>
   </div>
 
-  <!-- Search + filter -->
-  <div style="display:flex;gap:7px;margin-bottom:10px">
-    <input id="stk-search" class="finp" placeholder="🔍 Search material..." oninput="renderStock()" style="flex:1;padding:8px 12px;font-size:12px">
-    <select id="stk-cat-filter" class="finp" onchange="renderStock()" style="width:120px;padding:8px 10px;font-size:11px">
-      <option value="">All Categories</option>
-      <option>Raw Material</option><option>Hardware</option>
-      <option>Semi-Finished</option><option>Packaging</option><option>Chemical</option><option>Other</option>
+  <!-- Category Tabs (like ERP inventory view) -->
+  <div id="stk-cat-tabs" style="display:flex;gap:6px;margin-bottom:8px;overflow-x:auto;padding-bottom:2px"></div>
+
+  <!-- Search -->
+  <div style="display:flex;gap:7px;margin-bottom:8px">
+    <input id="stk-search" class="finp" placeholder="🔍 Search item / code..." oninput="renderStock()" style="flex:1;padding:8px 12px;font-size:12px">
+  </div>
+
+  <!-- Sub-category + Importance filters -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px">
+    <select id="stk-subcat-filter" class="finp" onchange="renderStock()" style="padding:8px 10px;font-size:11px">
+      <option value="">All Sub-Categories</option>
+    </select>
+    <select id="stk-imp-filter" class="finp" onchange="renderStock()" style="padding:8px 10px;font-size:11px">
+      <option value="">All Importance Levels</option>
+      <option value="High">High</option>
+      <option value="Normal">Normal</option>
+      <option value="Low">Low</option>
     </select>
   </div>
 
@@ -1933,18 +1948,40 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
     <div style="font-family:'Bebas Neue';font-size:22px;color:#fff" id="stk-valuation">₹0</div>
   </div>
 
-  <!-- Table header -->
-  <div style="display:grid;grid-template-columns:32px 1fr 60px 60px 70px 54px;gap:6px;padding:6px 10px;background:var(--navy);border-radius:var(--r2) var(--r2) 0 0;margin-bottom:1px">
-    <div></div>
-    <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,.7);text-transform:uppercase">Item</div>
-    <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,.7);text-align:right">Qty</div>
-    <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,.7);text-align:right">Rate</div>
-    <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,.7);text-align:right">Value</div>
-    <div></div>
+  <!-- Table (horizontal scroll on small screens, like ERP inventory table) -->
+  <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--r2)">
+    <table style="width:100%;min-width:720px;border-collapse:collapse;font-family:'Nunito',sans-serif">
+      <thead>
+        <tr style="background:var(--navy)">
+          <th style="width:30px"></th>
+          <th style="text-align:left;padding:8px 8px;font-size:10px;font-weight:800;color:rgba(255,255,255,.75);text-transform:uppercase">Item</th>
+          <th style="text-align:left;padding:8px 8px;font-size:10px;font-weight:800;color:rgba(255,255,255,.75);text-transform:uppercase">Code</th>
+          <th style="text-align:left;padding:8px 8px;font-size:10px;font-weight:800;color:rgba(255,255,255,.75);text-transform:uppercase">Importance</th>
+          <th style="text-align:left;padding:8px 8px;font-size:10px;font-weight:800;color:rgba(255,255,255,.75);text-transform:uppercase">Category</th>
+          <th style="text-align:right;padding:8px 8px;font-size:10px;font-weight:800;color:rgba(255,255,255,.75);text-transform:uppercase">Qty</th>
+          <th style="text-align:right;padding:8px 8px;font-size:10px;font-weight:800;color:rgba(255,255,255,.75);text-transform:uppercase">Rate</th>
+          <th style="text-align:right;padding:8px 8px;font-size:10px;font-weight:800;color:rgba(255,255,255,.75);text-transform:uppercase">Value</th>
+          <th style="width:90px"></th>
+        </tr>
+      </thead>
+      <tbody id="stock-list"></tbody>
+    </table>
   </div>
 
-  <!-- Table rows -->
-  <div id="stock-list" style="border-radius:0 0 var(--r2) var(--r2);overflow:hidden;border:1px solid var(--border);border-top:none"></div>
+  <!-- Pagination -->
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--muted)">
+      Items per page:
+      <select id="stk-page-size" class="finp" onchange="stkChangePageSize()" style="padding:4px 8px;font-size:11px;width:64px">
+        <option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option>
+      </select>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span id="stk-page-info" style="font-size:11px;font-weight:700;color:var(--muted)"></span>
+      <button onclick="stkChangePage(-1)" style="width:26px;height:26px;border:1px solid var(--border);background:#fff;border-radius:6px;cursor:pointer">‹</button>
+      <button onclick="stkChangePage(1)" style="width:26px;height:26px;border:1px solid var(--border);background:#fff;border-radius:6px;cursor:pointer">›</button>
+    </div>
+  </div>
 
   <!-- Stock History -->
   <div style="margin-top:16px">
@@ -4460,6 +4497,26 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
   </div>
 </div>
 
+<!-- Reorder Suggestions Modal -->
+<div class="modal-bg" id="stk-reorder-modal">
+  <div class="modal" style="max-height:85vh;overflow-y:auto">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div>
+        <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">🛒 Reorder Suggestions</div>
+        <div id="stk-reorder-total" style="font-size:14px;font-weight:900;color:var(--navy2);margin-top:2px">0 items</div>
+      </div>
+      <button onclick="closeReorderPanel()" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:#f0f4ff;font-size:14px;cursor:pointer">✕</button>
+    </div>
+    <div style="font-size:11px;color:var(--muted);font-weight:700;margin-bottom:10px">Low ya khatam stock ke items — quantity edit kar sakte ho, phir seedha Purchase Order bana sakte ho.</div>
+    <div id="stk-reorder-list" style="margin-bottom:12px"></div>
+    <div class="modal-btns">
+      <button class="mbtn-primary" style="background:#1d4ed8" onclick="stkCreatePOFromReorder()">🛒 Purchase Order Banao</button>
+      <button class="mbtn-cancel" onclick="closeReorderPanel()">Band Karo</button>
+    </div>
+  </div>
+</div>
+
 <!-- Stock Edit Modal -->
 <div class="modal-bg" id="stk-edit-modal">
   <div class="modal" style="max-height:90vh;overflow-y:auto;border-radius:var(--r) var(--r) 0 0">
@@ -6604,9 +6661,49 @@ function getStockStatus(it){ if(it.current<=0) return 'crit'; if(it.current<=it.
 function getStockAlerts(){ return{ crit:STK.filter(i=>getStockStatus(i)==='crit'), low:STK.filter(i=>getStockStatus(i)==='low') }; }
 
 let _stkFilter = 'all';
+let _stkCatTab = '';      // '' = All categories (tab)
+let _stkPage = 1;
+let _stkPageSize = 10;
 function stkFilter(f){
   _stkFilter=f;
+  _stkPage=1;
   renderStock();
+}
+function stkCatTabClick(cat){
+  _stkCatTab=cat;
+  _stkPage=1;
+  renderStock();
+}
+function stkChangePageSize(){
+  _stkPageSize=parseInt(document.getElementById('stk-page-size')?.value)||10;
+  _stkPage=1;
+  renderStock();
+}
+function stkChangePage(delta){
+  _stkPage=Math.max(1,_stkPage+delta);
+  renderStock();
+}
+
+const STK_CATS=['Raw Material','Hardware','Semi-Finished','Packaging','Chemical','Other'];
+function renderStkCatTabs(){
+  const wrap=document.getElementById('stk-cat-tabs');
+  if(!wrap) return;
+  const cats=['All',...STK_CATS];
+  wrap.innerHTML=cats.map(c=>{
+    const val=c==='All'?'':c;
+    const active=_stkCatTab===val;
+    const cnt=val?STK.filter(i=>i.cat===val).length:STK.length;
+    return `<div onclick="stkCatTabClick('${val}')" style="padding:6px 12px;border-radius:8px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0;border:1.5px solid ${active?'var(--navy)':'var(--border)'};background:${active?'var(--navy)':'#fff'};color:${active?'#fff':'var(--navy2)'}">${c} <span style="opacity:.7">${cnt}</span></div>`;
+  }).join('');
+}
+
+function stkPopulateSubcatFilter(){
+  const sel=document.getElementById('stk-subcat-filter');
+  if(!sel) return;
+  const selectedVal=sel.value;
+  const subcats=[...new Set(STK.map(i=>(i.subcat||'').trim()).filter(Boolean))].sort();
+  sel.innerHTML='<option value="">All Sub-Categories</option>'+subcats.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
+  if(subcats.includes(selectedVal)) sel.value=selectedVal;
 }
 
 function renderStock(){
@@ -6624,6 +6721,14 @@ function renderStock(){
   setTxt('stk-cnt-low',low.length);
   setTxt('stk-cnt-ok',ok.length);
 
+  // Reorder badge (crit + low)
+  const reorderBadge=document.getElementById('stk-reorder-badge');
+  if(reorderBadge){
+    const n=crit.length+low.length;
+    reorderBadge.style.display=n>0?'inline-block':'none';
+    reorderBadge.textContent=n;
+  }
+
   // Alerts
   const aw=document.getElementById('stock-alerts-wrap');
   if(aw){
@@ -6634,53 +6739,79 @@ function renderStock(){
   const sub=document.getElementById('stock-sub');
   if(sub) sub.textContent=STK.length+' materials';
 
+  // Tabs + subcat filter options
+  renderStkCatTabs();
+  stkPopulateSubcatFilter();
+
   // Filter + search
   const search=(document.getElementById('stk-search')?.value||'').toLowerCase();
-  const catF=document.getElementById('stk-cat-filter')?.value||'';
+  const subcatF=document.getElementById('stk-subcat-filter')?.value||'';
+  const impF=document.getElementById('stk-imp-filter')?.value||'';
   let filtered=STK.filter(it=>{
     if(_stkFilter==='crit' && getStockStatus(it)!=='crit') return false;
     if(_stkFilter==='low'  && getStockStatus(it)!=='low')  return false;
     if(_stkFilter==='ok'   && getStockStatus(it)!=='ok')   return false;
-    if(catF && it.cat!==catF) return false;
-    if(search && !it.name.toLowerCase().includes(search)) return false;
+    if(_stkCatTab && it.cat!==_stkCatTab) return false;
+    if(subcatF && (it.subcat||'')!==subcatF) return false;
+    if(impF && (it.importance||'Normal')!==impF) return false;
+    if(search && !(it.name.toLowerCase().includes(search) || (it.code||'').toLowerCase().includes(search))) return false;
     return true;
   });
 
-  // Valuation
+  // Valuation (of full STK, not just filtered — matches "Total Valuation" intent)
   const totalVal=STK.reduce((s,it)=>s+(it.current*(it.rate||0)),0);
   const valEl=document.getElementById('stk-valuation');
   if(valEl) valEl.textContent='₹'+totalVal.toLocaleString('en-IN',{maximumFractionDigits:2});
 
+  // Pagination
+  const totalItems=filtered.length;
+  const totalPages=Math.max(1,Math.ceil(totalItems/_stkPageSize));
+  if(_stkPage>totalPages) _stkPage=totalPages;
+  const startIdx=(_stkPage-1)*_stkPageSize;
+  const pageItems=filtered.slice(startIdx,startIdx+_stkPageSize);
+  const pageInfo=document.getElementById('stk-page-info');
+  if(pageInfo) pageInfo.textContent=totalItems?`${startIdx+1}–${Math.min(startIdx+_stkPageSize,totalItems)} of ${totalItems}`:'0 of 0';
+
   // Table rows
   const el=document.getElementById('stock-list');
   if(!el) return;
-  if(!filtered.length){
-    el.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px;font-weight:700">Koi material nahi mila</div>';
+  if(!pageItems.length){
+    el.innerHTML='<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--muted);font-size:13px;font-weight:700">Koi material nahi mila</td></tr>';
     return;
   }
-  el.innerHTML=filtered.map((it,i)=>{
+  const impColor={High:'#b91c1c',Normal:'#1d4ed8',Low:'#64748b'};
+  el.innerHTML=pageItems.map((it,i)=>{
     const st=getStockStatus(it);
     const col=st==='crit'?'var(--red)':st==='low'?'#d97706':'var(--green-dark)';
     const bg=i%2===0?'#fff':'#fafbff';
     const purUnit=it.purUnit||it.unit;
     const hasConv=it.convRatio>1||purUnit!==it.unit;
     const val=(it.current*(it.rate||0));
-    const statusDot=st==='crit'?'🔴':st==='low'?'🟡':'🟢';
-    return `<div style="display:grid;grid-template-columns:32px 1fr 60px 60px 70px 54px;gap:6px;padding:9px 10px;background:${bg};border-bottom:1px solid var(--border);align-items:center;cursor:pointer" onclick="openStkEditModal('${it.id}')">
-      <div style="font-size:16px;text-align:center">${it.ico||'📦'}</div>
-      <div>
+    const imp=it.importance||'Normal';
+    return `<tr style="background:${bg};border-bottom:1px solid var(--border);cursor:pointer" onclick="openStkEditModal('${it.id}')">
+      <td style="padding:8px 8px;text-align:center;font-size:16px">${it.ico||'📦'}</td>
+      <td style="padding:8px 8px">
         <div style="font-size:12px;font-weight:800;color:var(--navy2)">${esc(it.name)}</div>
-        <div style="font-size:9px;color:var(--muted);font-weight:700">${it.cat}${hasConv?` · ${purUnit}→${it.unit}(×${it.convRatio})`:''}</div>
-      </div>
-      <div style="font-size:12px;font-weight:800;color:${col};text-align:right">${+parseFloat(it.current||0).toFixed(4)} <span style="font-size:9px;font-weight:700">${it.unit}</span></div>
-      <div style="font-size:11px;font-weight:700;color:var(--muted);text-align:right">₹${(it.rate||0).toLocaleString('en-IN')}</div>
-      <div style="font-size:11px;font-weight:800;color:var(--navy2);text-align:right">₹${val.toLocaleString('en-IN',{maximumFractionDigits:0})}</div>
-      <div style="display:flex;gap:3px;justify-content:flex-end" onclick="event.stopPropagation()">
-        <button onclick="openStk('${it.id}','in')" title="Aaya" style="width:24px;height:24px;background:var(--green-bg);border:1px solid #6ee7b7;border-radius:6px;cursor:pointer;font-size:11px">+</button>
-        <button onclick="openStk('${it.id}','out')" title="Gaya" style="width:24px;height:24px;background:var(--red-bg);border:1px solid #fca5a5;border-radius:6px;cursor:pointer;font-size:11px">−</button>
-        ${it.isMfg?`<button onclick="openMfgModal('${it.id}')" title="Manufacture" style="width:24px;height:24px;background:#dbeafe;border:1px solid #93c5fd;border-radius:6px;cursor:pointer;font-size:11px">🏭</button>`:''}
-      </div>
-    </div>`;
+        ${hasConv?`<div style="font-size:9px;color:var(--muted);font-weight:700">${purUnit}→${it.unit}(×${it.convRatio})</div>`:''}
+      </td>
+      <td style="padding:8px 8px;font-size:11px;color:var(--muted);font-weight:700">${esc(it.code||'—')}</td>
+      <td style="padding:8px 8px"><span style="font-size:10px;font-weight:800;color:${impColor[imp]||'#1d4ed8'}">${imp}</span></td>
+      <td style="padding:8px 8px;font-size:11px;color:var(--navy2)">
+        <div style="font-weight:700">${esc(it.cat||'')}</div>
+        ${it.subcat?`<div style="font-size:9px;color:var(--muted)">${esc(it.subcat)}</div>`:''}
+      </td>
+      <td style="padding:8px 8px;text-align:right;font-size:12px;font-weight:800;color:${col}">${+parseFloat(it.current||0).toFixed(4)} <span style="font-size:9px;font-weight:700">${it.unit}</span></td>
+      <td style="padding:8px 8px;text-align:right;font-size:11px;font-weight:700;color:var(--muted)">₹${(it.rate||0).toLocaleString('en-IN')}</td>
+      <td style="padding:8px 8px;text-align:right;font-size:11px;font-weight:800;color:var(--navy2)">₹${val.toLocaleString('en-IN',{maximumFractionDigits:0})}</td>
+      <td style="padding:8px 8px" onclick="event.stopPropagation()">
+        <div style="display:flex;gap:3px;justify-content:flex-end">
+          <button onclick="openStk('${it.id}','in')" title="Aaya" style="width:24px;height:24px;background:var(--green-bg);border:1px solid #6ee7b7;border-radius:6px;cursor:pointer;font-size:11px">+</button>
+          <button onclick="openStk('${it.id}','out')" title="Gaya" style="width:24px;height:24px;background:var(--red-bg);border:1px solid #fca5a5;border-radius:6px;cursor:pointer;font-size:11px">−</button>
+          ${it.isMfg?`<button onclick="openMfgModal('${it.id}')" title="Manufacture" style="width:24px;height:24px;background:#dbeafe;border:1px solid #93c5fd;border-radius:6px;cursor:pointer;font-size:11px">🏭</button>`:''}
+          <button onclick="openStkEditModal('${it.id}')" title="Edit" style="width:24px;height:24px;background:#f1f5f9;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:11px">✎</button>
+        </div>
+      </td>
+    </tr>`;
   }).join('');
 }
 function renderStockHistory(){
@@ -6692,10 +6823,13 @@ function renderStockHistory(){
   const el = document.getElementById('stk-hist-body');
   if(!el) return;
 
-  // Populate item filter once
+  // Populate item filter — rebuilt every render so new/deleted items always stay in sync
   const itemSel = document.getElementById('stk-hist-item');
-  if(itemSel && itemSel.options.length<=1){
-    STK.forEach(m=>{ const o=document.createElement('option'); o.value=m.id; o.textContent=(m.ico||'📦')+' '+m.name; itemSel.appendChild(o); });
+  if(itemSel){
+    const selectedVal = itemSel.value;
+    itemSel.innerHTML = '<option value="">All Items</option>' +
+      STK.map(m=>`<option value="${m.id}">${(m.ico||'📦')+' '+esc(m.name)}</option>`).join('');
+    if(STK.some(m=>m.id===selectedVal)) itemSel.value = selectedVal;
   }
 
   const filterItem   = document.getElementById('stk-hist-item')?.value||'';
@@ -7159,6 +7293,170 @@ function addStockItem(){
   saveStock(); renderStock();
 }
 function saveStock(){ save('bf9_stk',STK); toast('Stock save ho gaya! ✓'); }
+
+/* ═══════════════ REORDER SUGGESTIONS + AUTO PO ═══════════════ */
+let _reorderSelected = new Set();
+function openReorderPanel(){
+  const list=STK.filter(i=>getStockStatus(i)!=='ok');
+  _reorderSelected = new Set(list.map(i=>i.id)); // default all selected
+  renderReorderList();
+  document.getElementById('stk-reorder-modal')?.classList.add('show');
+}
+function closeReorderPanel(){ document.getElementById('stk-reorder-modal')?.classList.remove('show'); }
+function _stkSuggestedQty(it){
+  // Suggest enough to top up past reorder level, at least the configured order qty
+  const shortfall = Math.max(0, (it.reorder||0)*2 - (it.current||0));
+  return +(Math.max(shortfall, it.orderQty||0, it.reorder||1)).toFixed(2);
+}
+function reorderToggleItem(id){
+  if(_reorderSelected.has(id)) _reorderSelected.delete(id); else _reorderSelected.add(id);
+  renderReorderList();
+}
+function renderReorderList(){
+  const wrap=document.getElementById('stk-reorder-list');
+  if(!wrap) return;
+  const list=STK.filter(i=>getStockStatus(i)!=='ok').sort((a,b)=>getStockStatus(a)==='crit'?-1:1);
+  if(!list.length){
+    wrap.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;font-weight:700">🎉 Sab stock theek hai — kuch bhi reorder nahi karna!</div>';
+    document.getElementById('stk-reorder-total').textContent='0 items';
+    return;
+  }
+  wrap.innerHTML=list.map(it=>{
+    const st=getStockStatus(it);
+    const checked=_reorderSelected.has(it.id);
+    const sugQty=_stkSuggestedQty(it);
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid ${st==='crit'?'#fca5a5':'#fde68a'};background:${st==='crit'?'#fef2f2':'#fffbeb'};border-radius:var(--r3);margin-bottom:6px">
+      <input type="checkbox" ${checked?'checked':''} onchange="reorderToggleItem('${it.id}')" style="width:16px;height:16px;flex-shrink:0">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:800;color:var(--navy2)">${it.ico||'📦'} ${esc(it.name)}</div>
+        <div style="font-size:10px;color:var(--muted);font-weight:700">Current: ${it.current} ${it.unit} · Reorder level: ${it.reorder||0} ${it.unit}${it.suppliers?' · '+esc(it.suppliers):''}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <input type="number" value="${sugQty}" min="0" step="any" data-id="${it.id}" class="finp reorder-qty-inp" style="width:70px;padding:5px 6px;font-size:11px;text-align:right">
+        <div style="font-size:9px;color:var(--muted)">${it.unit}</div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('stk-reorder-total').textContent=list.length+' items need reorder';
+}
+function stkCreatePOFromReorder(){
+  const rows=[];
+  document.querySelectorAll('.reorder-qty-inp').forEach(inp=>{
+    const id=inp.dataset.id;
+    if(!_reorderSelected.has(id)) return;
+    const qty=parseFloat(inp.value)||0;
+    if(qty<=0) return;
+    const mat=STK.find(i=>i.id===id);
+    if(!mat) return;
+    rows.push({mat,qty});
+  });
+  if(!rows.length){ toast('Kam se kam ek item select karo!'); return; }
+
+  // Switch to Purchases module and open the invoice form
+  const btn=document.querySelector('.sbnav[data-tab="inv-purchase"]');
+  if(typeof sw==='function') sw('inv-purchase', btn);
+  if(typeof _purOpenInvoiceForm==='function') _purOpenInvoiceForm();
+
+  // Prefill rows — qty is in stock unit; convert to purchase unit using convRatio
+  _purRows = rows.map((r,i)=>{
+    const convRatio=r.mat.convRatio||1;
+    const purQty = convRatio>1 ? +(r.qty/convRatio).toFixed(3) : r.qty;
+    return {id:'pr_'+(++_purRowCounter), matId:r.mat.id, qty:purQty, rate:r.mat.rate||r.mat.stdCost||0, convRatio:0, hsn:r.mat.hsn||'', discAmt:0, gstPct:r.mat.gst||18};
+  });
+  if(typeof invPurRenderRows==='function') invPurRenderRows();
+  // Reflect values in DOM inputs + trigger calc for totals
+  _purRows.forEach(row=>{
+    const matSel=document.getElementById('purmat-'+row.id);
+    if(matSel){ matSel.value=row.matId; }
+    if(typeof invPurOnMatChange==='function') invPurOnMatChange(row.id);
+    const qtyEl=document.getElementById('purqty-'+row.id); if(qtyEl) qtyEl.value=row.qty;
+    const rateEl=document.getElementById('purrate-'+row.id); if(rateEl) rateEl.value=row.rate;
+    const gstEl=document.getElementById('purgst-'+row.id); if(gstEl) gstEl.value=row.gstPct;
+    if(typeof invPurRowCalc==='function') invPurRowCalc(row.id);
+  });
+  closeReorderPanel();
+  toast(`✅ ${rows.length} items se Purchase Order draft ban gaya — supplier aur rate confirm karo!`);
+}
+
+/* ═══════════════ EXCEL IMPORT / EXPORT ═══════════════ */
+function exportStockExcel(){
+  if(!window.XLSX){ toast('❌ XLSX library load nahi hui — page refresh karo'); return; }
+  const rows=STK.map(it=>({
+    'Item Name':it.name, 'Code':it.code||'', 'Category':it.cat||'', 'Sub-Category':it.subcat||'',
+    'Importance':it.importance||'Normal', 'Stock Unit':it.unit, 'Purchase Unit':it.purUnit||it.unit,
+    'Conv Ratio':it.convRatio||1, 'Current Stock':it.current||0, 'Reorder Level':it.reorder||0,
+    'Order Qty':it.orderQty||0, 'Rate':it.rate||0, 'Std Cost':it.stdCost||0, 'Sale Price':it.salePrice||0,
+    'HSN':it.hsn||'', 'GST %':it.gst||0, 'Supplier':it.suppliers||''
+  }));
+  const ws=XLSX.utils.json_to_sheet(rows);
+  ws['!cols']=[{wch:26},{wch:12},{wch:16},{wch:16},{wch:11},{wch:10},{wch:12},{wch:10},{wch:12},{wch:12},{wch:10},{wch:9},{wch:9},{wch:10},{wch:10},{wch:8},{wch:20}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Stock');
+  XLSX.writeFile(wb,`Stock_Export_${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast('✅ Excel file download ho gayi!');
+}
+function importStockExcel(input){
+  const file=input.files?.[0];
+  if(!file) return;
+  if(!window.XLSX){ toast('❌ XLSX library load nahi hui — page refresh karo'); input.value=''; return; }
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      const sheetName=wb.SheetNames[0];
+      const rows=XLSX.utils.sheet_to_json(wb.Sheets[sheetName],{defval:''});
+      if(!rows.length){ toast('❌ Excel file mein koi data nahi mila'); input.value=''; return; }
+      let added=0, updated=0;
+      rows.forEach(r=>{
+        const name=(r['Item Name']||r['Name']||'').toString().trim();
+        if(!name) return;
+        const code=(r['Code']||'').toString().trim();
+        // Match existing item by Code first, else by Name (case-insensitive)
+        let mat = code ? STK.find(m=>(m.code||'').toLowerCase()===code.toLowerCase()) : null;
+        if(!mat) mat = STK.find(m=>m.name.toLowerCase()===name.toLowerCase());
+        const get=(k,def)=> r[k]!==undefined && r[k]!=='' ? r[k] : def;
+        if(mat){
+          mat.name=name;
+          mat.code=code||mat.code;
+          mat.cat=get('Category',mat.cat);
+          mat.subcat=get('Sub-Category',mat.subcat);
+          mat.importance=get('Importance',mat.importance);
+          mat.unit=get('Stock Unit',mat.unit);
+          mat.purUnit=get('Purchase Unit',mat.purUnit);
+          mat.convRatio=parseFloat(get('Conv Ratio',mat.convRatio))||1;
+          mat.current=parseFloat(get('Current Stock',mat.current))||0;
+          mat.reorder=parseFloat(get('Reorder Level',mat.reorder))||0;
+          mat.orderQty=parseFloat(get('Order Qty',mat.orderQty))||0;
+          mat.rate=parseFloat(get('Rate',mat.rate))||0;
+          mat.stdCost=parseFloat(get('Std Cost',mat.stdCost))||0;
+          mat.salePrice=parseFloat(get('Sale Price',mat.salePrice))||0;
+          mat.hsn=get('HSN',mat.hsn);
+          mat.gst=parseFloat(get('GST %',mat.gst))||0;
+          mat.suppliers=get('Supplier',mat.suppliers);
+          updated++;
+        } else {
+          STK.push({
+            id:'S'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+            name, code, cat:get('Category','Raw Material'), subcat:get('Sub-Category',''),
+            importance:get('Importance','Normal'), unit:get('Stock Unit','pcs'), purUnit:get('Purchase Unit',get('Stock Unit','pcs')),
+            convRatio:parseFloat(get('Conv Ratio',1))||1, current:parseFloat(get('Current Stock',0))||0,
+            reorder:parseFloat(get('Reorder Level',0))||0, orderQty:parseFloat(get('Order Qty',0))||0,
+            rate:parseFloat(get('Rate',0))||0, stdCost:parseFloat(get('Std Cost',0))||0, salePrice:parseFloat(get('Sale Price',0))||0,
+            hsn:get('HSN',''), gst:parseFloat(get('GST %',18))||18, suppliers:get('Supplier',''), ico:'📦'
+          });
+          added++;
+        }
+      });
+      save('bf9_stk',STK);
+      renderStock();
+      toast(`✅ Import ho gaya! ${added} naye items, ${updated} update hue.`);
+    }catch(err){
+      toast('❌ Import fail: '+err.message);
+    }
+    input.value='';
+  };
+  reader.readAsArrayBuffer(file);
+}
 
 /* ═══════════════ HISTORY ═══════════════ */
 let hTab='hist';
