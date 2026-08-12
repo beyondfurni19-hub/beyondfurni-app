@@ -15767,6 +15767,8 @@ function _dbApplyReceiptToForm(parsed){
 function openDbCatDrill(catId, period){
   const allCats = [...DB_CATS.expense, ...DB_CATS.income];
   const cat = allCats.find(c=>c.id===catId) || {label:catId, icon:'💸', color:'#9ca3af'};
+  window._dbDrillCatId = catId;
+  window._dbDrillPeriod = period;
 
   // Filter entries
   let entries = [...DAYBOOK].filter(e=>e.category===catId);
@@ -15824,8 +15826,11 @@ function openDbCatDrill(catId, period){
                   ${e.note?`<span style="font-size:10px;color:var(--muted)">• ${esc(e.note)}</span>`:''}
                 </div>
               </div>
-              <div style="font-size:15px;font-weight:900;color:${e.type==='expense'?'var(--red)':'var(--green)'};margin-left:10px;flex-shrink:0">
-                ${e.type==='expense'?'−':'+'}₹${_fmtAmt(e.amount)}
+              <div style="display:flex;align-items:center;gap:6px;margin-left:10px;flex-shrink:0">
+                <div style="font-size:15px;font-weight:900;color:${e.type==='expense'?'var(--red)':'var(--green)'}">
+                  ${e.type==='expense'?'−':'+'}₹${_fmtAmt(e.amount)}
+                </div>
+                <button onclick="_dbQuickCat('${e.id}',event)" title="Category badlo" style="padding:3px 7px;background:#f0f4ff;border:1px solid var(--border);border-radius:6px;font-size:11px;cursor:pointer;color:var(--navy2);font-weight:800">✏️</button>
               </div>
             </div>`).join('')}
         </div>`;
@@ -17204,6 +17209,11 @@ function _dbApplyQuickCat(entryId, newCatId){
   save('bf9_daybook', DAYBOOK);
   document.getElementById('_db_qcat_pop')?.remove();
   renderDaybook();
+  // Agar drill-down popup khula hai, usko bhi refresh karo
+  const drillModal = document.getElementById('db-drill-modal');
+  if(drillModal && drillModal.style.display==='flex' && window._dbDrillCatId){
+    openDbCatDrill(window._dbDrillCatId, window._dbDrillPeriod);
+  }
   const cat = [...DB_CATS.expense,...DB_CATS.income].find(c=>c.id===newCatId);
   toast(`✅ Category → ${cat?.icon||''} ${cat?.label||newCatId}`);
 }
