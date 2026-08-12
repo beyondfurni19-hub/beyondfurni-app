@@ -1482,6 +1482,14 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
     </button>
   </div>
 
+  <!-- Finance Tools -->
+  <div class="sb-section">
+    <div class="sb-section-label">Finance</div>
+    <button class="sbnav" data-tab="fintools" onclick="sw('fintools',this)">
+      <span class="sb-ico">📊</span><span class="sb-lbl">Finance Tools</span>
+    </button>
+  </div>
+
   <!-- Settings -->
   <div class="sb-section" style="margin-top:auto;border-top:1px solid #1e3060;padding-top:8px">
     <div id="auth-user-badge" style="display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:6px">
@@ -3524,6 +3532,109 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 </div></div>
 </div>
 
+<!-- ════ FINANCE TOOLS ════ -->
+<div class="sc" id="s-fintools">
+  <div style="display:flex;gap:5px;margin-bottom:10px;background:var(--card);border-radius:var(--r);padding:5px;border:1px solid var(--border);flex-wrap:wrap">
+    <button class="htab active" id="fttab-costing"   onclick="setFtTab('costing')">📊 Costing</button>
+    <button class="htab" id="fttab-inventory" onclick="setFtTab('inventory')">📦 Inventory</button>
+    <button class="htab" id="fttab-cashflow"  onclick="setFtTab('cashflow')">💰 Cash Flow</button>
+    <button class="htab" id="fttab-gst"       onclick="setFtTab('gst')">🧾 GST &amp; MIS</button>
+  </div>
+
+  <!-- ══ COSTING & BREAK-EVEN ══ -->
+  <div id="ft-costing-pane">
+    <div class="card">
+      <div class="card-hdr"><div class="card-title">📊 Product Costing &amp; Break-Even</div><div class="card-sub">BOM se material cost auto-fetch hota hai</div></div>
+      <div class="fg"><label>Product</label>
+        <select class="finp" id="ft-cost-product" onchange="ftCostingLoad()"></select>
+      </div>
+      <div class="g2">
+        <div class="fg"><label>Material Cost/unit (auto)</label><input class="finp" id="ft-cost-material" readonly style="background:#f0f4ff;font-weight:800"></div>
+        <div class="fg"><label>Labor Cost/unit ₹</label><input class="finp" type="number" id="ft-cost-labor" placeholder="0" oninput="ftCalcCosting()"></div>
+      </div>
+      <div class="g2">
+        <div class="fg"><label>Other Overhead/unit ₹</label><input class="finp" type="number" id="ft-cost-overhead" placeholder="0" oninput="ftCalcCosting()"></div>
+        <div class="fg"><label>Selling Price/unit ₹</label><input class="finp" type="number" id="ft-cost-price" placeholder="0" oninput="ftCalcCosting()"></div>
+      </div>
+      <div class="fg"><label>Monthly Fixed Costs ₹ (rent, salary, etc.)</label><input class="finp" type="number" id="ft-cost-fixed" placeholder="0" oninput="ftCalcCosting()"></div>
+    </div>
+    <div class="card" id="ft-cost-result"></div>
+  </div>
+
+  <!-- ══ INVENTORY INTELLIGENCE ══ -->
+  <div id="ft-inventory-pane" style="display:none">
+    <div class="card">
+      <div class="card-hdr"><div class="card-title">🔺 ABC Inventory Analysis</div><div class="card-sub">Live Stock module data se, value ke hisaab se</div></div>
+      <div id="ft-abc-summary" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px"></div>
+      <div id="ft-abc-list"></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-title">💀 Dead Stock (90+ din se movement nahi)</div></div>
+      <div id="ft-deadstock-list"></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-title">🧮 EOQ Calculator</div><div class="card-sub">Economic Order Quantity — optimal order size</div></div>
+      <div class="fg"><label>Material</label>
+        <select class="finp" id="ft-eoq-mat" onchange="ftEoqLoad()"></select>
+      </div>
+      <div class="g3">
+        <div class="fg"><label>Annual Demand (auto est.)</label><input class="finp" type="number" id="ft-eoq-demand" oninput="ftCalcEoq()"></div>
+        <div class="fg"><label>Ordering Cost ₹/order</label><input class="finp" type="number" id="ft-eoq-order-cost" placeholder="500" oninput="ftCalcEoq()"></div>
+        <div class="fg"><label>Holding Cost ₹/unit/yr</label><input class="finp" type="number" id="ft-eoq-hold-cost" placeholder="0" oninput="ftCalcEoq()"></div>
+      </div>
+      <div id="ft-eoq-result"></div>
+    </div>
+  </div>
+
+  <!-- ══ CASH FLOW & AGING ══ -->
+  <div id="ft-cashflow-pane" style="display:none">
+    <div class="card">
+      <div class="card-hdr"><div class="card-title">⏳ Aging Snapshot</div><div class="card-sub">Detail ke liye Ledger → Ageing tab kholo</div></div>
+      <div id="ft-aging-summary" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px"></div>
+      <button class="btn-small btn-sm-blue" onclick="sw('ledger',document.querySelector('.sbnav[data-tab=ledger]'));setTimeout(()=>setLedTab('ageing'),50)">⏳ Full Ageing Report Kholo</button>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-title">📅 30-Day Cash Flow Projection</div></div>
+      <div class="fg"><label>Opening Cash/Bank Balance ₹</label><input class="finp" type="number" id="ft-cf-opening" placeholder="0" oninput="ftCalcCashflow()"></div>
+      <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;margin:8px 0 4px">Expected Outflows (next 30 din)</div>
+      <div class="g2">
+        <div class="fg"><label>Raw Material ₹</label><input class="finp" type="number" id="ft-cf-material" placeholder="0" oninput="ftCalcCashflow()"></div>
+        <div class="fg"><label>Salaries ₹</label><input class="finp" type="number" id="ft-cf-salary" placeholder="0" oninput="ftCalcCashflow()"></div>
+      </div>
+      <div class="g2">
+        <div class="fg"><label>Rent + Utilities ₹</label><input class="finp" type="number" id="ft-cf-rent" placeholder="0" oninput="ftCalcCashflow()"></div>
+        <div class="fg"><label>Other Expenses ₹</label><input class="finp" type="number" id="ft-cf-other" placeholder="0" oninput="ftCalcCashflow()"></div>
+      </div>
+    </div>
+    <div class="card" id="ft-cf-result"></div>
+  </div>
+
+  <!-- ══ GST/ITC & MIS ══ -->
+  <div id="ft-gst-pane" style="display:none">
+    <div class="card">
+      <div class="card-hdr"><div class="card-title">🧾 GST / ITC Tracker — <span id="ft-gst-month-lbl"></span></div></div>
+      <div class="g2">
+        <div class="fg"><label>GST Collected on Sales (auto)</label><input class="finp" id="ft-gst-output" readonly style="background:#f0f4ff;font-weight:800"></div>
+        <div class="fg"><label>GST Paid on Purchases (ITC) ₹</label><input class="finp" type="number" id="ft-gst-input" placeholder="0" oninput="ftCalcGst()"></div>
+      </div>
+      <div id="ft-gst-result"></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-title">📋 MIS Snapshot</div><div class="card-sub">Live ERP data se — owner ko dikhane laayak</div></div>
+      <div id="ft-mis-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-title">📐 Quick Financial Ratios</div></div>
+      <div class="g2">
+        <div class="fg"><label>Cash in Hand/Bank ₹</label><input class="finp" type="number" id="ft-ratio-cash" placeholder="0" oninput="ftCalcRatios()"></div>
+        <div class="fg"><label>Current Liabilities ₹</label><input class="finp" type="number" id="ft-ratio-cl" placeholder="0" oninput="ftCalcRatios()"></div>
+      </div>
+      <div id="ft-ratio-result"></div>
+    </div>
+  </div>
+</div>
+
+
 <!-- ════ INVENTORY: PURCHASE ENTRY ════ -->
 <div class="sc" id="s-inv-purchase">
   <div class="card-title" style="font-size:14px;margin-bottom:12px">🛒 Purchase Entry</div>
@@ -5400,6 +5511,7 @@ function sw(name,btn){
   if(name==='inv-purchase')  { invInitPurForm(); invRenderPurLogMini(); }
   if(name==='inv-produce')   { invInitProdForm(); invRenderProdLogMini(); }
   if(name==='inv-bom')       { invRenderBOM(); invRenderConversion(); invRenderMatSettings(); invRenderProductChips(); invRenderBomMatQuickList(); }
+  if(name==='fintools')      renderFinanceTools();
 }
 
 function toggleSidebar(){
@@ -5415,6 +5527,365 @@ function closeSidebar(){
 function goMeeting(){
   const btn=document.querySelector('.bnav[data-tab="meeting"]');
   sw('meeting',btn);
+}
+
+/* ═══════════════ FINANCE TOOLS MODULE ═══════════════
+   Uses live ERP data: STK, STXN, LEDGER, CUSTOMERS, INVOICES
+   localStorage prefix: bf9_ft_ */
+const FT_SK='bf9_ft_';
+const FT_LS={
+  get:(k,d)=>{ try{ const v=localStorage.getItem(FT_SK+k); return v!=null?JSON.parse(v):d; }catch{return d;} },
+  set:(k,v)=>{ try{ localStorage.setItem(FT_SK+k,JSON.stringify(v)); clearTimeout(_gdPushTimer); _gdPushTimer=setTimeout(gdPush,3000); }catch{} }
+};
+
+function setFtTab(name){
+  ['costing','inventory','cashflow','gst'].forEach(t=>{
+    document.getElementById('ft-'+t+'-pane').style.display = t===name?'block':'none';
+    document.getElementById('fttab-'+t)?.classList.toggle('active',t===name);
+  });
+  if(name==='costing')   ftRenderCostingTab();
+  if(name==='inventory') ftRenderInventoryTab();
+  if(name==='cashflow')  ftRenderCashflowTab();
+  if(name==='gst')       ftRenderGstTab();
+}
+
+function renderFinanceTools(){ ftRenderCostingTab(); }
+
+/* ───────── TAB 1: COSTING & BREAK-EVEN ───────── */
+function ftRenderCostingTab(){
+  const sel=document.getElementById('ft-cost-product');
+  const products = (typeof invGetProducts==='function') ? invGetProducts() : [];
+  sel.innerHTML = products.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('') || '<option value="">Koi product nahi mila</option>';
+  ftCostingLoad();
+}
+
+function ftMaterialCostForProduct(pid){
+  if(!pid || typeof invGetBOMForProduct!=='function') return 0;
+  const bom = invGetBOMForProduct(pid);
+  let cost=0;
+  Object.keys(bom||{}).forEach(matId=>{
+    const qty=bom[matId]||0;
+    if(qty<=0) return;
+    const mat = (STK||[]).find(m=>m.id===matId);
+    if(mat) cost += qty * (mat.rate||0);
+  });
+  return cost;
+}
+
+function ftCostingLoad(){
+  const pid=document.getElementById('ft-cost-product').value;
+  const matCost=ftMaterialCostForProduct(pid);
+  document.getElementById('ft-cost-material').value = '₹'+matCost.toFixed(2);
+  const saved=FT_LS.get('costing_'+pid, {});
+  document.getElementById('ft-cost-labor').value    = saved.labor||'';
+  document.getElementById('ft-cost-overhead').value = saved.overhead||'';
+  document.getElementById('ft-cost-price').value    = saved.price||'';
+  document.getElementById('ft-cost-fixed').value    = saved.fixed||'';
+  ftCalcCosting();
+}
+
+function ftCalcCosting(){
+  const pid=document.getElementById('ft-cost-product').value;
+  const matCost=ftMaterialCostForProduct(pid);
+  const labor=parseFloat(document.getElementById('ft-cost-labor').value)||0;
+  const overhead=parseFloat(document.getElementById('ft-cost-overhead').value)||0;
+  const price=parseFloat(document.getElementById('ft-cost-price').value)||0;
+  const fixed=parseFloat(document.getElementById('ft-cost-fixed').value)||0;
+
+  FT_LS.set('costing_'+pid, {labor,overhead,price,fixed});
+
+  const totalCost = matCost+labor+overhead;
+  const variableCost = matCost+labor; // overhead treated as largely fixed/semi-fixed
+  const profitPerUnit = price-totalCost;
+  const marginPct = price>0 ? (profitPerUnit/price*100) : 0;
+  const contribution = price-variableCost;
+  const beUnits = contribution>0 ? Math.ceil(fixed/contribution) : null;
+  const beRevenue = beUnits!=null ? beUnits*price : null;
+
+  const el=document.getElementById('ft-cost-result');
+  if(price<=0){
+    el.innerHTML=`<div style="text-align:center;color:var(--muted);font-size:12px;font-weight:700;padding:14px">Selling price daalo calculation dekhne ke liye</div>`;
+    return;
+  }
+  el.innerHTML=`
+    <div class="card-title" style="margin-bottom:10px">📈 Result</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <div style="background:#f7fafc;border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase">Total Cost/unit</div>
+        <div style="font-size:16px;font-weight:900;color:#1a202c">₹${totalCost.toFixed(2)}</div>
+      </div>
+      <div style="background:${profitPerUnit>=0?'#e6fff3':'#fff0f0'};border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase">Profit/unit</div>
+        <div style="font-size:16px;font-weight:900;color:${profitPerUnit>=0?'var(--green-dark)':'var(--red-dark)'}">₹${profitPerUnit.toFixed(2)}</div>
+      </div>
+      <div style="background:#f7fafc;border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase">Margin %</div>
+        <div style="font-size:16px;font-weight:900;color:#1a202c">${marginPct.toFixed(1)}%</div>
+      </div>
+      <div style="background:#f7fafc;border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase">Contribution/unit</div>
+        <div style="font-size:16px;font-weight:900;color:#1a202c">₹${contribution.toFixed(2)}</div>
+      </div>
+    </div>
+    ${fixed>0 ? `
+    <div style="background:#eff6ff;border-radius:8px;padding:12px">
+      <div style="font-size:10px;font-weight:900;color:#1a365d;text-transform:uppercase;margin-bottom:6px">⚖️ Break-Even Point</div>
+      ${beUnits!=null ? `
+        <div style="font-size:13px;font-weight:800;color:#1a202c">${beUnits.toLocaleString('en-IN')} units/month</div>
+        <div style="font-size:11px;color:var(--muted);font-weight:700">= ₹${beRevenue.toLocaleString('en-IN')} revenue/month to cover fixed costs</div>
+      ` : `<div style="font-size:12px;color:var(--red-dark);font-weight:700">Contribution margin ≤0 — is price pe break-even possible nahi</div>`}
+    </div>` : `<div style="font-size:11px;color:var(--muted);font-weight:700;text-align:center">Monthly fixed cost daalo break-even units dekhne ke liye</div>`}
+  `;
+}
+
+/* ───────── TAB 2: INVENTORY INTELLIGENCE ───────── */
+function ftGetStockValued(){
+  return (STK||[]).map(m=>({...m, value:(m.current||0)*(m.rate||0)})).sort((a,b)=>b.value-a.value);
+}
+
+function ftRenderInventoryTab(){
+  const items=ftGetStockValued();
+  const totalValue=items.reduce((s,m)=>s+m.value,0);
+  let cum=0;
+  const classified=items.map(m=>{
+    cum+=m.value;
+    const cumPct = totalValue>0 ? (cum/totalValue*100) : 0;
+    const cls = cumPct<=80 ? 'A' : cumPct<=95 ? 'B' : 'C';
+    return {...m, cumPct, cls};
+  });
+  const counts={A:0,B:0,C:0}, vals={A:0,B:0,C:0};
+  classified.forEach(m=>{ counts[m.cls]++; vals[m.cls]+=m.value; });
+  const clsInfo={A:{color:'var(--red-dark)',bg:'var(--red-bg)',label:'A — High Value'},B:{color:'var(--yellow-dark)',bg:'var(--yellow-bg)',label:'B — Medium'},C:{color:'var(--green-dark)',bg:'var(--green-bg)',label:'C — Low Value'}};
+
+  document.getElementById('ft-abc-summary').innerHTML = ['A','B','C'].map(c=>`
+    <div style="background:${clsInfo[c].bg};border-radius:8px;padding:10px;text-align:center">
+      <div style="font-size:9px;font-weight:900;color:${clsInfo[c].color};text-transform:uppercase">${clsInfo[c].label}</div>
+      <div style="font-size:15px;font-weight:900;color:${clsInfo[c].color};margin-top:2px">${counts[c]} items</div>
+      <div style="font-size:10px;font-weight:700;color:${clsInfo[c].color}">₹${vals[c].toLocaleString('en-IN')}</div>
+    </div>`).join('');
+
+  document.getElementById('ft-abc-list').innerHTML = classified.filter(m=>m.value>0).slice(0,25).map(m=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid #eef1f6">
+      <span style="width:20px;height:20px;border-radius:5px;background:${clsInfo[m.cls].bg};color:${clsInfo[m.cls].color};font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">${m.cls}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:800;color:#1a202c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.name)}</div>
+        <div style="font-size:10px;color:var(--muted)">${(m.current||0).toLocaleString('en-IN')} ${m.unit||''} × ₹${m.rate||0}</div>
+      </div>
+      <div style="font-size:12px;font-weight:900;color:#1a202c">₹${m.value.toLocaleString('en-IN')}</div>
+    </div>`).join('') || `<div style="text-align:center;color:var(--muted);font-size:12px;font-weight:700;padding:14px">Stock mein rate set nahi hai kisi item ka</div>`;
+
+  // Dead stock — no 'out' transaction in last 90 days
+  const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-90);
+  const lastOut={};
+  (STXN||[]).filter(t=>t.type==='out').forEach(t=>{
+    const d=new Date(t.date);
+    if(!lastOut[t.itemId] || d>lastOut[t.itemId]) lastOut[t.itemId]=d;
+  });
+  const dead = items.filter(m=>(m.current||0)>0).map(m=>{
+    const last=lastOut[m.id];
+    const stale = !last || last<cutoff;
+    return {...m, last, stale};
+  }).filter(m=>m.stale).sort((a,b)=>b.value-a.value);
+
+  document.getElementById('ft-deadstock-list').innerHTML = dead.length ? dead.map(m=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid #eef1f6">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:800;color:#1a202c">${esc(m.name)}</div>
+        <div style="font-size:10px;color:var(--muted)">Last movement: ${m.last?_fmtDate(m.last.toISOString().split('T')[0]):'Kabhi nahi'}</div>
+      </div>
+      <div style="font-size:12px;font-weight:900;color:var(--red-dark)">₹${m.value.toLocaleString('en-IN')}</div>
+    </div>`).join('') : `<div style="text-align:center;color:var(--green-dark);font-size:12px;font-weight:700;padding:14px">✅ Koi dead stock nahi</div>`;
+
+  // EOQ material dropdown
+  const eoqSel=document.getElementById('ft-eoq-mat');
+  eoqSel.innerHTML = (STK||[]).map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('');
+  ftEoqLoad();
+}
+
+function ftAnnualUsageEstimate(matId){
+  const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-90);
+  const recent=(STXN||[]).filter(t=>t.itemId===matId && t.type==='out' && new Date(t.date)>=cutoff);
+  const sum90=recent.reduce((s,t)=>s+(t.qty||0),0);
+  return Math.round(sum90*4); // extrapolate 90-day usage to annual
+}
+
+function ftEoqLoad(){
+  const matId=document.getElementById('ft-eoq-mat').value;
+  const saved=FT_LS.get('eoq_'+matId, {});
+  document.getElementById('ft-eoq-demand').value = saved.demand!=null ? saved.demand : ftAnnualUsageEstimate(matId);
+  document.getElementById('ft-eoq-order-cost').value = saved.orderCost||'';
+  const mat=(STK||[]).find(m=>m.id===matId);
+  document.getElementById('ft-eoq-hold-cost').value = saved.holdCost!=null ? saved.holdCost : (mat?((mat.rate||0)*0.15).toFixed(2):'');
+  ftCalcEoq();
+}
+
+function ftCalcEoq(){
+  const matId=document.getElementById('ft-eoq-mat').value;
+  const demand=parseFloat(document.getElementById('ft-eoq-demand').value)||0;
+  const orderCost=parseFloat(document.getElementById('ft-eoq-order-cost').value)||0;
+  const holdCost=parseFloat(document.getElementById('ft-eoq-hold-cost').value)||0;
+  FT_LS.set('eoq_'+matId, {demand,orderCost,holdCost});
+
+  const el=document.getElementById('ft-eoq-result');
+  if(demand<=0 || orderCost<=0 || holdCost<=0){
+    el.innerHTML=`<div style="font-size:11px;color:var(--muted);font-weight:700;text-align:center;padding:8px">Demand, ordering cost aur holding cost teeno daalo</div>`;
+    return;
+  }
+  const eoq=Math.sqrt((2*demand*orderCost)/holdCost);
+  const ordersPerYear=demand/eoq;
+  const daysBetween=365/ordersPerYear;
+  el.innerHTML=`
+    <div style="background:#eff6ff;border-radius:8px;padding:12px;margin-top:8px">
+      <div style="font-size:10px;font-weight:900;color:#1a365d;text-transform:uppercase;margin-bottom:6px">Optimal Order Quantity</div>
+      <div style="font-size:18px;font-weight:900;color:#1a202c">${Math.round(eoq).toLocaleString('en-IN')} units/order</div>
+      <div style="font-size:11px;color:var(--muted);font-weight:700;margin-top:4px">≈ ${ordersPerYear.toFixed(1)} orders/year · har ${Math.round(daysBetween)} din mein ek order</div>
+    </div>`;
+}
+
+/* ───────── TAB 3: CASH FLOW & AGING ───────── */
+function ftReceivablesPayables(){
+  let receivable=0, payable=0;
+  (CUSTOMERS||[]).forEach(c=>{
+    const bal=_custBalance(c.id);
+    if(bal<=0) return;
+    if(c.type==='supplier') payable+=bal; else receivable+=bal;
+  });
+  return {receivable,payable};
+}
+
+function ftRenderCashflowTab(){
+  const {receivable,payable}=ftReceivablesPayables();
+  document.getElementById('ft-aging-summary').innerHTML = `
+    <div style="background:var(--red-bg);border-radius:8px;padding:12px;text-align:center">
+      <div style="font-size:9px;font-weight:900;color:var(--red-dark);text-transform:uppercase">Total Receivable</div>
+      <div style="font-size:16px;font-weight:900;color:var(--red-dark);margin-top:3px">₹${receivable.toLocaleString('en-IN')}</div>
+    </div>
+    <div style="background:var(--yellow-bg);border-radius:8px;padding:12px;text-align:center">
+      <div style="font-size:9px;font-weight:900;color:var(--yellow-dark);text-transform:uppercase">Total Payable</div>
+      <div style="font-size:16px;font-weight:900;color:var(--yellow-dark);margin-top:3px">₹${payable.toLocaleString('en-IN')}</div>
+    </div>`;
+
+  const saved=FT_LS.get('cashflow',{});
+  document.getElementById('ft-cf-opening').value=saved.opening||'';
+  document.getElementById('ft-cf-material').value=saved.material||'';
+  document.getElementById('ft-cf-salary').value=saved.salary||'';
+  document.getElementById('ft-cf-rent').value=saved.rent||'';
+  document.getElementById('ft-cf-other').value=saved.other||'';
+  ftCalcCashflow();
+}
+
+function ftCalcCashflow(){
+  const opening=parseFloat(document.getElementById('ft-cf-opening').value)||0;
+  const material=parseFloat(document.getElementById('ft-cf-material').value)||0;
+  const salary=parseFloat(document.getElementById('ft-cf-salary').value)||0;
+  const rent=parseFloat(document.getElementById('ft-cf-rent').value)||0;
+  const other=parseFloat(document.getElementById('ft-cf-other').value)||0;
+  FT_LS.set('cashflow',{opening,material,salary,rent,other});
+
+  const {receivable}=ftReceivablesPayables();
+  const totalOutflow=material+salary+rent+other;
+  const projected=opening+receivable-totalOutflow;
+
+  document.getElementById('ft-cf-result').innerHTML=`
+    <div class="card-title" style="margin-bottom:10px">📊 Projected Position (30 din baad)</div>
+    <div style="font-size:11px;color:var(--muted);font-weight:700;line-height:2">
+      Opening Balance &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;₹${opening.toLocaleString('en-IN')}<br>
+      + Expected Collections &nbsp;&nbsp;₹${receivable.toLocaleString('en-IN')}<br>
+      − Expected Outflows &nbsp;&nbsp;&nbsp;&nbsp;₹${totalOutflow.toLocaleString('en-IN')}
+    </div>
+    <div style="background:${projected>=0?'#e6fff3':'#fff0f0'};border-radius:8px;padding:12px;margin-top:8px;text-align:center">
+      <div style="font-size:9px;font-weight:900;color:${projected>=0?'var(--green-dark)':'var(--red-dark)'};text-transform:uppercase">Net Projected Cash</div>
+      <div style="font-size:20px;font-weight:900;color:${projected>=0?'var(--green-dark)':'var(--red-dark)'}">₹${projected.toLocaleString('en-IN')}</div>
+      ${projected<0?'<div style="font-size:10px;color:var(--red-dark);font-weight:700;margin-top:2px">⚠️ Cash crunch ka risk — collections tez karo ya payments prioritize karo</div>':''}
+    </div>`;
+}
+
+/* ───────── TAB 4: GST/ITC & MIS ───────── */
+function ftMonthGstOutput(){
+  const now=new Date();
+  const ym=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const sum=(INVOICES||[]).filter(inv=>inv.isGST && (inv.date||'').startsWith(ym)).reduce((s,inv)=>s+(inv.gstAmt||0),0);
+  return {sum, ym};
+}
+
+function ftRenderGstTab(){
+  const {sum,ym}=ftMonthGstOutput();
+  document.getElementById('ft-gst-month-lbl').textContent=ym;
+  document.getElementById('ft-gst-output').value='₹'+sum.toFixed(2);
+  const saved=FT_LS.get('gst_'+ym,{});
+  document.getElementById('ft-gst-input').value=saved.input||'';
+  ftCalcGst();
+  ftRenderMis();
+
+  const rsaved=FT_LS.get('ratios',{});
+  document.getElementById('ft-ratio-cash').value=rsaved.cash||'';
+  document.getElementById('ft-ratio-cl').value=rsaved.cl||'';
+  ftCalcRatios();
+}
+
+function ftCalcGst(){
+  const {sum,ym}=ftMonthGstOutput();
+  const input=parseFloat(document.getElementById('ft-gst-input').value)||0;
+  FT_LS.set('gst_'+ym,{input});
+  const net=sum-input;
+  document.getElementById('ft-gst-result').innerHTML=`
+    <div style="background:${net>=0?'#fff0f0':'#e6fff3'};border-radius:8px;padding:12px;margin-top:8px;text-align:center">
+      <div style="font-size:9px;font-weight:900;color:${net>=0?'var(--red-dark)':'var(--green-dark)'};text-transform:uppercase">${net>=0?'Net GST Payable':'ITC Carry Forward'}</div>
+      <div style="font-size:18px;font-weight:900;color:${net>=0?'var(--red-dark)':'var(--green-dark)'}">₹${Math.abs(net).toLocaleString('en-IN')}</div>
+    </div>`;
+}
+
+function ftRenderMis(){
+  const stockValue=(STK||[]).reduce((s,m)=>s+((m.current||0)*(m.rate||0)),0);
+  const lowStock=(STK||[]).filter(m=>(m.current||0)<=(m.reorder||0)).length;
+  const {receivable,payable}=ftReceivablesPayables();
+  const now=new Date();
+  const ym=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const monthSales=(INVOICES||[]).filter(inv=>(inv.date||'').startsWith(ym)).reduce((s,inv)=>s+(inv.grandTotal||0),0);
+
+  const items=[
+    {label:'This Month Sales',val:'₹'+monthSales.toLocaleString('en-IN'),color:'var(--green-dark)'},
+    {label:'Stock Value',val:'₹'+stockValue.toLocaleString('en-IN'),color:'#1a202c'},
+    {label:'Total Receivable',val:'₹'+receivable.toLocaleString('en-IN'),color:'var(--red-dark)'},
+    {label:'Total Payable',val:'₹'+payable.toLocaleString('en-IN'),color:'var(--yellow-dark)'},
+    {label:'Low Stock Alerts',val:lowStock+' items',color:lowStock>0?'var(--red-dark)':'var(--green-dark)'},
+  ];
+  document.getElementById('ft-mis-grid').innerHTML=items.map(it=>`
+    <div style="background:#f7fafc;border-radius:8px;padding:10px">
+      <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase">${it.label}</div>
+      <div style="font-size:14px;font-weight:900;color:${it.color};margin-top:2px">${it.val}</div>
+    </div>`).join('');
+}
+
+function ftCalcRatios(){
+  const cash=parseFloat(document.getElementById('ft-ratio-cash').value)||0;
+  const cl=parseFloat(document.getElementById('ft-ratio-cl').value)||0;
+  FT_LS.set('ratios',{cash,cl});
+
+  const stockValue=(STK||[]).reduce((s,m)=>s+((m.current||0)*(m.rate||0)),0);
+  const {receivable}=ftReceivablesPayables();
+  const currentAssets=cash+receivable+stockValue;
+  const quickAssets=cash+receivable;
+
+  const el=document.getElementById('ft-ratio-result');
+  if(cl<=0){
+    el.innerHTML=`<div style="font-size:11px;color:var(--muted);font-weight:700;text-align:center;padding:8px">Current Liabilities daalo ratios dekhne ke liye</div>`;
+    return;
+  }
+  const currentRatio=currentAssets/cl;
+  const quickRatio=quickAssets/cl;
+  el.innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+      <div style="background:#f7fafc;border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase">Current Ratio</div>
+        <div style="font-size:16px;font-weight:900;color:${currentRatio>=1.5?'var(--green-dark)':'var(--red-dark)'}">${currentRatio.toFixed(2)}</div>
+      </div>
+      <div style="background:#f7fafc;border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase">Quick Ratio</div>
+        <div style="font-size:16px;font-weight:900;color:${quickRatio>=1?'var(--green-dark)':'var(--red-dark)'}">${quickRatio.toFixed(2)}</div>
+      </div>
+    </div>
+    <div style="font-size:10px;color:var(--muted);font-weight:700;text-align:center;margin-top:6px">Ideal: Current Ratio ≥1.5, Quick Ratio ≥1</div>`;
 }
 
 /* ═══════════════ DAILY ENTRY RENDER ═══════════════ */
