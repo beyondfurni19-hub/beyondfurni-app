@@ -6806,7 +6806,7 @@ function renderStock(){
     const hasConv=it.convRatio>1||purUnit!==it.unit;
     const val=(it.current*(it.rate||0));
     const imp=it.importance||'Normal';
-    return `<tr style="background:${bg};border-bottom:1px solid var(--border);cursor:pointer" onclick="openStkEditModal('${it.id}')">
+    return `<tr style="background:${bg};border-bottom:1px solid var(--border)">
       <td style="padding:8px 8px;text-align:center;font-size:16px">${it.ico||'📦'}</td>
       <td style="padding:8px 8px">
         <div style="font-size:12px;font-weight:800;color:var(--navy2)">${esc(it.name)}</div>
