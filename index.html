@@ -18767,7 +18767,7 @@ function invPurRestoreRow(row){
   const unitEl = document.getElementById('purunit-'+row.id);
   if(unitEl) unitEl.textContent='('+purUnit+')';
   const stockEl = document.getElementById('purstockinfo-'+row.id);
-  if(stockEl) stockEl.textContent='Current: '+mat.current+' '+mat.unit;
+  if(stockEl) stockEl.textContent='Current: '+mat.current+' '+mat.unit+(mat.rate?' · Avg Rate: ₹'+mat.rate:'');
   invPurRowCalc(row.id);
 }
 
@@ -18791,7 +18791,7 @@ function invPurOnMatChange(rowId){
 
   // Stock info
   const stockEl = document.getElementById('purstockinfo-'+rowId);
-  if(stockEl) stockEl.textContent = 'Current: '+mat.current+' '+stockUnit;
+  if(stockEl) stockEl.textContent = 'Current: '+mat.current+' '+stockUnit+(mat.rate?' · Avg Rate: ₹'+mat.rate:'');
 
   // Conversion box — show if purUnit != stockUnit or convRatio > 1
   const convWrap = document.getElementById('purconv-'+rowId);
@@ -18968,7 +18968,15 @@ function invSavePurchase(keepOpen){
     let stockToAdd = row.qty * useRatio;
     let stockUnit = mat.unit;
 
-    STK[idx].current = +(mat.current||0) + stockToAdd;
+    // Weighted-average per-unit cost (Taxable Value only — GST excluded, standard practice)
+    const oldQty = +(mat.current||0), oldRate = +(mat.rate||0);
+    const newQty = oldQty + stockToAdd;
+    if(stockToAdd>0){
+      const unitTaxableRate = taxable / stockToAdd;
+      const newRate = newQty>0 ? ((oldQty*oldRate) + (stockToAdd*unitTaxableRate)) / newQty : oldRate;
+      STK[idx].rate = +newRate.toFixed(2);
+    }
+    STK[idx].current = newQty;
 
     // Add transaction log
     STXN.push({
