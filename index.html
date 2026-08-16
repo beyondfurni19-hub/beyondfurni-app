@@ -15248,9 +15248,11 @@ let DB_CATS = {
     { id:'admin_misc',        label:'Admin / Office / Misc', icon:'📂', cfo:'admin',        color:'#78716c' },
     { id:'personal_sanket',   label:'Personal (Sanket)',      icon:'👤', cfo:null,           color:'#94a3b8' },
     { id:'personal_prashant', label:'Personal (Prashant)',    icon:'👤', cfo:null,           color:'#94a3b8' },
-    { id:'inter_account',     label:'Inter-Account Transfer', icon:'🔄', cfo:null,           color:'#cbd5e1' },
+    { id:'inter_account',     label:'Consumption Expense',    icon:'🔄', cfo:'rawmat',        color:'#cbd5e1' },
     { id:'other_prod',        label:'Other Production',       icon:'🏭', cfo:'prodother',    color:'#64748b' },
-    { id:'other_expense',     label:'Aur Kharcha',            icon:'💸', cfo:null,           color:'#9ca3af' },
+    { id:'other_expense',     label:'Saving',                 icon:'💸', cfo:null,           color:'#9ca3af' },
+    { id:'inter_account_transfer', label:'Inter-Account Transfer', icon:'🔄', cfo:null,      color:'#a5b4c3' },
+    { id:'business_other_expense', label:'Aur Kharcha',       icon:'💸', cfo:null,           color:'#b0b7bf' },
   ],
   income: [
     { id:'customer_payment',  label:'Customer Payment/Advance',icon:'💰', color:'#10b981' },
@@ -15260,7 +15262,8 @@ let DB_CATS = {
     { id:'payment_recv',      label:'Payment Received',        icon:'✅', color:'#16a34a' },
     { id:'personal_in',       label:'Personal Money In',       icon:'👨‍👩‍👦', color:'#8b5cf6' },
     { id:'inter_account_in',  label:'Inter-Account In',        icon:'🔄', color:'#cbd5e1' },
-    { id:'other_income',      label:'Aur Aaya',                icon:'🟢', color:'#16a34a' },
+    { id:'other_income',      label:'Saving',                  icon:'🟢', color:'#16a34a' },
+    { id:'other_income2',     label:'Aur Aaya',                icon:'🟢', color:'#22c55e' },
   ],
 };
 
@@ -16139,7 +16142,7 @@ function _dbCatSelect(catId){
     btn.style.fontWeight  = isActive?'900':'800';
   });
   // Show supplier field for categories that involve external parties
-  const supplierCats = ['powder_coating','raw_material','packaging','repair_maint','other_prod','other_expense','admin_misc','transport'];
+  const supplierCats = ['powder_coating','raw_material','packaging','repair_maint','other_prod','business_other_expense','admin_misc','transport','inter_account'];
   const supWrap = document.getElementById('db-supplier-wrap');
   const supLabel = document.getElementById('db-supplier-label');
   if(supWrap && _dbType==='expense'){
@@ -17610,7 +17613,7 @@ function _dbSmartMap(desc, origCat, defType, remark){
   }
 
   // Expense — inter account
-  if(d.includes('onecard')||d.includes('one card')) return {cat:'inter_account', type:'expense'};
+  if(d.includes('onecard')||d.includes('one card')) return {cat:'inter_account_transfer', type:'expense'};
   // Personal Sanket
   if(origCat.toLowerCase()==='sanket'||
     /hair cut|home use|nasta|chocolate|cholate|bouqute|give to rani|friend help|pabalo|pablo|ies cream|car ac|cake|recharge|d mart|dress|medical|petrol|hospital|hosptil|give to/.test(d)){
@@ -17647,7 +17650,7 @@ function _dbSmartMap(desc, origCat, defType, remark){
   if(/fan capacitor|flap wheel|cutting wheel|m8 tap|service|repair|machine|belt tapping|hand gloves|gloves|spray/.test(d)) return {cat:'repair_maint', type:'expense'};
   // Food / misc small
   if(/lunch|tea bill|cat food|food|wifi|internet|company wifi/.test(d)) return {cat:'admin_misc', type:'expense'};
-  return {cat:'other_expense', type:'expense'};
+  return {cat:'business_other_expense', type:'expense'};
 }
 
 function _dbDetectMode(text){
@@ -17788,9 +17791,10 @@ function renderCEOReport(){
     const lb=db.filter(e=>e.type==='expense'&&e.category==='labour').reduce((s,e)=>s+(e.amount||0),0);
     const pc=db.filter(e=>e.type==='expense'&&e.category==='powder_coating').reduce((s,e)=>s+(e.amount||0),0);
     const pk=db.filter(e=>e.type==='expense'&&e.category==='packaging').reduce((s,e)=>s+(e.amount||0),0);
-    const op=db.filter(e=>e.type==='expense'&&['transport','rent','electricity','admin_misc','repair_maint','marketing','other_prod','other_expense','tax_govt'].some(c=>e.category===c)).reduce((s,e)=>s+(e.amount||0),0);
+    const cs=db.filter(e=>e.type==='expense'&&e.category==='inter_account').reduce((s,e)=>s+(e.amount||0),0);
+    const op=db.filter(e=>e.type==='expense'&&['transport','rent','electricity','admin_misc','repair_maint','marketing','other_prod','business_other_expense','tax_govt'].some(c=>e.category===c)).reduce((s,e)=>s+(e.amount||0),0);
     const it=db.filter(e=>e.type==='expense'&&e.category==='interest_emi').reduce((s,e)=>s+(e.amount||0),0);
-    const cg=rm+lb+pc+pk;
+    const cg=rm+lb+pc+pk+cs;
     const np=r-cg-op-it;
     let tu=0; invs.forEach(inv=>(inv.items||[]).forEach(it=>tu+=(parseFloat(it.qty)||0)));
     const plans=(H||[]).filter(h=>inT(h.date));
@@ -17815,16 +17819,17 @@ function renderCEOReport(){
   const labour=dbM.filter(e=>e.type==='expense'&&e.category==='labour').reduce((s,e)=>s+(e.amount||0),0);
   const pc=dbM.filter(e=>e.type==='expense'&&e.category==='powder_coating').reduce((s,e)=>s+(e.amount||0),0);
   const pack=dbM.filter(e=>e.type==='expense'&&e.category==='packaging').reduce((s,e)=>s+(e.amount||0),0);
+  const consump=dbM.filter(e=>e.type==='expense'&&e.category==='inter_account').reduce((s,e)=>s+(e.amount||0),0);
   const trans=dbM.filter(e=>e.type==='expense'&&e.category==='transport').reduce((s,e)=>s+(e.amount||0),0);
   const rent=dbM.filter(e=>e.type==='expense'&&e.category==='rent').reduce((s,e)=>s+(e.amount||0),0);
   const elec=dbM.filter(e=>e.type==='expense'&&e.category==='electricity').reduce((s,e)=>s+(e.amount||0),0);
   const tax=dbM.filter(e=>e.type==='expense'&&e.category==='tax_govt').reduce((s,e)=>s+(e.amount||0),0);
-  const admn=dbM.filter(e=>e.type==='expense'&&['admin_misc','repair_maint','other_prod','other_expense'].includes(e.category)).reduce((s,e)=>s+(e.amount||0),0);
+  const admn=dbM.filter(e=>e.type==='expense'&&['admin_misc','repair_maint','other_prod','business_other_expense'].includes(e.category)).reduce((s,e)=>s+(e.amount||0),0);
   const mktg=dbM.filter(e=>e.type==='expense'&&e.category==='marketing').reduce((s,e)=>s+(e.amount||0),0);
   const intExp=dbM.filter(e=>e.type==='expense'&&e.category==='interest_emi').reduce((s,e)=>s+(e.amount||0),0);
   const perExp=dbM.filter(e=>e.type==='expense'&&(e.category||'').includes('personal')).reduce((s,e)=>s+(e.amount||0),0);
   const dbIncAll=dbM.filter(e=>e.type==='income').reduce((s,e)=>s+(e.amount||0),0);
-  const cogs=rawmat+labour+pc+pack;
+  const cogs=rawmat+labour+pc+pack+consump;
   const opex=trans+rent+elec+admn+mktg+tax;
   const grossProfit=rev-cogs;
   const grossMargin=rev>0?(grossProfit/rev*100):0;
@@ -17835,12 +17840,13 @@ function renderCEOReport(){
   const pLabour=dbP.filter(e=>e.type==='expense'&&e.category==='labour').reduce((s,e)=>s+(e.amount||0),0);
   const pPc=dbP.filter(e=>e.type==='expense'&&e.category==='powder_coating').reduce((s,e)=>s+(e.amount||0),0);
   const pPack=dbP.filter(e=>e.type==='expense'&&e.category==='packaging').reduce((s,e)=>s+(e.amount||0),0);
-  const pCogs=pRawmat+pLabour+pPc+pPack;
+  const pConsump=dbP.filter(e=>e.type==='expense'&&e.category==='inter_account').reduce((s,e)=>s+(e.amount||0),0);
+  const pCogs=pRawmat+pLabour+pPc+pPack+pConsump;
   const pTrans=dbP.filter(e=>e.type==='expense'&&e.category==='transport').reduce((s,e)=>s+(e.amount||0),0);
   const pRent=dbP.filter(e=>e.type==='expense'&&e.category==='rent').reduce((s,e)=>s+(e.amount||0),0);
   const pElec=dbP.filter(e=>e.type==='expense'&&e.category==='electricity').reduce((s,e)=>s+(e.amount||0),0);
   const pTax=dbP.filter(e=>e.type==='expense'&&e.category==='tax_govt').reduce((s,e)=>s+(e.amount||0),0);
-  const pAdmn=dbP.filter(e=>e.type==='expense'&&['admin_misc','repair_maint','other_prod','other_expense'].includes(e.category)).reduce((s,e)=>s+(e.amount||0),0);
+  const pAdmn=dbP.filter(e=>e.type==='expense'&&['admin_misc','repair_maint','other_prod','business_other_expense'].includes(e.category)).reduce((s,e)=>s+(e.amount||0),0);
   const pMktg=dbP.filter(e=>e.type==='expense'&&e.category==='marketing').reduce((s,e)=>s+(e.amount||0),0);
   const pOpex=pTrans+pRent+pElec+pAdmn+pMktg+pTax;
   const pGrossProfit=pRev-pCogs;
@@ -17993,6 +17999,7 @@ function renderCEOReport(){
     {n:'(-) Labour Cost',v:labour,pv:pLabour,c:'#2563eb',plus:false},
     {n:'(-) Outsource (PC/Fab)',v:pc,pv:pPc,c:'#0891b2',plus:false},
     {n:'(-) Packaging',v:pack,pv:pPack,c:'#6366f1',plus:false},
+    {n:'(-) Consumption Expense',v:consump,pv:pConsump,c:'#7c3aed',plus:false},
     {n:'= COGS',v:cogs,pv:pCogs,c:'#7c3aed',plus:false,bold:true,sep:true},
     {n:'= GROSS PROFIT',v:grossProfit,pv:pRev-pCogs,c:grossProfit>=0?'#16a34a':'#dc2626',plus:true,bold:true,sep:true},
     {n:'(-) Transport',v:trans,pv:pTrans,c:'#d97706',plus:false},
@@ -18018,7 +18025,7 @@ function renderCEOReport(){
   // Expense breakdown visual
   html+=`<div style="margin-top:12px"><div style="font-size:11px;font-weight:700;color:#0e3a56;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">Cost Structure — ${mLabel}</div>`;
   html+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">`;
-  [{n:'Raw Material',v:rawmat,c:'#7c3aed'},{n:'Labour',v:labour,c:'#2563eb'},{n:'PC + Outsource',v:pc,c:'#0891b2'},{n:'Packaging',v:pack,c:'#6366f1'},{n:'Transport',v:trans,c:'#d97706'},{n:'Rent + Light',v:rent,c:'#f59e0b'},{n:'Interest/EMI',v:intExp,c:'#dc2626'},{n:'Admin + Repair',v:admn,c:'#9ca3af'}].filter(e=>e.v>0).forEach(e=>{
+  [{n:'Raw Material',v:rawmat,c:'#7c3aed'},{n:'Labour',v:labour,c:'#2563eb'},{n:'PC + Outsource',v:pc,c:'#0891b2'},{n:'Packaging',v:pack,c:'#6366f1'},{n:'Consumption Expense',v:consump,c:'#7c3aed'},{n:'Transport',v:trans,c:'#d97706'},{n:'Rent + Light',v:rent,c:'#f59e0b'},{n:'Interest/EMI',v:intExp,c:'#dc2626'},{n:'Admin + Repair',v:admn,c:'#9ca3af'}].filter(e=>e.v>0).forEach(e=>{
     const pR=rev>0?(e.v/rev*100):0;
     html+=`<div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
@@ -18048,6 +18055,28 @@ function renderCEOReport(){
       ],isC);
     });
     html+='</tbody></table></div></div>';
+  }
+
+  // ── Total Savings (info only — NOT part of P&L / Net Profit) ──
+  const savingM = dbM.filter(e=>e.type==='expense'&&e.category==='other_expense').reduce((s,e)=>s+(e.amount||0),0);
+  const savingAllTime = (DAYBOOK||[]).filter(e=>e.type==='expense'&&e.category==='other_expense').reduce((s,e)=>s+(e.amount||0),0);
+  if(savingM>0||savingAllTime>0){
+    html+=`<div style="margin-top:14px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:.06em">💰 Total Savings</div>
+        <div style="font-size:9px;color:#6b7280;margin-top:2px">Personal saving/backup fund — P&L / Net Profit mein count nahi hota</div>
+      </div>
+      <div style="display:flex;gap:18px">
+        <div style="text-align:center">
+          <div style="font-size:18px;font-weight:900;color:#16a34a">₹${fmtL(savingM)}</div>
+          <div style="font-size:9px;color:#6b7280;text-transform:uppercase">${mLabel}</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:18px;font-weight:900;color:#16a34a">₹${fmtL(savingAllTime)}</div>
+          <div style="font-size:9px;color:#6b7280;text-transform:uppercase">All-Time Total</div>
+        </div>
+      </div>
+    </div>`;
   }
 
   // ════════════════════════════════════════════════
