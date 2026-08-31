@@ -2375,9 +2375,13 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
             <option value="">— Koi batch nahi —</option>
           </select>
         </div>
-        <div class="fg" style="margin-bottom:0" id="inv-gstin-wrap">
+        <div class="fg" id="inv-gstin-wrap">
           <label>Party GSTIN</label>
           <input class="finp" id="inv-gstin" placeholder="27XXXXX..." style="text-transform:uppercase">
+        </div>
+        <div class="fg" style="margin-bottom:0">
+          <label>Transport</label>
+          <input class="finp" id="inv-transport" placeholder="e.g. Bhagwati Transport, Own Vehicle...">
         </div>
       </div>
     </div>
@@ -9744,6 +9748,7 @@ function initNewInvoice(){
   document.getElementById('inv-ship-details')&&(document.getElementById('inv-ship-details').value='');
   document.getElementById('inv-gstin').value='';
   document.getElementById('inv-ref')&&(document.getElementById('inv-ref').value='');
+  document.getElementById('inv-transport')&&(document.getElementById('inv-transport').value='');
   document.getElementById('inv-note').value='';
   document.getElementById('inv-internal-note')&&(document.getElementById('inv-internal-note').value='');
   document.getElementById('inv-recovery')&&(document.getElementById('inv-recovery').value='0');
@@ -9911,6 +9916,7 @@ function createInvoice(saveAndNew=false){
     address:   document.getElementById('inv-address').value.trim(),
     shipAddress: shipSame?'':document.getElementById('inv-ship-address')?.value.trim()||'',
     shipDetails: document.getElementById('inv-ship-details')?.value.trim()||'',
+    transport: document.getElementById('inv-transport')?.value.trim()||'',
     isGST:     _invGST,
     gstRate:   _gstRate,
     items:     JSON.parse(JSON.stringify(_invItems)),
@@ -10149,7 +10155,7 @@ function generateChallan(invId){
     <div class="meta-row">
       <div class="meta-box"><div class="meta-label">Challan Date</div><div class="meta-val">${_fmtDate(inv.date)}</div></div>
       <div class="meta-box"><div class="meta-label">Invoice No.</div><div class="meta-val">${esc(inv.num)}</div></div>
-      <div class="meta-box"><div class="meta-label">Vehicle / Transport</div><div class="meta-val">${inv.shipDetails?esc(inv.shipDetails):'_______________'}</div></div>
+      <div class="meta-box"><div class="meta-label">Vehicle / Transport</div><div class="meta-val">${inv.transport?esc(inv.transport):(inv.shipDetails?esc(inv.shipDetails):'_______________')}</div></div>
     </div>
     <div class="addr-row">
       <div class="addr-box">
@@ -10623,7 +10629,7 @@ function openEditInvoice(invId){
     set('inv-party',inv.party); set('inv-address',inv.address); set('inv-contact',inv.contact);
     set('inv-phone',inv.phone);
     set('inv-gstin',inv.gstin); set('inv-num-field',inv.num); set('inv-date',inv.date);
-    set('inv-due',inv.due); set('inv-ref',inv.ref); set('inv-note',inv.note);
+    set('inv-due',inv.due); set('inv-ref',inv.ref); set('inv-transport',inv.transport); set('inv-note',inv.note);
     set('inv-internal-note',inv.internalNote);
     _invFirm=inv.firm||'bf'; _invGST=inv.isGST||false; _gstRate=inv.gstRate||18;
     const bfR=document.getElementById('inv-firm-bf'), srR=document.getElementById('inv-firm-sr');
@@ -10677,6 +10683,7 @@ function _updateInvoice(saveAndNew=false){
     date:document.getElementById('inv-date')?.value||old.date,
     due:document.getElementById('inv-due')?.value||'',
     ref:document.getElementById('inv-ref')?.value.trim()||'',
+    transport:document.getElementById('inv-transport')?.value.trim()||old.transport||'',
     note:document.getElementById('inv-note')?.value.trim()||'',
     internalNote:document.getElementById('inv-internal-note')?.value.trim()||'',
     isGST:_invGST,gstRate:_gstRate,
@@ -10802,6 +10809,7 @@ function _buildInvoiceHTML(inv,s){
       <div><b>Invoice No :</b> ${esc(inv.num)}</div>
       <div><b>Date :</b> ${_fmtDate(inv.date)}</div>
     </div>
+    ${inv.transport?`<div class="num-row"><div><b>Transport :</b> ${esc(inv.transport)}</div></div>`:''}
 
     <div class="addr-row">
       <div class="addr-box">
@@ -12673,7 +12681,26 @@ function onInvPartyChange(){
     document.getElementById('inv-ship-wrap').style.display='block';
     document.getElementById('inv-ship-address').value=shipAddr;
   }
-  toast(`✅ ${c.name} ki details fill ho gayi!`,1500);
+
+  // Auto-fill rate from customer's last invoice (party name match)
+  let rateFetched=false;
+  const lastInv=[...INVOICES].reverse().find(x=>x.party&&x.party.trim().toLowerCase()===c.name.trim().toLowerCase());
+  if(lastInv&&lastInv.items&&lastInv.items.length){
+    _invItems.forEach(it=>{
+      if(it.rate>0) return; // user ne already rate dala hai to overwrite mat karo
+      const match=lastInv.items.find(li=>li.name&&it.name&&li.name.trim().toLowerCase()===it.name.trim().toLowerCase());
+      const src=match||lastInv.items[0];
+      if(src&&src.rate>0){
+        it.rate=src.rate;
+        if(!it.name&&src.name) it.name=src.name;
+        if(src.hsn&&(!it.hsn||it.hsn==='9403')) it.hsn=src.hsn;
+        rateFetched=true;
+      }
+    });
+    if(rateFetched){ _renderInvItems(); _calcInvTotals(); }
+  }
+
+  toast(rateFetched?`✅ ${c.name} ki details + last rate (₹${lastInv.items[0].rate}) fill ho gayi!`:`✅ ${c.name} ki details fill ho gayi!`,1800);
 }
 
 /* ═══════════════════════════════════════════════════
