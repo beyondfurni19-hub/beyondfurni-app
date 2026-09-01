@@ -6779,6 +6779,7 @@ function renderStock(){
     if(search && !(it.name.toLowerCase().includes(search) || (it.code||'').toLowerCase().includes(search))) return false;
     return true;
   });
+  filtered.sort((a,b)=>a.name.localeCompare(b.name,'en',{sensitivity:'base'}));
 
   // Valuation (of full STK, not just filtered — matches "Total Valuation" intent)
   const totalVal=STK.reduce((s,it)=>s+(it.current*(it.rate||0)),0);
