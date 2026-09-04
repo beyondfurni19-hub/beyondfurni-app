@@ -1924,6 +1924,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
     <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
       <button onclick="openReorderPanel()" title="Reorder Suggestions" style="padding:7px 10px;background:#fef3c7;color:#92400e;border:1.5px solid #fde68a;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">🛒 Reorder <span id="stk-reorder-badge" style="display:none;background:var(--red);color:#fff;border-radius:20px;padding:1px 6px;font-size:9px;margin-left:2px">0</span></button>
       <button onclick="exportStockExcel()" title="Excel Export" style="padding:7px 10px;background:var(--green);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">⬇️ Excel</button>
+      <button onclick="exportStockReconPDF()" title="Reconciliation PDF" style="padding:7px 10px;background:#7c3aed;color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">🖨️ Reconcile PDF</button>
       <button onclick="document.getElementById('stk-import-file').click()" title="Excel Import" style="padding:7px 10px;background:#e0e7ff;color:#3730a3;border:1.5px solid #c7d2fe;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">⬆️ Import</button>
       <input type="file" id="stk-import-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importStockExcel(this)">
       <button onclick="addStockItem()" style="padding:7px 12px;background:var(--orange);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">＋ Add</button>
@@ -7399,6 +7400,48 @@ function stkCreatePOFromReorder(){
   });
   closeReorderPanel();
   toast(`✅ ${rows.length} items se Purchase Order draft ban gaya — supplier aur rate confirm karo!`);
+}
+
+function exportStockReconPDF(){
+  if(!STK.length){ toast('❌ Stock mein koi item nahi hai'); return; }
+  const items=[...STK].sort((a,b)=>a.name.localeCompare(b.name,'en',{sensitivity:'base'}));
+  const byCat={};
+  items.forEach(it=>{ const c=it.cat||'Other'; if(!byCat[c]) byCat[c]=[]; byCat[c].push(it); });
+  let rowsHtml='';
+  let sr=0;
+  Object.keys(byCat).sort((a,b)=>a.localeCompare(b)).forEach(cat=>{
+    rowsHtml+=`<tr><td colspan="7" style="background:#eef2ff;font-weight:800;color:#3730a3;padding:6px 7px">${esc(cat)}</td></tr>`;
+    byCat[cat].forEach(it=>{
+      sr++;
+      rowsHtml+=`<tr>
+        <td style="text-align:center">${sr}</td>
+        <td><b>${esc(it.name)}</b>${it.code?`<br><span style="font-size:8px;color:#888">${esc(it.code)}</span>`:''}</td>
+        <td>${esc(it.subcat||'-')}</td>
+        <td style="text-align:center">${esc(it.unit||'')}</td>
+        <td style="text-align:right;font-weight:700">${+(it.current||0)}</td>
+        <td style="border-left:1.5px solid #999"></td>
+        <td style="border-left:1.5px solid #999"></td>
+      </tr>`;
+    });
+  });
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>BeyondFurni Stock Reconciliation — ${new Date().toLocaleDateString('en-IN')}</title>
+<style>@page{margin:10mm;size:A4;}*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+body{font-family:Arial,sans-serif;font-size:10px;color:#111;}
+.hdr{background:#0e3a56;color:#fff;padding:11px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+.hdr h1{font-size:15px;font-weight:700;}.sub{font-size:9px;color:#aabbcc;margin-top:2px;}
+table{width:100%;border-collapse:collapse;font-size:9px;}
+th{background:#1b5d82;color:#fff;padding:6px 7px;text-align:left;font-size:8px;font-weight:700;}
+td{padding:6px 7px;border-bottom:.5px solid #dceaf3;vertical-align:middle;}
+.ftr{border-top:.5px solid #dceaf3;padding-top:5px;margin-top:10px;display:flex;justify-content:space-between;font-size:8px;color:#999;}
+</style></head><body>
+<div class="hdr"><div><div style="font-size:8px;color:#7a9bcc;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">BeyondFurni — Stock Reconciliation Sheet</div><h1>Physical Stock Verification</h1><div class="sub">Total Items: ${items.length} | Generated: ${new Date().toLocaleString('en-IN')}</div></div></div>
+<table><thead><tr><th>Sr</th><th>Item Name</th><th>Sub-Category</th><th>Unit</th><th>System Qty</th><th>Actual Qty (Physical Count)</th><th>Difference</th></tr></thead>
+<tbody>${rowsHtml}</tbody></table>
+<div class="ftr"><span>BeyondFurni | Nashik, Maharashtra | GST: 27DCSPA5890P1ZN</span><span>Checked by: _______________ &nbsp;&nbsp; Sign: _______________</span></div>
+<script>window.onload=function(){window.print();};<\/script></body></html>`;
+  const w=window.open('','_blank','width=1000,height=700');
+  if(!w){ toast('❌ Popup block ho gaya — popup allow karo'); return; }
+  w.document.write(html); w.document.close();
 }
 
 /* ═══════════════ EXCEL IMPORT / EXPORT ═══════════════ */
