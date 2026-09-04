@@ -5469,6 +5469,8 @@ function toast(msg,dur=2200){ const t=document.getElementById('toast');t.textCon
 function ini(n){ return n.split(' ').map(x=>x[0]||'').join('').slice(0,2).toUpperCase(); }
 function fmt(off,start){ return String(Math.floor(start+off)%24).padStart(2,'0')+':00'; }
 function esc(s){ return String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// Shared A-Z (natural) sort helper — used everywhere a list/dropdown is populated
+function _az(arr,key){ return [...arr].sort((a,b)=>{ const av=key?key(a):a; const bv=key?key(b):b; return String(av==null?'':av).localeCompare(String(bv==null?'':bv),'en',{numeric:true,sensitivity:'base'}); }); }
 
 /* ═══════════════ NAV ═══════════════ */
 function sw(name,btn){
@@ -5522,7 +5524,7 @@ function goMeeting(){
 /* ═══════════════ DAILY ENTRY RENDER ═══════════════ */
 function renderDE(){
   /* Supervisor */
-  document.getElementById('d-sup').innerHTML=W.map(w=>`<option>${esc(w.name)}</option>`).join('');
+  document.getElementById('d-sup').innerHTML=_az(W,w=>w.name).map(w=>`<option>${esc(w.name)}</option>`).join('');
 
   /* Worker chips */
   const wg=document.getElementById('wchips'); wg.innerHTML='';
@@ -5637,7 +5639,7 @@ function renderExtraRows(){
         <label>Worker</label>
         <select class="finp" onchange="extras[${i}].worker=this.value" style="padding:8px 10px;font-size:13px">
           <option value="">-- Chunno --</option>
-          ${getPresentW().map(w=>`<option ${e.worker===w.name?'selected':''}>${esc(w.name)}</option>`).join('')}
+          ${_az(getPresentW(),w=>w.name).map(w=>`<option ${e.worker===w.name?'selected':''}>${esc(w.name)}</option>`).join('')}
         </select>
       </div>
       <div class="fg" style="margin:0">
@@ -6711,7 +6713,7 @@ const STK_CATS=['Raw Material','Hardware','Semi-Finished','Packaging','Chemical'
 function renderStkCatTabs(){
   const wrap=document.getElementById('stk-cat-tabs');
   if(!wrap) return;
-  const cats=['All',...STK_CATS];
+  const cats=['All',..._az(STK_CATS)];
   wrap.innerHTML=cats.map(c=>{
     const val=c==='All'?'':c;
     const active=_stkCatTab===val;
@@ -6852,7 +6854,7 @@ function renderStockHistory(){
   if(itemSel){
     const selectedVal = itemSel.value;
     itemSel.innerHTML = '<option value="">All Items</option>' +
-      STK.map(m=>`<option value="${m.id}">${(m.ico||'📦')+' '+esc(m.name)}</option>`).join('');
+      _az(STK,m=>m.name).map(m=>`<option value="${m.id}">${(m.ico||'📦')+' '+esc(m.name)}</option>`).join('');
     if(STK.some(m=>m.id===selectedVal)) itemSel.value = selectedVal;
   }
 
@@ -6970,7 +6972,7 @@ function openStkEditModal(id){
   document.getElementById('stk-em-title').textContent=(it.ico||'📦')+' '+it.name;
   document.getElementById('stk-em-name').value=it.name;
   document.getElementById('stk-em-code').value=it.code||'';
-  document.getElementById('stk-em-cat').innerHTML=cats.map(c=>`<option ${it.cat===c?'selected':''}>${c}</option>`).join('');
+  document.getElementById('stk-em-cat').innerHTML=_az(cats).map(c=>`<option ${it.cat===c?'selected':''}>${c}</option>`).join('');
   document.getElementById('stk-em-subcat').value=it.subcat||'';
   document.getElementById('stk-em-importance').value=it.importance||'Normal';
   document.getElementById('stk-em-icon').value=it.ico||'📦';
@@ -6984,8 +6986,8 @@ function openStkEditModal(id){
   document.getElementById('stk-em-reorder').value=it.reorder||0;
   document.getElementById('stk-em-leadtime').value=it.leadTime||0;
   document.getElementById('stk-em-orderqty').value=it.orderQty||0;
-  document.getElementById('stk-em-purunit').innerHTML=units.map(u=>`<option ${purUnit===u?'selected':''}>${u}</option>`).join('');
-  document.getElementById('stk-em-stockunit').innerHTML=units.map(u=>`<option ${it.unit===u?'selected':''}>${u}</option>`).join('');
+  document.getElementById('stk-em-purunit').innerHTML=_az(units).map(u=>`<option ${purUnit===u?'selected':''}>${u}</option>`).join('');
+  document.getElementById('stk-em-stockunit').innerHTML=_az(units).map(u=>`<option ${it.unit===u?'selected':''}>${u}</option>`).join('');
   document.getElementById('stk-em-convratio').value=it.convRatio||1;
   document.getElementById('stk-em-desc').value=it.desc||'';
   document.getElementById('stk-em-notes').value=it.notes||'';
@@ -7064,7 +7066,7 @@ function stkRenderIngredients(){
 function stkAddIngredient(){
   const list=document.getElementById('stk-em-ingredients-list');
   const allUnits=['pcs','nos','kg','g','mg','meter','cm','mm','liter','ml','box','roll','set','packet'];
-  const opts=STK.filter(i=>!i.isMfg).map(i=>`<option value="${i.id}" data-unit="${i.unit}">${esc(i.name)} (${i.unit})</option>`).join('');
+  const opts=_az(STK.filter(i=>!i.isMfg),i=>i.name).map(i=>`<option value="${i.id}" data-unit="${i.unit}">${esc(i.name)} (${i.unit})</option>`).join('');
   if(!opts){ toast('Pehle raw materials add karo!'); return; }
   const rowId='ingr_'+Date.now();
   const div=document.createElement('div');
@@ -7074,7 +7076,7 @@ function stkAddIngredient(){
   // Get first item's unit as default
   const firstMat = STK.find(i=>!i.isMfg);
   const defaultUnit = firstMat ? firstMat.unit : 'pcs';
-  const unitOpts = allUnits.map(u=>`<option value="${u}" ${u===defaultUnit?'selected':''}>${u}</option>`).join('');
+  const unitOpts = _az(allUnits).map(u=>`<option value="${u}" ${u===defaultUnit?'selected':''}>${u}</option>`).join('');
   div.innerHTML=`
     <select class="finp ingr-item-sel" style="font-size:11px;padding:5px 8px" onchange="stkIngrItemChange(this)">${opts}</select>
     <input class="finp" type="number" min="0" step="any" placeholder="Qty" style="font-size:11px;padding:5px 8px">
@@ -7122,8 +7124,8 @@ function stkLoadIngredientRows(ingredients){
   (ingredients||[]).forEach(ingr=>{
     const mat=STK.find(m=>m.id===ingr.itemId);
     const savedUnit = ingr.unit || mat?.unit || 'pcs';
-    const opts=STK.filter(i=>!i.isMfg).map(i=>`<option value="${i.id}" data-unit="${i.unit}" ${i.id===ingr.itemId?'selected':''}>${esc(i.name)} (${i.unit})</option>`).join('');
-    const unitOpts=allUnits.map(u=>`<option value="${u}" ${u===savedUnit?'selected':''}>${u}</option>`).join('');
+    const opts=_az(STK.filter(i=>!i.isMfg),i=>i.name).map(i=>`<option value="${i.id}" data-unit="${i.unit}" ${i.id===ingr.itemId?'selected':''}>${esc(i.name)} (${i.unit})</option>`).join('');
+    const unitOpts=_az(allUnits).map(u=>`<option value="${u}" ${u===savedUnit?'selected':''}>${u}</option>`).join('');
     const rowId='ingr_'+Date.now()+'_'+Math.random().toString(36).slice(2);
     const div=document.createElement('div');
     div.className='ingr-row';
@@ -8377,6 +8379,7 @@ function doPdfDownload(){
 /* ═══════════════ SETTINGS ═══════════════ */
 function renderWList(){
   const el=document.getElementById('w-list'); el.innerHTML='';
+  W.sort((a,b)=>a.name.localeCompare(b.name,'en',{numeric:true,sensitivity:'base'}));
   W.forEach((w,i)=>{
     const div=document.createElement('div'); div.className='set-row';
     div.innerHTML=`<div class="set-av">${ini(w.name)}</div>
@@ -8393,6 +8396,7 @@ function saveW(){ save('bf9_w',W); renderDE(); toast('Workers save ho gaye! ✓'
 
 function renderPList(){
   const el=document.getElementById('p-list'); el.innerHTML='';
+  P.sort((a,b)=>a.name.localeCompare(b.name,'en',{numeric:true,sensitivity:'base'}));
   P.forEach((p,i)=>{
     const div=document.createElement('div'); div.className='set-row';
     div.innerHTML=`<input class="set-inp" value="${esc(p.name)}" placeholder="Product naam" onchange="P[${i}].name=this.value" style="flex:2">
@@ -8410,6 +8414,7 @@ function saveP(){ save('bf9_p',P); renderDE(); toast('Products save ho gaye! ✓
 
 function renderMList(){
   const el=document.getElementById('m-list'); el.innerHTML='';
+  M.sort((a,b)=>a.name.localeCompare(b.name,'en',{numeric:true,sensitivity:'base'}));
   M.forEach((m,i)=>{
     const div=document.createElement('div'); div.className='set-row';
     div.innerHTML=`<input class="set-inp" value="${esc(m.name)}" placeholder="Machine naam" onchange="M[${i}].name=this.value" style="flex:2">
@@ -8615,7 +8620,7 @@ function btRefreshCustDropdown(){
     .filter(c=>!c.type||c.type==='customer'||c.type==='dealer')
     .sort((a,b)=>a.name.localeCompare(b.name,'en-IN',{sensitivity:'base'}));
   sel.innerHTML='<option value="">— Customer chunno —</option>'+
-    custs.map(c=>'<option value="'+c.id+'"'+(c.id===cur?' selected':'')+'>'+esc(c.name)+'</option>').join('');
+    _az(custs,c=>c.name).map(c=>'<option value="'+c.id+'"'+(c.id===cur?' selected':'')+'>'+esc(c.name)+'</option>').join('');
 }
 
 function renderBtKpis(){
@@ -9846,7 +9851,7 @@ function _populateInvPartyList(){
     ...INVOICES.map(i=>i.party),
     ...BATCHES.map(b=>b.party)
   ])].filter(Boolean);
-  dl.innerHTML=parties.map(p=>`<option value="${esc(p)}">`).join('');
+  dl.innerHTML=_az(parties).map(p=>`<option value="${esc(p)}">`).join('');
 }
 
 /* ── Firm Selector (drives GST on/off) ── */
@@ -9881,7 +9886,7 @@ function _renderInvItems(){
       <input class="finp" value="${esc(it.hsn||'9403')}" placeholder="HSN" onchange="_invItems[${i}].hsn=this.value" style="padding:7px 6px;font-size:11px">
       <input class="finp" type="number" value="${it.qty}" min="1" onchange="_invItems[${i}].qty=+this.value;_calcInvTotals()" style="padding:7px 6px;font-size:12px;text-align:center">
       <select class="finp" onchange="_invItems[${i}].unit=this.value" style="padding:7px 6px;font-size:11px">
-        ${['no.s','kg','meter','liter','box','set'].map(u=>`<option ${(it.unit||'no.s')===u?'selected':''}>${u}</option>`).join('')}
+        ${_az(['no.s','kg','meter','liter','box','set']).map(u=>`<option ${(it.unit||'no.s')===u?'selected':''}>${u}</option>`).join('')}
       </select>
       <input class="finp" type="number" value="${it.rate||''}" placeholder="0" onchange="_invItems[${i}].rate=+this.value;_calcInvTotals()" style="padding:7px 6px;font-size:12px;text-align:right">
       <input class="finp" type="number" value="${it.disc||0}" placeholder="0" onchange="_invItems[${i}].disc=+this.value;_calcInvTotals()" style="padding:7px 6px;font-size:12px;text-align:right">
@@ -11360,7 +11365,7 @@ function openNewOrderModal(){
   // Populate customer dropdown
   const sel=document.getElementById('ord-customer');
   sel.innerHTML='<option value="">— Select Customer —</option>'+
-    CUSTOMERS.filter(c=>c.type!=='supplier').map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+    _az(CUSTOMERS.filter(c=>c.type!=='supplier'),c=>c.name).map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
   sel.value='';
   calcOrderTotal();
   const bg=document.getElementById('order-modal-bg');
@@ -11373,7 +11378,7 @@ function openEditOrderModal(ordId){
   document.getElementById('ord-modal-title').textContent='✏️ Order Edit Karo';
   const sel=document.getElementById('ord-customer');
   sel.innerHTML='<option value="">— Select Customer —</option>'+
-    CUSTOMERS.filter(c=>c.type!=='supplier').map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+    _az(CUSTOMERS.filter(c=>c.type!=='supplier'),c=>c.name).map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
   sel.value=o.custId;
   document.getElementById('ord-product').value=o.product;
   document.getElementById('ord-qty').value=o.qty;
@@ -11714,7 +11719,7 @@ function renderAssetList(){
     return;
   }
 
-  listEl.innerHTML = ASSETS.map(a=>{
+  listEl.innerHTML = _az(ASSETS,a=>a.name).map(a=>{
     const cat = ASSET_CATS[a.category] || ASSET_CATS.other;
     const cost = (a.cost||0) + (a.gst||0);
     const book = _assetBookValue(a);
@@ -12290,10 +12295,10 @@ function renderCustomerList(){
   const search=(document.getElementById('cust-search')?.value||'').toLowerCase();
   // Only customers and dealers
   const custOnly=CUSTOMERS.filter(c=>!c.type||c.type==='customer'||c.type==='dealer');
-  const filtered=custOnly.filter(c=>
+  const filtered=_az(custOnly.filter(c=>
     !search||c.name.toLowerCase().includes(search)||
     (c.phone&&c.phone.includes(search))
-  );
+  ),c=>c.name);
 
   const totalOutstanding=custOnly.reduce((s,c)=>s+Math.max(0,_custBalance(c.id)),0);
   const overdueCount=custOnly.filter(c=>_custBalance(c.id)>0).length;
@@ -12313,19 +12318,10 @@ function renderSupplierList(){
 
   const search=(document.getElementById('supp-search')?.value||'').toLowerCase();
   const suppOnly=CUSTOMERS.filter(c=>c.type==='supplier');
-  const filtered=suppOnly.filter(c=>
+  const filtered=_az(suppOnly.filter(c=>
     !search||c.name.toLowerCase().includes(search)||
     (c.phone&&c.phone.includes(search))
-  );
-
-  // Priority sort: High > Medium > Low > undefined
-  const priOrder={high:0,medium:1,low:2};
-  filtered.sort((a,b)=>{
-    const pa=priOrder[a.suppPriority||'medium']??1;
-    const pb=priOrder[b.suppPriority||'medium']??1;
-    if(pa!==pb) return pa-pb;
-    return (a.suppSortOrder||999)-(b.suppSortOrder||999);
-  });
+  ),c=>c.name);
 
   const totalPayable=suppOnly.reduce((s,c)=>s+Math.max(0,_custBalance(c.id)),0);
   const pendingCount=suppOnly.filter(c=>_custBalance(c.id)>0).length;
@@ -12528,7 +12524,7 @@ function initLedgerView(){
   const sel=document.getElementById('led-party-sel');
   if(!sel) return;
   sel.innerHTML='<option value="">— Party chunno —</option>'+
-    CUSTOMERS.map(c=>`<option value="${c.id}">[${(c.type||'customer').toUpperCase()}] ${esc(c.name)}</option>`).join('');
+    _az(CUSTOMERS,c=>c.name).map(c=>`<option value="${c.id}">[${(c.type||'customer').toUpperCase()}] ${esc(c.name)}</option>`).join('');
   document.getElementById('led-entry-date').value=new Date().toISOString().split('T')[0];
 }
 
@@ -12694,7 +12690,7 @@ function _updateInvPartyList(){
     ...INVOICES.map(i=>i.party),
     ...BATCHES.map(b=>b.party),
   ])].filter(Boolean);
-  dl.innerHTML=parties.map(p=>`<option value="${esc(p)}">`).join('');
+  dl.innerHTML=_az(parties).map(p=>`<option value="${esc(p)}">`).join('');
 }
 
 /* ── Party select in invoice → auto-fill details ── */
@@ -13499,7 +13495,7 @@ function renderEodStageSettings(){
       <input class="finp" value="${esc(s.ico)}" onchange="EOD_STAGES[${i}].ico=this.value" style="width:42px;padding:7px;text-align:center;font-size:18px;flex-shrink:0">
       <input class="finp" value="${esc(s.name)}" onchange="EOD_STAGES[${i}].name=this.value" style="flex:1;padding:7px 10px">
       <select class="finp" onchange="EOD_STAGES[${i}].unit=this.value" style="width:65px;padding:7px 6px;font-size:11px;flex-shrink:0">
-        ${['pcs','kg','meter','set','box'].map(u=>`<option ${s.unit===u?'selected':''}>${u}</option>`).join('')}
+        ${_az(['pcs','kg','meter','set','box']).map(u=>`<option ${s.unit===u?'selected':''}>${u}</option>`).join('')}
       </select>
       <button onclick="EOD_STAGES.splice(${i},1);renderEodStageSettings()" style="width:28px;height:28px;border-radius:50%;border:none;background:var(--red-bg);color:var(--red-dark);cursor:pointer;font-size:13px;flex-shrink:0">✕</button>
     </div>`).join('');
@@ -16150,7 +16146,7 @@ function _dbPopulateSuppliers(){
   const all = [...new Set([...ledgerSuppliers, ...dbSuppliers])];
   sel.innerHTML = '<option value="">— Ledger se chunno —</option>' +
     (all.length
-      ? all.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('')
+      ? _az(all).map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('')
       : '<option disabled>Koi supplier nahi mila — Ledger mein add karo</option>');
 }
 
@@ -16183,7 +16179,7 @@ function _dbRenderCatChips(type){
   if(!chips||!sel) return;
   const cats  = DB_CATS[type]||[];
 
-  chips.innerHTML = cats.map(c=>`
+  chips.innerHTML = _az(cats,c=>c.label).map(c=>`
     <button onclick="_dbPickCat('${c.id}')" id="dbcat-${c.id}"
       style="padding:6px 10px;border-radius:20px;border:1.5px solid ${c.color}33;
       background:${c.color}11;color:${c.color};
@@ -16193,7 +16189,7 @@ function _dbRenderCatChips(type){
     </button>`).join('');
 
   sel.innerHTML = '<option value="">— Ya dropdown se chunno —</option>' +
-    cats.map(c=>`<option value="${c.id}">${c.icon} ${c.label}</option>`).join('');
+    _az(cats,c=>c.label).map(c=>`<option value="${c.id}">${c.icon} ${c.label}</option>`).join('');
 }
 
 function _dbPickCat(catId){
@@ -17833,7 +17829,7 @@ function renderCEOReport(){
     return;
   }
   const curVal=sel.value;
-  sel.innerHTML=months.map(m=>{const[yr,mo]=m.split('-');return`<option value="${m}">${new Date(yr,mo-1,1).toLocaleDateString('en-IN',{month:'long',year:'numeric'})}</option>`;}).join('');
+  sel.innerHTML=_az(months.map(m=>{const[yr,mo]=m.split('-');return{key:m,label:new Date(yr,mo-1,1).toLocaleDateString('en-IN',{month:'long',year:'numeric'})};}),x=>x.label).map(x=>`<option value="${x.key}">${x.label}</option>`).join('');
   if(curVal&&months.includes(curVal))sel.value=curVal;else sel.value=months[0];
   const selMonth=sel.value,[selYr,selMo]=selMonth.split('-').map(Number);
   const mLabel=new Date(selYr,selMo-1,1).toLocaleDateString('en-IN',{month:'long',year:'numeric'});
@@ -18489,7 +18485,7 @@ function _cfoPopulatePeriods(){
   const sel = document.getElementById('cfo-period');
   const periods = Object.keys(CFO_DATA).sort().reverse();
   sel.innerHTML = '<option value="">— Period chunno —</option>' +
-    periods.map(p=>`<option value="${p}">${p}</option>`).join('');
+    _az(periods).map(p=>`<option value="${p}">${p}</option>`).join('');
   if(_cfoPeriod) sel.value = _cfoPeriod;
 }
 
@@ -19104,12 +19100,12 @@ function invRenderMaterials(){
 function invInitPurForm(){
   const mats=invGetMats();
   const sel=document.getElementById('inv-pur-mat');
-  if(sel) sel.innerHTML='<option value="">-- Material chunno --</option>'+mats.map(m=>'<option value="'+m.id+'">'+m.name+' ('+m.punit+')</option>').join('');
+  if(sel) sel.innerHTML='<option value="">-- Material chunno --</option>'+_az(mats,m=>m.name).map(m=>'<option value="'+m.id+'">'+m.name+' ('+m.punit+')</option>').join('');
   // Supplier dropdown from CUSTOMERS
   const supSel=document.getElementById('inv-pur-supplier-sel');
   if(supSel){
     const suppliers=CUSTOMERS.filter(c=>c.type==='supplier').sort((a,b)=>a.name.localeCompare(b.name));
-    supSel.innerHTML='<option value="">-- Supplier chunno --</option>'+suppliers.map(s=>'<option value="'+s.id+'">'+esc(s.name)+'</option>').join('');
+    supSel.innerHTML='<option value="">-- Supplier chunno --</option>'+_az(suppliers,s=>s.name).map(s=>'<option value="'+s.id+'">'+esc(s.name)+'</option>').join('');
   }
   ['inv-pur-qty','inv-pur-rate','inv-pur-supplier','inv-pur-note','inv-pur-billno'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const dateEl=document.getElementById('inv-pur-date');
@@ -19135,7 +19131,7 @@ function invInitPurForm(){
   if(supSel){
     const suppliers = CUSTOMERS.filter(c=>c.type==='supplier').sort((a,b)=>a.name.localeCompare(b.name));
     supSel.innerHTML = '<option value="">-- Supplier chunno --</option>' +
-      suppliers.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
+      _az(suppliers,s=>s.name).map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
   }
   // Reset fields
   ['inv-pur-supplier','inv-pur-note','inv-pur-billno','inv-pur-ref','inv-pur-duedate'].forEach(id=>{
@@ -19175,7 +19171,7 @@ function invPurRemoveRow(id){
 function invPurRenderRows(){
   const mats = STK; // STK = Raw Materials module
   const matOptions = '<option value="">-- Material --</option>' +
-    mats.map(m=>`<option value="${m.id}">${m.ico||'📦'} ${m.name} (${m.unit})</option>`).join('');
+    _az(mats,m=>m.name).map(m=>`<option value="${m.id}">${m.ico||'📦'} ${m.name} (${m.unit})</option>`).join('');
   const conv = invGetConv();
 
   document.getElementById('inv-pur-rows').innerHTML = _purRows.map((row,i)=>`
@@ -19224,7 +19220,7 @@ function invPurRenderRows(){
       <div class="fg" style="margin-bottom:6px">
         <label style="font-size:10px">GST %</label>
         <select class="finp" id="purgst-${row.id}" onchange="invPurRowCalc('${row.id}')" style="font-size:12px">
-          ${[0,5,12,18,28].map(g=>`<option value="${g}" ${((row.gstPct||0)==g)?'selected':''}>${g}%</option>`).join('')}
+          ${_az([0,5,12,18,28]).map(g=>`<option value="${g}" ${((row.gstPct||0)==g)?'selected':''}>${g}%</option>`).join('')}
         </select>
       </div>
 
@@ -19637,7 +19633,7 @@ function debInitForm(){
   if(supSel){
     const suppliers = CUSTOMERS.filter(c=>c.type==='supplier').sort((a,b)=>a.name.localeCompare(b.name));
     supSel.innerHTML = '<option value="">-- Supplier chunno --</option>' +
-      suppliers.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
+      _az(suppliers,s=>s.name).map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
   }
   ['deb-supplier','deb-billno','deb-ref-invoice','deb-note'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
@@ -19662,7 +19658,7 @@ function debRemoveRow(id){
 }
 function debRenderRows(){
   const matOptions = '<option value="">-- Material --</option>' +
-    STK.map(m=>`<option value="${m.id}">${m.ico||'📦'} ${m.name} (${m.unit})</option>`).join('');
+    _az(STK,m=>m.name).map(m=>`<option value="${m.id}">${m.ico||'📦'} ${m.name} (${m.unit})</option>`).join('');
 
   document.getElementById('deb-rows').innerHTML = _debRows.map((row,i)=>`
     <div style="border:1.5px solid var(--border);border-radius:var(--r2);padding:10px;margin-bottom:8px;background:${i%2===0?'#fef2f2':'#fff'}">
@@ -19690,7 +19686,7 @@ function debRenderRows(){
       <div class="fg" style="margin-bottom:6px">
         <label style="font-size:10px">GST %</label>
         <select class="finp" id="debgst-${row.id}" onchange="debRowCalc('${row.id}')" style="font-size:12px">
-          ${[0,5,12,18,28].map(g=>`<option value="${g}" ${((row.gstPct||0)==g)?'selected':''}>${g}%</option>`).join('')}
+          ${_az([0,5,12,18,28]).map(g=>`<option value="${g}" ${((row.gstPct||0)==g)?'selected':''}>${g}%</option>`).join('')}
         </select>
       </div>
       <div style="display:flex;justify-content:flex-end">
@@ -19792,7 +19788,7 @@ function _purInitTradeFilters(){
   const supSel = document.getElementById('trade-supplier');
   if(supSel && supSel.options.length<=1){
     const suppliers = CUSTOMERS.filter(c=>c.type==='supplier').sort((a,b)=>a.name.localeCompare(b.name));
-    supSel.innerHTML = '<option value="">Sab suppliers</option>' + suppliers.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
+    supSel.innerHTML = '<option value="">Sab suppliers</option>' + _az(suppliers,s=>s.name).map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
   }
   const fromEl = document.getElementById('trade-from'), toEl = document.getElementById('trade-to');
   if(fromEl && !fromEl.value){
@@ -20153,7 +20149,7 @@ function packBomRender(){
     const addedIds = new Set(matIds);
     const sel = document.getElementById('pack-add-sel-'+type);
     if(sel) sel.innerHTML = '<option value="">-- Material add karo --</option>' +
-      STK.filter(m=>!addedIds.has(m.id)).map(m=>`<option value="${m.id}">${m.ico||'📦'} ${m.name} (${m.unit})</option>`).join('');
+      _az(STK.filter(m=>!addedIds.has(m.id)),m=>m.name).map(m=>`<option value="${m.id}">${m.ico||'📦'} ${m.name} (${m.unit})</option>`).join('');
   });
 }
 
@@ -20245,7 +20241,7 @@ function packProdRenderBOM(){
   const addRow = `<div style="display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
     <select id="pack-prod-bom-add-sel" class="finp" style="flex:1;font-size:12px">
       <option value="">-- Material chunno --</option>
-      ${available.map(m=>`<option value="${m.id}">${m.ico||'📦'} ${m.name} (${m.unit})</option>`).join('')}
+      ${_az(available,m=>m.name).map(m=>`<option value="${m.id}">${m.ico||'📦'} ${m.name} (${m.unit})</option>`).join('')}
     </select>
     <button onclick="packProdBomAddMat()" style="padding:7px 14px;background:var(--navy);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">＋ Add</button>
   </div>
@@ -20385,7 +20381,7 @@ function invRenderBOM(){
   const addRow = `<div style="display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
     <select id="inv-bom-add-sel" class="finp" style="flex:1;font-size:12px">
       <option value="">-- Material chunno --</option>
-      ${available.map(m=>`<option value="${m.id}">${m.ico||'📦'} ${m.name} (${m.unit})</option>`).join('')}
+      ${_az(available,m=>m.name).map(m=>`<option value="${m.id}">${m.ico||'📦'} ${m.name} (${m.unit})</option>`).join('')}
     </select>
     <button onclick="invBomAddMat()" style="padding:7px 14px;background:var(--navy);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">＋ Add</button>
   </div>
@@ -20639,7 +20635,7 @@ function btRefreshProductDropdown(){
   const prods = invGetProducts();
   const cur = sel.value;
   sel.innerHTML = '<option value="">-- Product chunno --</option>' +
-    prods.map(p=>`<option value="${p.id}" ${cur===p.id?'selected':''}>${p.icon||'🏭'} ${p.name}</option>`).join('');
+    _az(prods,p=>p.name).map(p=>`<option value="${p.id}" ${cur===p.id?'selected':''}>${p.icon||'🏭'} ${p.name}</option>`).join('');
   btRefreshPackingTypeOptions();
 }
 
@@ -20706,7 +20702,7 @@ function invSaveReorder(id,val){
 function invOpenAdjModal(){
   const mats=invGetMats();
   const sel=document.getElementById('inv-adj-mat');
-  sel.innerHTML='<option value="">-- Material chunno --</option>'+mats.map(m=>'<option value="'+m.id+'">'+m.name+' ('+m.punit+')</option>').join('');
+  sel.innerHTML='<option value="">-- Material chunno --</option>'+_az(mats,m=>m.name).map(m=>'<option value="'+m.id+'">'+m.name+' ('+m.punit+')</option>').join('');
   document.getElementById('inv-adj-qty').value='';
   document.getElementById('inv-adj-note').value='';
   document.getElementById('inv-adj-cur').textContent='';
