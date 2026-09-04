@@ -2702,6 +2702,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
       <button onclick="_whatsappLedger(document.getElementById('led-party-sel').value)" style="padding:8px 14px;background:#25d366;color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">💬 WhatsApp</button>
     </div>
     <div id="led-detail-wrap"></div>
+    <div id="led-payment-advice"></div>
 
     <!-- Manual Entry -->
     <div class="card" style="margin-top:8px">
@@ -12574,6 +12575,123 @@ function _custBalance(custId){
   return +entries.reduce((s,e)=>s+(e.type==='dr'?e.amt:-e.amt),0).toFixed(2);
 }
 
+/* ── Smart Payment Advisor helpers ── */
+function _cashPosition(){
+  // All-time net cash flow from Daybook = actual current cash+bank position
+  let cash=0, bank=0;
+  DAYBOOK.forEach(e=>{
+    const amt = e.type==='income'? (+e.amount||0) : -(+e.amount||0);
+    if((e.mode||'').toLowerCase()==='cash') cash+=amt; else bank+=amt;
+  });
+  return {cash, bank, total:cash+bank};
+}
+function _totalPayables(excludeId){
+  let t=0;
+  CUSTOMERS.filter(c=>c.type==='supplier'&&c.id!==excludeId).forEach(c=>{
+    const b=_custBalance(c.id); if(b>0) t+=b;
+  });
+  return t;
+}
+function _totalReceivables(){
+  let t=0;
+  CUSTOMERS.filter(c=>c.type!=='supplier').forEach(c=>{
+    const b=_custBalance(c.id); if(b>0) t+=b;
+  });
+  return t;
+}
+// Average monthly Daybook expense amount (optionally filtered to specific categories), over last N months with data
+function _avgMonthlyAmount(catIds,months=3){
+  const byMonth={};
+  DAYBOOK.forEach(e=>{
+    if(e.type!=='expense') return;
+    if(catIds && !catIds.includes(e.category)) return;
+    const m=(e.date||'').slice(0,7); if(!m) return;
+    byMonth[m]=(byMonth[m]||0)+(+e.amount||0);
+  });
+  const monthsList=Object.keys(byMonth).sort().reverse().slice(0,months);
+  if(!monthsList.length) return 0;
+  return monthsList.reduce((s,m)=>s+byMonth[m],0)/monthsList.length;
+}
+// All recurring, cash-based operational expense categories — labour, rent, electricity, material, EMI, etc.
+// Excludes: personal draws, savings, and internal transfers (not real business cashflow commitments)
+const OPEX_GROUPS=[
+  {label:'Labour / Majdoori', cats:['labour']},
+  {label:'Rent / Kiraya', cats:['rent']},
+  {label:'Bijli / Electricity', cats:['electricity']},
+  {label:'Material (Cash) + Packaging', cats:['raw_material','packaging']},
+  {label:'Loan EMI / Bank Charges', cats:['interest_emi']},
+  {label:'Powder Coating (Outsource)', cats:['powder_coating']},
+  {label:'Transport / Marketing / Tax / Admin / Repair / Other', cats:['transport','marketing','tax_govt','admin_misc','repair_maint','other_prod','business_other_expense']},
+];
+const OPEX_CATS=OPEX_GROUPS.flatMap(g=>g.cats);
+function _daysRemainingInMonth(){
+  const now=new Date();
+  const daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  return {daysInMonth, daysRemaining: daysInMonth-now.getDate()+1};
+}
+function _renderPaymentAdvice(custId){
+  const wrap=document.getElementById('led-payment-advice');
+  if(!wrap) return;
+  const c=CUSTOMERS.find(x=>x.id===custId);
+  wrap.innerHTML='';
+  if(!c||c.type!=='supplier') return;
+  const vendorDue=_custBalance(custId);
+  if(vendorDue<=0) return;
+
+  const reservePct=+(localStorage.getItem('bf9_cash_reserve_pct')||20);
+  const cashPos=_cashPosition();
+  const avgMonthlyOpex=_avgMonthlyAmount(OPEX_CATS,3);
+  const reserve=Math.max(0,avgMonthlyOpex*reservePct/100);
+  const availAfterReserve=Math.max(0,cashPos.total-reserve);
+  const {daysInMonth,daysRemaining}=_daysRemainingInMonth();
+  const proratedRemainingOpex=avgMonthlyOpex*(daysRemaining/daysInMonth);
+  const otherPayables=_totalPayables(custId);
+  const receivables=_totalReceivables();
+  const committedElsewhere=otherPayables+proratedRemainingOpex;
+  const availAfterCommitted=Math.max(0,availAfterReserve-committedElsewhere);
+
+  const opexRows=OPEX_GROUPS.map(g=>({label:g.label,amt:_avgMonthlyAmount(g.cats,3)})).filter(g=>g.amt>0);
+
+  let recommended, reason;
+  if(cashPos.total<=0){
+    recommended=0;
+    reason=`⚠️ Abhi cash position negative/zero hai (₹${_fmtAmt(cashPos.total)}). Pehle collections karo, phir payment plan karo.`;
+  } else if(availAfterCommitted>=vendorDue){
+    recommended=vendorDue;
+    reason=`✅ Reserve (avg monthly opex ka ${reservePct}%), baaki vendors ka due, aur is mahine ke bache hue ${daysRemaining} din ke Labour/Rent/Bijli/Material/EMI (est. ₹${_fmtAmt(proratedRemainingOpex)}) nikaalne ke baad bhi poora due chukane laayak cash hai.`;
+  } else if(availAfterReserve>0){
+    recommended=Math.min(vendorDue,Math.max(availAfterReserve*0.5,availAfterReserve-committedElsewhere*0.5));
+    recommended=Math.max(0,Math.round(recommended));
+    reason=`⚠️ Cash tight hai — baaki vendors ka ₹${_fmtAmt(otherPayables)} due hai, aur is mahine bache hue Labour/Rent/Bijli/Material/EMI ke liye est. ₹${_fmtAmt(proratedRemainingOpex)} aur chahiye. Abhi partial payment karo, cashflow disturb nahi hoga.`;
+  } else {
+    recommended=0;
+    reason=`🛑 Reserve (avg monthly opex ka ${reservePct}%) rakhne ke baad koi cash bacha nahi hai payment ke liye. Ruk jao ya reserve % kam karo.`;
+  }
+  recommended=Math.min(recommended,vendorDue);
+
+  wrap.innerHTML=`
+    <div class="card" style="margin-top:8px;border:1.5px solid #7c3aed30;background:linear-gradient(135deg,#f5f3ff,#fff)">
+      <div class="card-title" style="margin-bottom:8px;color:#5b21b6">🧠 Smart Payment Advisor</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;font-size:11px">
+        <div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #ede9fe"><div style="color:var(--muted);font-size:9px;font-weight:800;text-transform:uppercase">Current Cash Position</div><div style="font-family:'Bebas Neue';font-size:19px;color:${cashPos.total>=0?'#16a34a':'#dc2626'}">₹${_fmtAmt(cashPos.total)}</div></div>
+        <div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #ede9fe"><div style="color:var(--muted);font-size:9px;font-weight:800;text-transform:uppercase">Reserve Floor (<input type="number" value="${reservePct}" min="0" max="100" onchange="localStorage.setItem('bf9_cash_reserve_pct',this.value);_renderPaymentAdvice('${custId}')" style="width:34px;border:none;background:transparent;font-weight:800;color:#5b21b6;font-size:9px">% of avg opex)</div><div style="font-family:'Bebas Neue';font-size:19px;color:#7c3aed">₹${_fmtAmt(reserve)}</div></div>
+        <div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #ede9fe"><div style="color:var(--muted);font-size:9px;font-weight:800;text-transform:uppercase">Baaki Vendors ka Due</div><div style="font-family:'Bebas Neue';font-size:19px;color:#dc2626">₹${_fmtAmt(otherPayables)}</div></div>
+        <div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #ede9fe"><div style="color:var(--muted);font-size:9px;font-weight:800;text-transform:uppercase">Is Mahine Bacha Kharcha (${daysRemaining} din)</div><div style="font-family:'Bebas Neue';font-size:19px;color:#ea580c">₹${_fmtAmt(proratedRemainingOpex)}</div></div>
+        <div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #ede9fe;grid-column:1/3"><div style="color:var(--muted);font-size:9px;font-weight:800;text-transform:uppercase">Customers se Aana Baaki (info only)</div><div style="font-family:'Bebas Neue';font-size:19px;color:#16a34a">₹${_fmtAmt(receivables)}</div></div>
+      </div>
+      ${opexRows.length?`<div style="background:#fff;border:1px solid #ede9fe;border-radius:8px;padding:8px 10px;margin-bottom:10px">
+        <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:5px">Avg Monthly Opex Breakdown (last 3 months)</div>
+        ${opexRows.map(g=>`<div style="display:flex;justify-content:space-between;font-size:10.5px;padding:2px 0;color:var(--muted)"><span>${esc(g.label)}</span><b style="color:#333">₹${_fmtAmt(g.amt)}</b></div>`).join('')}
+      </div>`:''}
+      <div style="background:#5b21b6;border-radius:10px;padding:12px 14px;color:#fff;margin-bottom:8px">
+        <div style="font-size:9px;font-weight:800;color:#ddd6fe;text-transform:uppercase">${esc(c.name)} ko Recommended Payment</div>
+        <div style="font-family:'Bebas Neue';font-size:32px;line-height:1.2">₹${_fmtAmt(recommended)} <span style="font-size:13px;color:#c4b5fd">/ ₹${_fmtAmt(vendorDue)} due</span></div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5">${reason}</div>
+      ${recommended>0?`<button onclick="document.getElementById('led-entry-type').value='cr';document.getElementById('led-entry-amt').value=${recommended};toast('✅ Amount fill ho gaya — neeche confirm karo')" style="width:100%;padding:10px;background:#16a34a;color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✅ ₹${_fmtAmt(recommended)} Payment Form mein Bharo</button>`:''}
+    </div>`;
+}
+
 function initLedgerView(){
   const sel=document.getElementById('led-party-sel');
   if(!sel) return;
@@ -12584,9 +12702,9 @@ function initLedgerView(){
 
 function renderLedgerDetail(custId){
   const wrap=document.getElementById('led-detail-wrap');
-  if(!wrap||!custId) return;
+  if(!wrap||!custId){ const adv=document.getElementById('led-payment-advice'); if(adv) adv.innerHTML=''; return; }
   const c=CUSTOMERS.find(x=>x.id===custId);
-  if(!c){ wrap.innerHTML=''; return; }
+  if(!c){ wrap.innerHTML=''; const adv=document.getElementById('led-payment-advice'); if(adv) adv.innerHTML=''; return; }
 
   const isSupplier=c.type==='supplier';
   const entries=(LEDGER[custId]||[]).sort((a,b)=>new Date(a.date)-new Date(b.date));
@@ -12642,6 +12760,7 @@ function renderLedgerDetail(custId){
         <tbody>${rows||'<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--muted)">Koi entry nahi</td></tr>'}</tbody>
       </table>
     </div>`;
+  _renderPaymentAdvice(custId);
 }
 
 function addLedEntry(){
