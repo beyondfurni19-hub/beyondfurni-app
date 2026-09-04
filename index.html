@@ -5219,6 +5219,24 @@ function gdLoad(){
   _gdSmartSync();
 }
 
+/* ── Data-loss guard: compare critical record counts before any overwrite ── */
+function _gdSafeLen(raw){
+  try{ const v=JSON.parse(raw); return Array.isArray(v)?v.length:0; }catch(e){ return 0; }
+}
+const GD_CRITICAL_KEYS=['bf9_daybook','bf9_invoices','bf9_batches','bf9_customers'];
+// Returns true if `incoming` data would represent a significant (>15%) drop vs `current` for any critical module
+function _gdWouldLoseData(currentObj, incomingObj){
+  for(const k of GD_CRITICAL_KEYS){
+    const curLen = _gdSafeLen(currentObj[k]);
+    const newLen = _gdSafeLen(incomingObj[k]);
+    if(curLen >= 5 && newLen < curLen*0.85){
+      console.warn(`⚠️ Data-loss guard triggered on ${k}: current=${curLen}, incoming=${newLen}`);
+      return true;
+    }
+  }
+  return false;
+}
+
 /* ── Smart sync — compare timestamps, newer wins ── */
 async function _gdSmartSync(){
   gdSetDot('syncing');
@@ -5290,6 +5308,25 @@ async function _gdSmartSync(){
         return;
       }
 
+      // Guard: agar yeh (stale) tab ka local data cloud se kaafi kam hai — cloud ko overwrite mat karo, ulta cloud se pull karo
+      const localSnapshot={}; GD_KEYS.forEach(k=>{ const v=localStorage.getItem(k); if(v) localSnapshot[k]=v; });
+      if(_gdWouldLoseData(cloud, localSnapshot)){
+        console.warn('⚠️ Ye tab purana/stale data push karne wala tha — block kiya, cloud se fresh data pull ho raha hai');
+        let restored = 0;
+        GD_KEYS.forEach(k=>{
+          if(cloud[k] !== undefined && cloud[k] !== '' && cloud[k] !== 'null'){
+            localStorage.setItem(k, cloud[k]);
+            restored++;
+          }
+        });
+        localStorage.setItem('bf9_gd_lastsync', new Date().toISOString());
+        _gdLoaded = true;
+        gdSetDot('ok');
+        if(typeof toast==='function') toast('⚠️ Purani tab detect hui — fresh data cloud se le liya, page reload ho raha hai');
+        if(restored > 0){ localStorage.setItem('bf9_gd_reloaded','1'); location.reload(); }
+        return;
+      }
+
       _gdLoaded = true;
       gdSetDot('ok');
       gdPush(); // local data cloud pe bhejo
@@ -5297,6 +5334,16 @@ async function _gdSmartSync(){
     }
 
     // Case 4: Cloud is NEWER than local → pull from cloud
+    // Guard: agar cloud ka data current local se kaafi kam hai — ye ek stale/purani cloud copy ho sakti hai, local ko mat udao
+    const localSnapshotC4={}; GD_KEYS.forEach(k=>{ const v=localStorage.getItem(k); if(v) localSnapshotC4[k]=v; });
+    if(_gdWouldLoseData(localSnapshotC4, cloud)){
+      console.warn('⚠️ Cloud ka data local se kaafi kam hai — pull block kiya, local ka fresh data cloud pe push ho raha hai');
+      if(typeof toast==='function') toast('⚠️ Cloud mein purana data mila — overwrite block kiya, tumhara fresh data cloud pe save ho raha hai');
+      _gdLoaded = true;
+      gdSetDot('ok');
+      gdPush();
+      return;
+    }
     let restored = 0;
     GD_KEYS.forEach(k=>{
       if(cloud[k] !== undefined && cloud[k] !== '' && cloud[k] !== 'null'){
@@ -5346,6 +5393,13 @@ async function _gdSilentPull(){
 
     // Cloud is newer → silently update localStorage only
     // NO reload — bas data update karo background mein
+    // Guard: agar cloud ka data kam hai to silently overwrite mat karo
+    const localSnapshotSP={}; GD_KEYS.forEach(k=>{ const v=localStorage.getItem(k); if(v) localSnapshotSP[k]=v; });
+    if(_gdWouldLoseData(localSnapshotSP, cloud)){
+      console.warn('⚠️ Silent pull blocked — cloud data kam hai, local ko push kar rahe hain');
+      gdPush();
+      return;
+    }
     let restored = 0;
     GD_KEYS.forEach(k=>{
       if(cloud[k] !== undefined && cloud[k] !== '' && cloud[k] !== 'null'){
