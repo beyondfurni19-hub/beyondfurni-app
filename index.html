@@ -2128,8 +2128,9 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
       <!-- Order Details -->
       <div class="g2">
         <div class="fg" style="margin:0">
-          <label>Total Pieces *</label>
-          <input class="finp" type="number" id="bt-qty" placeholder="e.g. 100" min="1" oninput="btCalcTotal()">
+          <label>Total Pieces (Product 1) *</label>
+          <input class="finp" type="number" id="bt-qty" placeholder="e.g. 100" min="1" oninput="btCalcTotal();btSyncTotalHint()">
+          <div id="bt-total-qty-hint" style="display:none;font-size:10px;font-weight:800;color:var(--orange);margin-top:4px"></div>
         </div>
         <div class="fg" style="margin:0">
           <label>Rate (₹/piece) *</label>
@@ -2166,6 +2167,10 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
         </select>
         <div id="bt-stock-status" style="margin-top:6px;display:none"></div>
       </div>
+
+      <!-- Extra products — jab customer ek se zyada product ek saath order kare -->
+      <div id="bt-extra-products"></div>
+      <button type="button" onclick="btAddExtraProduct()" style="width:100%;padding:9px;margin-bottom:12px;background:#f0f4ff;border:1.5px dashed var(--border);border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:var(--navy2);cursor:pointer">➕ Aur Product Add Karo (ek order mein multiple product)</button>
 
       <div class="fg">
         <label>Note</label>
@@ -8869,6 +8874,56 @@ function btCalcTotal(){
   const el=document.getElementById('bt-total-display');
   if(el) el.textContent='₹'+(qty*rate).toLocaleString('en-IN');
 }
+
+/* ── Multi-product batch support ──
+   Ek order mein customer kabhi kabhi ek se zyada product maangta hai.
+   Main product (bt-product/bt-qty) hamesha "Product 1" hai; _btExtraProducts
+   mein aage ke products {productId, qty} store hote hain. Agar sirf 1
+   product hi ho (default case), batch object bilkul pehle jaisa hi banta
+   hai — koi behavior change nahi. */
+let _btExtraProducts = [];
+
+function _btProductOptionsHTML(selectedId){
+  const prods = _az(invGetProducts(), p=>p.name);
+  return '<option value="">-- Product chunno --</option>' +
+    prods.map(p=>`<option value="${p.id}" ${selectedId===p.id?'selected':''}>${p.icon||'🏭'} ${p.name}</option>`).join('');
+}
+function btAddExtraProduct(){
+  _btExtraProducts.push({productId:'', qty:0});
+  btRenderExtraProducts();
+}
+function btRemoveExtraProduct(idx){
+  _btExtraProducts.splice(idx,1);
+  btRenderExtraProducts();
+}
+function btRenderExtraProducts(){
+  const wrap=document.getElementById('bt-extra-products');
+  if(!wrap) return;
+  wrap.innerHTML=_btExtraProducts.map((row,i)=>`
+    <div class="fg" style="display:flex;gap:6px;align-items:flex-end;margin-bottom:8px">
+      <div style="flex:2;margin:0">
+        <label style="font-size:10px">Product ${i+2}</label>
+        <select class="finp" onchange="_btExtraProducts[${i}].productId=this.value;btSyncTotalHint()">
+          ${_btProductOptionsHTML(row.productId)}
+        </select>
+      </div>
+      <div style="flex:1;margin:0">
+        <label style="font-size:10px">Qty</label>
+        <input class="finp" type="number" min="1" value="${row.qty||''}" oninput="_btExtraProducts[${i}].qty=parseInt(this.value)||0;btSyncTotalHint()">
+      </div>
+      <button type="button" onclick="btRemoveExtraProduct(${i})" style="padding:9px 10px;background:var(--red-bg);color:var(--red-dark);border:none;border-radius:var(--r3);cursor:pointer;font-size:14px;flex-shrink:0">✕</button>
+    </div>`).join('');
+  btSyncTotalHint();
+}
+function btSyncTotalHint(){
+  const hint=document.getElementById('bt-total-qty-hint');
+  if(!hint) return;
+  if(!_btExtraProducts.length){ hint.style.display='none'; return; }
+  const mainQty=parseInt(document.getElementById('bt-qty')?.value)||0;
+  const extraQty=_btExtraProducts.reduce((s,r)=>s+(r.qty||0),0);
+  hint.style.display='block';
+  hint.textContent=`📦 Total (sabhi ${1+_btExtraProducts.length} products milakar): ${mainQty+extraQty} pcs`;
+}
 function createBatch(force){
   const custId=document.getElementById('bt-cust-sel').value;
   const qty=parseInt(document.getElementById('bt-qty').value)||0;
@@ -8886,21 +8941,38 @@ function createBatch(force){
   if(!qty){toast('⚠️ Pieces ki qty dalo!');return;}
   if(!rate){toast('⚠️ Rate dalo!');return;}
   if(!productId){toast('⚠️ Product chunno!');return;}
-  // ── Stock check ──
+
+  // ── Sabhi products collect karo (main product + extra rows agar hain) ──
+  const allProdsCat=invGetProducts();
+  const allProducts=[{productId,product:prod,qty}];
+  let extraInvalid=false;
+  _btExtraProducts.forEach(r=>{
+    if(!r.productId && !r.qty) return; // khaali row, ignore
+    if(!r.productId || !r.qty){ extraInvalid=true; return; }
+    const p=allProdsCat.find(x=>x.id===r.productId);
+    allProducts.push({productId:r.productId, product:p?p.name:r.productId, qty:r.qty});
+  });
+  if(extraInvalid){ toast('⚠️ Extra product row mein Product aur Qty dono bharo (ya khaali row hata do)!'); return; }
+  const isMulti=allProducts.length>1;
+  const totalQty=allProducts.reduce((s,p)=>s+p.qty,0);
+
+  // ── Stock check — sabhi products ke liye combined ──
   if(!force){
-    const short=btCheckStock(productId,qty);
-    if(short.length>0){
-      const prods=invGetProducts();
-      const prodName=prods.find(p=>p.id===productId)?.name||prod;
-      bomWarnShow(prodName,short,qty);
+    let allShort=[];
+    allProducts.forEach(p=>{
+      btCheckStock(p.productId,p.qty).forEach(s=>allShort.push({...s, forProduct:p.product}));
+    });
+    if(allShort.length>0){
+      bomWarnShow(isMulti?`${allProducts.length} Products`:prod, allShort, totalQty);
       return;
     }
   }
   const c=CUSTOMERS.find(x=>x.id===custId);
   const party=c?.name||'—';
+  const displayProduct=isMulti?allProducts.map(p=>`${p.product} ×${p.qty}`).join(', '):prod;
   // Create Order
   const ordId='O'+Date.now();
-  const newOrd={id:ordId,custId,product:prod,qty,rate,advance,delivered:0,
+  const newOrd={id:ordId,custId,product:displayProduct,qty:totalQty,rate,advance,delivered:0,
     date:orderDate,deliveryDate:deliv,note,status:'active',deliveries:[]};
   ORDERS.push(newOrd);
   save('bf9_orders',ORDERS);
@@ -8909,7 +8981,10 @@ function createBatch(force){
   BT_STAGES.forEach((s,i)=>{
     stages[s.id]=i<start?{done:true,date:btToday(),note:'Pehle se complete'}:{done:false,date:null,note:''};
   });
-  const b={id:btGenId(),party,custId,orderId:ordId,qty,product:prod,productId,
+  const b={id:btGenId(),party,custId,orderId:ordId,qty:totalQty,product:displayProduct,
+    productId: isMulti?null:productId,
+    products: isMulti?allProducts:undefined,
+    dispatchedByProduct: isMulti?{}:undefined,
     packingType:document.getElementById('bt-packing-type')?.value||'none',
     deliveryDate:deliv,note,createdAt:new Date().toISOString(),stages,deleted:false,
     deliveries:[],dispatched:0,invoiceIds:[]};
@@ -8923,8 +8998,9 @@ function createBatch(force){
   document.getElementById('bt-product').value='';
   document.getElementById('bt-start').value='0';
   document.getElementById('bt-total-display').textContent='₹0';
+  _btExtraProducts=[]; btRenderExtraProducts();
   const sd=document.getElementById('bt-stock-status');if(sd)sd.style.display='none';
-  toast(`✅ ${b.id} — ${party} — Order + Batch shuru!`);
+  toast(`✅ ${b.id} — ${party} — Order + Batch shuru!${isMulti?` (${allProducts.length} products)`:''}`);
   updateBatchBadge();
   renderBatchSelectCard();
   setBTab('active');
@@ -10112,8 +10188,23 @@ function createInvoice(saveAndNew=false){
       const dispatchQty=Math.max(0,Math.min(remaining,requestedQty));
       if(dispatchQty>0){
         b.dispatched=(b.dispatched||0)+dispatchQty;
-        const pid=b.productId||btGetProductId(b.product);
-        if(pid) btDeductStockForBatch({...b,productId:pid}, dispatchQty);
+        // Per-item stock deduction — har invoice item apne product ki BOM
+        // ke hisaab se stock minus karta hai. Multi-product batch mein har
+        // product apne productId se alag deduct hota hai; purane single-
+        // product batches ke liye behavior bilkul pehle jaisa hi hai.
+        if(!b.dispatchedByProduct) b.dispatchedByProduct={};
+        let capLeft=dispatchQty;
+        _invItems.forEach(it=>{
+          if(capLeft<=0) return;
+          const itemQty=Math.min(it.qty||0, capLeft);
+          if(itemQty<=0) return;
+          const pid = it.productId || b.productId || btGetProductId(it.name) || btGetProductId(b.product);
+          if(pid){
+            btDeductStockForItem(pid, itemQty, b.id);
+            b.dispatchedByProduct[pid]=(b.dispatchedByProduct[pid]||0)+itemQty;
+          }
+          capLeft-=itemQty;
+        });
         packDeductStock(b, dispatchQty);
         if(!b.invoiceIds) b.invoiceIds=[];
         b.invoiceIds.push(inv.id);
@@ -11079,7 +11170,28 @@ function createInvoiceFromBatch(batchId, presetQty){
     document.getElementById('inv-party').value=b.party;
     onInvPartyChange();
     document.getElementById('inv-num-field').value=_nextInvNum();
-    _invItems=[{name:b.product||'Metal Stand (Adjustable)',hsn:'9403',qty:qty,rate:0}];
+
+    if(b.products && b.products.length){
+      // Multi-product batch — har product ka apna invoice item banega,
+      // uska productId saath carry hoga taaki invoice complete hone par
+      // us product ki BOM ke hisaab se stock alag-alag minus ho sake.
+      let capLeft=qty;
+      const items=[];
+      b.products.forEach(p=>{
+        if(capLeft<=0) return;
+        const already=(b.dispatchedByProduct||{})[p.productId]||0;
+        const prodRemaining=Math.max(0,p.qty-already);
+        const take=Math.min(prodRemaining,capLeft);
+        if(take>0){
+          items.push({name:p.product, hsn:'9403', qty:take, rate:0, productId:p.productId});
+          capLeft-=take;
+        }
+      });
+      _invItems = items.length ? items : [{name:b.product||'Metal Stand (Adjustable)',hsn:'9403',qty,rate:0}];
+    } else {
+      _invItems=[{name:b.product||'Metal Stand (Adjustable)',hsn:'9403',qty:qty,rate:0,productId:b.productId||btGetProductId(b.product)}];
+    }
+
     document.getElementById('inv-batch-link').value=batchId;
     _renderInvItems(); _calcInvTotals();
     if(qty<remaining){
@@ -11087,7 +11199,7 @@ function createInvoiceFromBatch(batchId, presetQty){
     } else if((b.dispatched||0)>0){
       toast(`📋 Batch ke baaki ${qty} pcs fill ho gaye — rate dalo!`);
     } else {
-      toast('📋 Batch se details fill ho gayi — rate dalo!');
+      toast('📋 Batch se details fill ho gayi — rate dalo!'+(b.products&&b.products.length>1?` (${b.products.length} products)`:''));
     }
   },200);
 }
@@ -20776,7 +20888,7 @@ function bomWarnShow(productName, short, qty){
     <div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--red-bg);border:1px solid #fca5a5;border-radius:var(--r3);margin-bottom:6px">
       <div style="font-size:18px">${s.mat.icon}</div>
       <div style="flex:1">
-        <div style="font-size:12px;font-weight:800;color:var(--red-dark)">${s.mat.name}</div>
+        <div style="font-size:12px;font-weight:800;color:var(--red-dark)">${s.mat.name}${s.forProduct?` <span style="font-weight:600;color:var(--muted)">(${esc(s.forProduct)})</span>`:''}</div>
         <div style="font-size:10px;color:var(--muted)">Chahiye: <b>${s.needed} ${s.unit}</b> · Hai: <b>${s.have} ${s.unit}</b></div>
       </div>
       <div style="font-size:11px;font-weight:800;color:var(--red-dark);background:#fff;padding:3px 8px;border-radius:10px;border:1px solid #fca5a5">
@@ -20799,11 +20911,8 @@ function bomWarnForceCreate(){
 /* ══════════════════════════════════════════
    STOCK AUTO-DEDUCT — Dispatch stage pe
 ══════════════════════════════════════════ */
-function btDeductStockForBatch(batch, dispatchQty){
-  const productId = batch.productId || btGetProductId(batch.product);
-  if(!productId) return;
-  const qty = (dispatchQty!=null) ? dispatchQty : (batch.qty||0);
-  if(qty<=0) return;
+function btDeductStockForItem(productId, qty, batchId){
+  if(!productId || qty<=0) return [];
   const bom = invGetBOMForProduct(productId);
   let deducted = [];
 
@@ -20814,11 +20923,10 @@ function btDeductStockForBatch(batch, dispatchQty){
     const idx = STK.findIndex(m=>m.id===matId);
     if(idx<0) return;
     STK[idx].current = Math.max(0, (STK[idx].current||0) - needed);
-    // Log transaction
     STXN.push({
       id:Date.now()+'_'+Math.random().toString(36).slice(2,4),
       itemId:matId, type:'out', qty:needed,
-      note:'Batch '+batch.id+' dispatch ('+qty+' pcs)',
+      note:'Batch '+(batchId||'')+' dispatch ('+qty+' pcs)',
       date:new Date().toISOString()
     });
     deducted.push(STK[idx].name);
@@ -20827,7 +20935,14 @@ function btDeductStockForBatch(batch, dispatchQty){
   save('bf9_stk', STK);
   save('bf9_stxn', STXN);
   if(typeof renderStock==='function') renderStock();
-  toast('📦 Stock deducted: '+deducted.length+' materials');
+  if(deducted.length) toast('📦 Stock deducted: '+deducted.length+' materials');
+  return deducted;
+}
+// Kept for backward compatibility (old single-product-per-batch call shape)
+function btDeductStockForBatch(batch, dispatchQty){
+  const productId = batch.productId || btGetProductId(batch.product);
+  const qty = (dispatchQty!=null) ? dispatchQty : (batch.qty||0);
+  return btDeductStockForItem(productId, qty, batch.id);
 }
 
 /* Helper: find product id from product name */
