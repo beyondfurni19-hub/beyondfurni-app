@@ -10061,6 +10061,16 @@ function setGstRate(r){
 }
 
 /* ── Items ── */
+function _updateInvItemRow(i){
+  const it=_invItems[i];
+  const taxable=Math.max(0,(it.qty*it.rate)-(it.disc||0));
+  const amt=taxable*(1+(_invGST?_gstRate/100:0));
+  const tEl=document.getElementById(`inv-item-taxable-${i}`);
+  const aEl=document.getElementById(`inv-item-amt-${i}`);
+  if(tEl) tEl.textContent=_fmtAmt(taxable);
+  if(aEl) aEl.textContent=_fmtAmt(amt);
+  _calcInvTotals();
+}
 function _renderInvItems(){
   const wrap=document.getElementById('inv-items-wrap');
   if(!wrap) return;
@@ -10069,14 +10079,14 @@ function _renderInvItems(){
       <div style="font-size:12px;font-weight:800;color:var(--muted);text-align:center">${i+1}</div>
       <input class="finp" value="${esc(it.name)}" placeholder="Item naam..." onchange="_invItems[${i}].name=this.value;_calcInvTotals()" style="padding:7px 8px;font-size:12px">
       <input class="finp" value="${esc(it.hsn||'9403')}" placeholder="HSN" onchange="_invItems[${i}].hsn=this.value" style="padding:7px 6px;font-size:11px">
-      <input class="finp" type="number" value="${it.qty}" min="1" onchange="_invItems[${i}].qty=+this.value;_calcInvTotals()" style="padding:7px 6px;font-size:12px;text-align:center">
+      <input class="finp" type="number" value="${it.qty}" min="1" oninput="_invItems[${i}].qty=+this.value;_updateInvItemRow(${i})" style="padding:7px 6px;font-size:12px;text-align:center">
       <select class="finp" onchange="_invItems[${i}].unit=this.value" style="padding:7px 6px;font-size:11px">
         ${_az(['no.s','kg','meter','liter','box','set']).map(u=>`<option ${(it.unit||'no.s')===u?'selected':''}>${u}</option>`).join('')}
       </select>
-      <input class="finp" type="number" value="${it.rate||''}" placeholder="0" onchange="_invItems[${i}].rate=+this.value;_calcInvTotals()" style="padding:7px 6px;font-size:12px;text-align:right">
-      <input class="finp" type="number" value="${it.disc||0}" placeholder="0" onchange="_invItems[${i}].disc=+this.value;_calcInvTotals()" style="padding:7px 6px;font-size:12px;text-align:right">
-      <div style="padding:7px 6px;font-size:11px;font-weight:700;color:var(--muted);text-align:right;background:#f8faff;border:1px solid var(--border);border-radius:var(--r3)">${_fmtAmt(Math.max(0,(it.qty*it.rate)-(it.disc||0)))}</div>
-      <div style="padding:7px 6px;font-size:11px;font-weight:800;color:var(--navy2);text-align:right;background:#f8faff;border:1px solid var(--border);border-radius:var(--r3)">${_fmtAmt(Math.max(0,(it.qty*it.rate)-(it.disc||0))*(1+(_invGST?_gstRate/100:0)))}</div>
+      <input class="finp" type="number" value="${it.rate||''}" placeholder="0" oninput="_invItems[${i}].rate=+this.value;_updateInvItemRow(${i})" style="padding:7px 6px;font-size:12px;text-align:right">
+      <input class="finp" type="number" value="${it.disc||0}" placeholder="0" oninput="_invItems[${i}].disc=+this.value;_updateInvItemRow(${i})" style="padding:7px 6px;font-size:12px;text-align:right">
+      <div id="inv-item-taxable-${i}" style="padding:7px 6px;font-size:11px;font-weight:700;color:var(--muted);text-align:right;background:#f8faff;border:1px solid var(--border);border-radius:var(--r3)">${_fmtAmt(Math.max(0,(it.qty*it.rate)-(it.disc||0)))}</div>
+      <div id="inv-item-amt-${i}" style="padding:7px 6px;font-size:11px;font-weight:800;color:var(--navy2);text-align:right;background:#f8faff;border:1px solid var(--border);border-radius:var(--r3)">${_fmtAmt(Math.max(0,(it.qty*it.rate)-(it.disc||0))*(1+(_invGST?_gstRate/100:0)))}</div>
       <button class="inv-del-btn" onclick="removeInvItem(${i})" style="width:26px;height:26px;font-size:13px">✕</button>
     </div>`).join('');
 }
