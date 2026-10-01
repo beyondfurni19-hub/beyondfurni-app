@@ -3452,7 +3452,8 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 
 <!-- ════ WHAT'S NEW ════ -->
 <style>
-#wr-svg{flex:1;height:540px;background:var(--card,#fff);border:1.5px solid var(--border,#d7dce5);border-radius:12px;touch-action:none;user-select:none}
+.body:has(#s-wiring.active){max-width:none}
+#wr-svg{flex:1;min-width:0;height:540px;background:var(--card,#fff);border:1.5px solid var(--border,#d7dce5);border-radius:12px;touch-action:none;user-select:none}
 #wr-pn{width:290px;background:var(--card,#fff);border:1.5px solid var(--border,#d7dce5);border-radius:12px;padding:12px;font-size:12px;max-height:540px;overflow:auto}
 #wr-pn select,#wr-pn input{margin:3px 3px 3px 0;padding:4px;font-size:12px}
 .wr-b{padding:6px 10px;border-radius:8px;border:1.5px solid #cbd3e0;background:#fff;cursor:pointer;font-size:12px;font-weight:700}
@@ -21337,6 +21338,7 @@ const srcs=(id,seen=new Set())=>{if(seen.has(id))return[];seen.add(id);const n=n
 const evs=w=>[...new Set(srcs(w.f).flatMap(k=>MODS[k].ev))].filter(e=>MODS.daybook.acc.includes(e));
 const pa=(p,q)=>`M${p[0]} ${p[1]} C${p[0]+70} ${p[1]},${q[0]-70} ${q[1]},${q[0]} ${q[1]}`;
 function R(){const sv=document.getElementById('wr-svg');if(!sv)return;
+const cw=sv.clientWidth;if(cw>200)W.nodes.forEach(n=>{const d=dim(n);if(n.x>cw-d.w-10)n.x=Math.max(0,cw-d.w-10)});
 let h='<defs><marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#17b86a"/></marker><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#9aa4b2"/></marker></defs>';
 W.wires.forEach(w=>{const a=nd(w.f),b=nd(w.t);if(!a||!b)return;const p=outP(a,w.br),q=inP(b),on=w.on!==false,d=pa(p,q);
 h+=`<g data-w="${w.id}" style="cursor:pointer"><path d="${d}" stroke="transparent" stroke-width="14" fill="none"/><path d="${d}" fill="none" stroke="${on?'#17b86a':'#9aa4b2'}" stroke-width="${sel===w.id?4:2.5}" ${on?'':'stroke-dasharray="6 5"'} marker-end="url(#${on?'ag':'ar'})"/>${w.br?`<text x="${p[0]+8}" y="${p[1]-5}" font-size="11" fill="#555">${w.br==='y'?'Yes':'No'}</text>`:''}</g>`});
