@@ -1457,10 +1457,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
     <button class="sbnav" data-tab="inv-purchase" onclick="sw('inv-purchase',this)">
       <span class="sb-ico">🛒</span><span class="sb-lbl">Purchase Entry</span>
     </button>
-    <button class="sbnav" data-tab="wiring" onclick="sw('wiring',this)">
-<span class="sb-ico">🔌</span><span class="sb-lbl">Wiring Hub</span>
-</button>
-<button class="sbnav" data-tab="inv-bom" onclick="sw('inv-bom',this)">
+    <button class="sbnav" data-tab="inv-bom" onclick="sw('inv-bom',this)">
       <span class="sb-ico">📐</span><span class="sb-lbl">BOM</span>
     </button>
   </div>
@@ -3451,22 +3448,6 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 </div>
 
 <!-- ════ WHAT'S NEW ════ -->
-<style>
-.body:has(#s-wiring.active){max-width:none}
-#wr-svg{flex:1;min-width:0;height:660px;background:var(--card,#fff);border:1.5px solid var(--border,#d7dce5);border-radius:12px;touch-action:none;user-select:none}
-#wr-pn{width:300px;background:var(--card,#fff);border:1.5px solid var(--border,#d7dce5);border-radius:12px;padding:12px;font-size:12px;max-height:660px;overflow:auto}
-#wr-pn select,#wr-pn input{margin:3px 3px 3px 0;padding:4px;font-size:12px;max-width:100%}
-.wr-b{padding:6px 10px;border-radius:8px;border:1.5px solid #cbd3e0;background:#fff;cursor:pointer;font-size:12px;font-weight:700}
-.wr-ev{border-top:1px solid #e3e7ef;padding:8px 0}
-</style>
-<div class="sc" id="s-wiring"><div style="padding:14px">
-<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
-<b style="font-size:18px">🔌 Wiring Hub</b>
-<button class="wr-b" onclick="BFW.addC()">◇ Decision (Yes/No)</button>
-<label style="font-size:12px"><input type="checkbox" onchange="BFW.dry(this.checked)"> Dry-run (sirf log, entry nahi)</label>
-<button class="wr-b" onclick="BFW.reset()">↺ Default diagram</button>
-<span style="font-size:12px;opacity:.7">Kisi bhi box ke ● se kheencho → kisi bhi box par chhodo. Wire par click = kaam chuno.</span></div>
-<div style="display:flex;gap:10px"><svg id="wr-svg"></svg><div id="wr-pn"></div></div></div></div>
 <div class="sc" id="s-whats-new">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
     <div>
@@ -5169,7 +5150,7 @@ const GD_KEYS = [
   'bf9_inv_mats','bf9_inv_bom','bf9_inv_bom','bf9_inv_conv','bf9_inv_purlog','bf9_inv_prodlog',
   'bf9_inv_products','bf9_inv_all_boms','bf9_inv_pack_bom',
   // Daybook & Discipline
-  'bf9_daybook','bf9_cat_labels','bf9_disc_settings','bf9_wiring',
+  'bf9_daybook','bf9_cat_labels','bf9_disc_settings',
   // Assets
   'bf9_assets',
   // Attendance & Salary
@@ -5631,7 +5612,6 @@ function sw(name,btn){
   if(name==='cfo')      renderCFO();
   if(name==='ceo-report') renderCEOReport();
   if(name==='daybook')  renderDaybook();
-  if(name==='wiring')   BFW.render();
   // Close sidebar on mobile
   if(window.innerWidth<=768) closeSidebar();
   if(name==='inv-materials') { invRenderMaterials(); invCheckLowBadge(); }
@@ -8996,7 +8976,6 @@ function createBatch(force){
     date:orderDate,deliveryDate:deliv,note,status:'active',deliveries:[]};
   ORDERS.push(newOrd);
   save('bf9_orders',ORDERS);
-  if(advance>0) BFW.emit('order.advance',{id:ordId,amount:advance,party,date:orderDate,note:'Order advance'});
   // Create Batch linked to order
   const stages={};
   BT_STAGES.forEach((s,i)=>{
@@ -9010,7 +8989,6 @@ function createBatch(force){
     deliveryDate:deliv,note,createdAt:new Date().toISOString(),stages,deleted:false,
     deliveries:[],dispatched:0,invoiceIds:[]};
   BATCHES.unshift(b);
-  BFW.emit('batch.created',{id:b.id,amount:rate*totalQty,party:party,note:displayProduct+' ×'+totalQty});
   save('bf9_batches',BATCHES);
   // Reset form
   ['bt-qty','bt-rate','bt-advance','bt-note','bt-delivery','bt-order-date'].forEach(id=>{
@@ -9046,7 +9024,6 @@ function confirmBtStage(){
   const s=BT_STAGES[_btPending.si];
   b.stages[s.id]={done:true,date:document.getElementById('btsm-date').value||btToday(),note:document.getElementById('btsm-note').value.trim()};
   save('bf9_batches',BATCHES);
-  BFW.emit('batch.stage',{id:b.id+'_'+s.id+'_'+Date.now(),party:b.party,note:b.id+' · '+s.name+' complete'});
   // ── Note: stock is no longer auto-deducted here. Dispatch stage is now a
   // pure production-tracking milestone; actual raw-material + packing stock
   // is deducted per-piece at invoice time (see createInvoice's batch block),
@@ -10206,7 +10183,6 @@ function createInvoice(saveAndNew=false){
   INVOICES.push(inv);
   save('bf9_invoices', INVOICES);
   _addInvoiceToLedger(inv);
-  BFW.emit('invoice.created',{id:inv.id,amount:inv.grandTotal,party:inv.party,date:inv.date,note:'Invoice '+inv.num});
 
   // Link invoice back to delivery if generated from order
   _linkInvoiceToDelivery(inv.id);
@@ -10234,12 +10210,12 @@ function createInvoice(saveAndNew=false){
           if(itemQty<=0) return;
           const pid = it.productId || b.productId || btGetProductId(it.name) || btGetProductId(b.product);
           if(pid){
-            if(BFW.has('invoice.created','stock',{amount:inv.grandTotal})) btDeductStockForItem(pid, itemQty, b.id);
+            btDeductStockForItem(pid, itemQty, b.id);
             b.dispatchedByProduct[pid]=(b.dispatchedByProduct[pid]||0)+itemQty;
           }
           capLeft-=itemQty;
         });
-        if(BFW.has('invoice.created','stock',{amount:inv.grandTotal})) packDeductStock(b, dispatchQty);
+        packDeductStock(b, dispatchQty);
         if(!b.invoiceIds) b.invoiceIds=[];
         b.invoiceIds.push(inv.id);
         const nowRemaining=b.qty-b.dispatched;
@@ -10706,7 +10682,6 @@ function markInvPaid(id){
 }
 function deleteInv(id){
   if(!confirm('Invoice delete karo?')) return;
-  ((INVOICES.find(i=>i.id===id)||{}).payments||[]).forEach(p=>BFW.undo('invoice.payment',p.id));
   INVOICES=INVOICES.filter(i=>i.id!==id);
   save('bf9_invoices',INVOICES); renderInvList(); toast('Invoice delete ho gayi');
 }
@@ -10726,14 +10701,11 @@ function _addInvPayment(invId, amt, mode, date, note){
   inv.status=paid>=inv.grandTotal-0.01?'paid':paid>0?'partial':'unpaid';
   inv.recoveryAmt=paid;
   save('bf9_invoices',INVOICES);
-  // Ledger credit entry (Wiring Hub controlled)
-  if(BFW.has('invoice.payment','ledger',{mode:pmt.mode,amount:pmt.amt})){
+  // Ledger credit entry
   const c=_ensureCustomer(inv.party,inv.phone,inv.address,inv.gstin);
   if(!LEDGER[c.id]) LEDGER[c.id]=[];
   LEDGER[c.id].push({id:'le_'+Date.now().toString(36), date:pmt.date, type:'cr', amt:pmt.amt, note:'Payment · Inv '+inv.num+(note?' · '+note:''), mode:pmt.mode, ref:invId});
   save('bf9_ledger',LEDGER);
-  }
-  BFW.emit('invoice.payment',{id:pmt.id,amount:pmt.amt,mode:pmt.mode,date:pmt.date,party:inv.party,note:'Inv '+inv.num+(note?' · '+note:'')});
   renderInvList();
   if(typeof renderCustomerList==='function') renderCustomerList();
   toast('✅ ₹'+_fmtAmt(pmt.amt)+' payment record ho gayi!');
@@ -10889,7 +10861,6 @@ function deleteInvPayment(invId, pmtId){
   const inv=INVOICES.find(i=>i.id===invId);
   if(!inv||!inv.payments) return;
   inv.payments=inv.payments.filter(p=>p.id!==pmtId);
-  BFW.undo('invoice.payment',pmtId);
   const paid=inv.payments.reduce((s,p)=>s+p.amt,0);
   inv.status=paid>=inv.grandTotal-0.01?'paid':paid>0?'partial':'unpaid';
   inv.recoveryAmt=paid;
@@ -11701,9 +11672,7 @@ function saveOrder(){
       status:'active'
     };
     ORDERS.push(newOrd);
-    BFW.emit('order.created',{id:newOrd.id,amount:qty*rate,party:(CUSTOMERS.find(c=>c.id===custId)||{}).name||'',note:product});
     // Note: Ledger entries happen only when Invoice is created, not on Order
-    if(advance>0) BFW.emit('order.advance',{id:newOrd.id,amount:advance,party:(CUSTOMERS.find(x=>x.id===custId)||{}).name||'',date:date,note:'Order advance'});
   }
 
   save('bf9_orders',ORDERS);
@@ -12213,7 +12182,6 @@ function saveEmiPayment(){
     note: document.getElementById('aep-note').value.trim(),
   });
   save('bf9_assets', ASSETS);
-  BFW.emit('emi.paid',{id:'emi_'+assetId+'_'+emiIdx,amount:parseFloat(document.getElementById('aep-amount').value)||0,mode:document.getElementById('aep-mode').value||'Bank',date:document.getElementById('aep-date').value,party:a.name||a.title||'',note:'EMI #'+(emiIdx+1)});
   document.getElementById('asset-emi-pay-modal').classList.remove('show');
   renderAssetList();
   toast(`✅ EMI #${emiIdx+1} paid!`);
@@ -12641,12 +12609,8 @@ function _quickPaySupplier(custId){
   if(!amt||amt<=0){ toast('⚠️ Valid amount dalo!'); return; }
   const note=prompt('Note (optional): cheque no, NEFT, cash...','')??'';
   if(!LEDGER[custId]) LEDGER[custId]=[];
-  const _qd=new Date().toISOString().split('T')[0];
-  if(BFW.has('supplier.quickpay','ledger',{mode:'Cash',amount:amt})){
   LEDGER[custId].push({id:'le_'+Date.now(),date:new Date().toISOString().split('T')[0],type:'cr',amt,note:note||'Payment',mode:'Cash',ref:'manual'});
   save('bf9_ledger',LEDGER);
-  }
-  BFW.emit('supplier.quickpay',{id:'qp'+Date.now(),amount:amt,mode:'Cash',date:_qd,party:c.name,note:note||'Payment'});
   renderSupplierList();
   toast(`✅ ₹${_fmtAmt(amt)} payment ${c.name} ko record ho gayi!`);
 }
@@ -12988,7 +12952,6 @@ function addLedEntry(){
   if(!LEDGER[custId]) LEDGER[custId]=[];
   LEDGER[custId].push({id:'le_'+Date.now(),date,type,amt,note,mode,ref:'manual'});
   save('bf9_ledger',LEDGER);
-  BFW.emit('ledger.entry',{id:LEDGER[custId][LEDGER[custId].length-1].id,amount:amt,mode,date,party:(CUSTOMERS.find(x=>x.id===custId)||{}).name||'',note});
   document.getElementById('led-entry-amt').value='';
   document.getElementById('led-entry-note').value='';
   document.getElementById('led-pay-mode').value='';
@@ -13051,7 +13014,6 @@ function _ensureCustomer(party,phone,address,gstin){
 
 /* ── Auto ledger entry from invoice ── */
 function _addInvoiceToLedger(inv){
-  if(!BFW.has('invoice.created','ledger',{amount:inv.grandTotal})) return;
   const c=_ensureCustomer(inv.party,inv.phone,inv.address,inv.gstin);
   if(!LEDGER[c.id]) LEDGER[c.id]=[];
   // Check duplicate
@@ -15078,7 +15040,6 @@ function _confirmPaySalary(empId, name, netSalary){
   const date = document.getElementById('pay-date').value;
   const note = document.getElementById('pay-note').value;
   if(!paid){ toast('Amount bharo!'); return; }
-  BFW.emit('salary.paid',{id:'sal_'+empId+'_'+_attPeriod+'_'+Date.now(),amount:paid,mode:'Cash',date:date,party:name,note:'Salary '+_attPeriod+(note?' · '+note:'')});
 
   const diff = paid - netSalary; // positive = overpaid, negative = underpaid
   const nextPeriod = _nextPeriod(_attPeriod);
@@ -17567,7 +17528,6 @@ function _dbSaveEntry(){
       toast('✅ Entry save ho gayi!');
     }
     save('bf9_daybook', DAYBOOK);
-    if(!_dbEditId){const _e=DAYBOOK[DAYBOOK.length-1];BFW.emit('daybook.saved',{id:_e.id,amount:_e.amount,mode:_e.mode,date:_e.date,party:_e.supplier,note:_e.note});}
     _dbCloseModal();
     renderDaybook();
     if(_dbQueueActive){
@@ -19880,7 +19840,7 @@ function invSavePurchase(keepOpen){
   }
 
   // ── Single DR entry in supplier ledger ──
-  if(supplierId && grandTotal>0 && BFW.has('purchase.saved','ledger',{amount:grandTotal})){
+  if(supplierId && grandTotal>0){
     if(!LEDGER[supplierId]) LEDGER[supplierId]=[];
     const itemsSummary = logItems.map(i=>i.matName+' ×'+i.qty).join(', ');
     LEDGER[supplierId].push({
@@ -19901,7 +19861,6 @@ function invSavePurchase(keepOpen){
   });
   invSetPurLog(log);
 
-  BFW.emit('purchase.saved',{id:'pur'+Date.now(),amount:grandTotal,party:supplierName,date:date,note:'Purchase '+(billno||'')});
   invToast(`✅ ${logItems.length} items saved · ₹${grandTotal.toLocaleString('en-IN')}${supplierId?' · Ledger ✓':''}`);
   invRenderPurLogMini();
   invCheckLowBadge();
@@ -21315,90 +21274,5 @@ authBootstrap();
   </div>
 </div>
 
-<script>
-(function(){
-const M=(l,c,r,ev)=>({l,c,r,ev:ev||[]});
-const MODS={invoice:M('🧾 Invoice',0,0,['invoice.created','invoice.payment']),order:M('📝 Orders',0,1,['order.created']),supplier:M('💸 Supplier Pay',0,2,['supplier.quickpay']),purchase:M('📥 Purchase Entry',0,3,['purchase.saved']),salary:M('👷 Salary',0,4,['salary.paid']),emi:M('🏦 EMI / Assets',0,5,['emi.paid']),
-batch:M('🏭 Batch Tracker',1,0,['batch.created','batch.stage']),daily:M('📋 Daily Entry',1,1),plan:M('🗓 Floor Plan',1,2),eod:M('📊 EOD Track',1,3),attendance:M('🕒 Attendance',1,4),bom:M('📐 BOM',1,5),
-stock:M('📦 Stock',2,0),ledger:M('📒 Ledger',3,0),daybook:M('📔 Daybook',3,1),cfo:M('💼 CFO Dashboard',3,2),ceo:M('📈 CEO Report',3,3),analytics:M('🔍 Analytics',3,4),history:M('🗂 History',3,5)};
-const LIVE={ledger:['invoice.created','invoice.payment','supplier.quickpay','purchase.saved'],daybook:['invoice.payment','supplier.quickpay','salary.paid','emi.paid'],stock:['invoice.created']};
-const ACTL={ledger:'📒 Ledger entry (jaise abhi)',daybook:'📔 Daybook entry',stock:'📦 Stock adjust (jaise abhi)',alert:'🔔 Alert dikhao',log:'📝 Sirf log'};
-const EVL={'invoice.created':'Invoice bana','invoice.payment':'Invoice payment','supplier.quickpay':'Supplier payment','purchase.saved':'Purchase entry','salary.paid':'Salary payment','emi.paid':'EMI payment','order.created':'Order bana','batch.created':'Batch bana','batch.stage':'Batch stage done'};
-const DEF={'invoice.payment':{type:'income',cat:'payment_recv',mode:'auto'},'supplier.quickpay':{type:'expense',cat:'raw_material',mode:'auto'},'salary.paid':{type:'expense',cat:'labour',mode:'auto'},'emi.paid':{type:'expense',cat:'interest_emi',mode:'auto'}};
-const X=[20,230,440,650];
-const def=()=>({v:2,nodes:Object.keys(MODS).map(k=>({id:k,k,x:X[MODS[k].c],y:20+MODS[k].r*90})),wires:[['invoice','ledger'],['supplier','ledger'],['purchase','ledger'],['invoice','stock']].map(a=>({id:'w_'+a[0]+a[1],f:a[0],t:a[1],on:true})),log:[]});
-let W=load('bf9_wiring');
-if(!W||!W.nodes)W=def();else if(W.v!==2){const d=def();d.nodes.forEach(n=>{const o=W.nodes.find(x=>x.id===n.id);o?Object.assign(o,{x:n.x,y:n.y}):W.nodes.push(n)});if(!W.wires.some(w=>w.f==='invoice'&&w.t==='stock'))W.wires.push(d.wires[3]);W.v=2}
-let sel=null,drag=null,dry=false;const FIRED=new Set();
-const S=()=>save('bf9_wiring',W),nd=id=>W.nodes.find(n=>n.id===id);
-const dim=n=>n.t==='c'?{w:130,h:76}:{w:150,h:52};
-const outP=(n,b)=>{const d=dim(n);return[n.x+d.w,n.y+d.h*(b==='n'?.72:.28)]};
-const side=(n,s)=>{const d=dim(n);return[s==='l'?n.x:n.x+d.w,n.y+d.h/2]};
-const lbl=n=>n.t==='c'?'◇ Decision':MODS[n.k].l;
-const log=m=>{W.log=(W.log||[]).slice(-39);W.log.push(new Date().toLocaleTimeString('en-IN')+' · '+m);S()};
-const test=(c,d)=>c.f==='amount'?(+d.amount||0)>=(+c.v||0):String(d.mode||'').toLowerCase()===String(c.v||'').toLowerCase();
-function route(ev,d){const out=[],seen=new Set();
-const walk=n=>W.wires.filter(w=>w.f===n.id&&w.on!==false&&!seen.has(w.id)).forEach(w=>{if(n.t==='c'&&(w.br||'y')!==(test(n,d)?'y':'n'))return;seen.add(w.id);const t=nd(w.t);if(!t)return;if(t.t!=='c')out.push({k:t.k,w});walk(t)});
-W.nodes.filter(n=>!n.t&&MODS[n.k].ev.includes(ev)).forEach(walk);return out}
-const alts=(tk,ev)=>LIVE[tk]&&LIVE[tk].includes(ev)?[tk,'alert','log']:['log','alert'];
-const actOf=(w,ev,tk)=>{const c=(w.cfg||{})[ev],a=alts(tk,ev);return c&&c.act&&a.includes(c.act)?c.act:a[0]};
-const has=(ev,t,d)=>route(ev,d||{}).some(r=>r.k===t&&actOf(r.w,ev,t)===t);
-const fmt=(s,ev,d)=>s.replace('{ev}',EVL[ev]).replace('{party}',d.party||'').replace('{amount}',d.amount||0).replace('{note}',d.note||'');
-function emit(ev,d){route(ev,d).forEach(r=>{const a=actOf(r.w,ev,r.k),c=Object.assign({msg:'{ev}: {party} ₹{amount}'},DEF[ev],(r.w.cfg||{})[ev]),key=ev+':'+d.id+':'+r.w.id;
-if(a==='daybook'){if(DAYBOOK.some(e=>e.ref==='w:'+key))return;
-if(dry){log('DRY '+EVL[ev]+' → Daybook '+c.type+' ₹'+d.amount);return}
-DAYBOOK.push({id:'db_'+Date.now()+Math.random().toString(36).slice(2,5),date:d.date||new Date().toISOString().split('T')[0],type:c.type,category:c.cat,supplier:d.party||'',amount:+d.amount,mode:c.mode==='auto'?(d.mode||'Cash'):c.mode,note:d.note||'',ref:'w:'+key,createdAt:new Date().toISOString()});
-save('bf9_daybook',DAYBOOK);log(EVL[ev]+' → Daybook '+c.type+' ₹'+d.amount)}
-else if(a==='alert'||a==='log'){if(FIRED.has(key))return;FIRED.add(key);const m=fmt(c.msg,ev,d);log((dry?'DRY ':'')+lbl(nd(r.w.f))+' → '+MODS[r.k].l+' · '+m);if(a==='alert'&&!dry)toast('🔔 '+m,4000)}})}
-function undo(ev,id){const p='w:'+ev+':'+id+':',n=DAYBOOK.length;DAYBOOK=DAYBOOK.filter(e=>!(e.ref||'').startsWith(p));if(DAYBOOK.length!==n){save('bf9_daybook',DAYBOOK);log('Undo '+EVL[ev]+' (Daybook se hata)')}}
-const up=(id,seen=new Set())=>{if(seen.has(id))return[];seen.add(id);const n=nd(id);if(!n)return[];return[...(n.t?[]:MODS[n.k].ev),...W.wires.filter(x=>x.t===id).flatMap(x=>up(x.f,seen))]};
-const evsFor=w=>[...new Set(up(w.f))];
-const anc=(a,b,br)=>{if(a.t==='c')return[outP(a,br),side(b,'l'),1];const r=b.x+dim(b).w/2>=a.x+dim(a).w/2;return r?[side(a,'r'),side(b,'l'),1]:[side(a,'l'),side(b,'r'),-1]};
-const pa=(p,q,d)=>`M${p[0]} ${p[1]} C${p[0]+d*70} ${p[1]},${q[0]-d*70} ${q[1]},${q[0]} ${q[1]}`;
-function R(){const sv=document.getElementById('wr-svg');if(!sv)return;
-const cw=sv.clientWidth;if(cw>200)W.nodes.forEach(n=>{const d=dim(n);if(n.x>cw-d.w-10)n.x=Math.max(0,cw-d.w-10)});
-let h='<defs><marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#17b86a"/></marker><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#9aa4b2"/></marker><marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#f59e0b"/></marker></defs>';
-W.wires.forEach(w=>{const a=nd(w.f),b=nd(w.t);if(!a||!b)return;const[p,q,dr]=anc(a,b,w.br),on=w.on!==false,d=pa(p,q,dr),lv=b.t||evsFor(w).some(ev=>actOf(w,ev,b.k)===b.k),c=!on?'#9aa4b2':lv?'#17b86a':'#f59e0b',m=!on?'ar':lv?'ag':'ao';
-h+=`<g data-w="${w.id}" style="cursor:pointer"><path d="${d}" stroke="transparent" stroke-width="14" fill="none"/><path d="${d}" fill="none" stroke="${c}" stroke-width="${sel===w.id?4:2.5}" ${on&&lv?'':'stroke-dasharray="6 5"'} marker-end="url(#${m})"/>${w.br?`<text x="${p[0]+8}" y="${p[1]-5}" font-size="11" fill="#555">${w.br==='y'?'Yes':'No'}</text>`:''}</g>`});
-if(drag&&drag.k==='w'){const a=nd(drag.f),p=a.t==='c'?outP(a,drag.br):side(a,drag.s);h+=`<path d="${pa(p,drag.pt,1)}" fill="none" stroke="#2563eb" stroke-width="2" stroke-dasharray="5 4" pointer-events="none"/>`}
-W.nodes.forEach(n=>{const d=dim(n),st=sel===n.id?'#2563eb':'#334155',dot=(p,b)=>`<circle cx="${p[0]}" cy="${p[1]}" r="6" fill="#f59e0b" stroke="#fff" stroke-width="1.5" data-p="${b}" data-id="${n.id}" style="cursor:crosshair"/>`;
-if(n.t==='c'){const cx=n.x+d.w/2,cy=n.y+d.h/2;h+=`<g data-n="${n.id}" style="cursor:move"><polygon points="${cx},${n.y} ${n.x+d.w},${cy} ${cx},${n.y+d.h} ${n.x},${cy}" fill="#e3d4fb" stroke="${st}" stroke-width="2"/><text x="${cx}" y="${cy+4}" text-anchor="middle" font-size="11" pointer-events="none">${n.f==='amount'?'Amt ≥ '+n.v:'Mode = '+n.v} ?</text></g>${dot(outP(n,'y'),'y')}${dot(outP(n,'n'),'n')}<text x="${n.x+d.w+8}" y="${outP(n,'y')[1]-6}" font-size="10" fill="#555" pointer-events="none">Yes</text><text x="${n.x+d.w+8}" y="${outP(n,'n')[1]+14}" font-size="10" fill="#555" pointer-events="none">No</text>`}
-else{const em=MODS[n.k].ev.length>0;h+=`<g data-n="${n.id}" style="cursor:move"><rect x="${n.x}" y="${n.y}" width="${d.w}" height="${d.h}" rx="12" fill="${em?'#f9c23c':'#86f0cf'}" stroke="${st}" stroke-width="2"/><text x="${n.x+d.w/2}" y="${n.y+d.h/2+4}" text-anchor="middle" font-size="13" font-weight="700" pointer-events="none">${MODS[n.k].l}</text></g>${dot(side(n,'r'),'r')}${dot(side(n,'l'),'l')}`}});
-sv.innerHTML=h}
-function P(){const el=document.getElementById('wr-pn');if(!el)return;const w=W.wires.find(x=>x.id===sel),n=nd(sel);let h='';
-const opt=(a,v)=>a.map(x=>`<option value="${x[0]}" ${x[0]===v?'selected':''}>${x[1]}</option>`).join('');
-if(w){const a=nd(w.f),b=nd(w.t);h+=`<b>${lbl(a)} → ${lbl(b)}</b><div style="margin:8px 0"><button class="wr-b" onclick="BFW.tog('${w.id}')">${w.on!==false?'✅ Chalu — band karo':'⏸ Band — chalu karo'}</button> <button class="wr-b" onclick="BFW.del('${w.id}')">🗑 Disconnect</button></div>`;
-if(b.t)h+='<div>Decision ke Yes/No wires ka kaam alag se set karo.</div>';
-else{const ev=evsFor(w);if(!ev.length)h+='<div>⏳ Is wire ke source se abhi koi event nahi nikalta, isliye kaam run nahi hoga.</div>';
-ev.forEach(e=>{const ac=actOf(w,e,b.k),c=Object.assign({msg:'{ev}: {party} ₹{amount}'},DEF[e],(w.cfg||{})[e]),f=k=>`BFW.cfg('${w.id}','${e}','${k}',this.value)`;
-h+=`<div class="wr-ev"><b>${EVL[e]}</b><br>Kaam: <select onchange="${f('act')};BFW.render()">${opt(alts(b.k,e).map(x=>[x,ACTL[x]]),ac)}</select>`;
-if(ac==='daybook')h+=`<br><select onchange="${f('type')};BFW.render()">${opt([['expense','Expense'],['income','Income']],c.type)}</select><select onchange="${f('cat')}">${opt((DB_CATS[c.type]||[]).map(x=>[x.id,x.label]),c.cat)}</select><select onchange="${f('mode')}">${opt([['auto','Mode: payment jaisa'],['Cash','Cash'],['Bank','Bank']],c.mode)}</select>`;
-if(ac==='alert')h+=`<br><input style="width:95%" value="${c.msg.replace(/"/g,'&quot;')}" onchange="${f('msg')}"><br><small>{ev} {party} {amount} {note}</small>`})}}
-else if(n&&n.t==='c'){h+=`<b>◇ Decision</b><div style="margin:8px 0">Agar <select onchange="BFW.setC('${n.id}','f',this.value)">${opt([['mode','Payment mode'],['amount','Amount ≥']],n.f)}</select><input value="${n.v||''}" size="8" onchange="BFW.setC('${n.id}','v',this.value)"> ho to <b>Yes</b> wire, warna <b>No</b> wire chalegi.</div><button class="wr-b" onclick="BFW.delN('${n.id}')">🗑 Decision hatao</button>`}
-else if(n)h+=`<b>${lbl(n)}</b><div style="margin-top:6px">${MODS[n.k].ev.length?'Ye events nikalta hai:<br>'+MODS[n.k].ev.map(e=>'• '+EVL[e]).join('<br>'):'Abhi isse koi event nahi nikalta; ye wire ka target ban sakta hai.'}</div>`;
-else h+=`<b>Kaise use karein</b><div style="margin:6px 0">Kisi bhi box ke ● dot se kheencho → kisi bhi doosre box par chhodo (aage ya peeche, ek box se kai wires). Wire par click = uska kaam chuno.<br>🟢 asli kaam chalu · 🟠 sirf log/alert · ⚪ band.<br>Peele box = events nikalte hain; hare = abhi sirf receive.</div><b>Activity log</b><div style="margin-top:4px">${(W.log||[]).slice(-10).reverse().join('<br>')||'—'}</div>`;
-el.innerHTML=h}
-const pt=e=>{const r=document.getElementById('wr-svg').getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};
-document.addEventListener('pointerdown',e=>{const sv=document.getElementById('wr-svg');if(!sv||!sv.contains(e.target))return;
-const p=e.target.closest('[data-p]'),g=e.target.closest('[data-n]'),w=e.target.closest('[data-w]');
-if(p){const b=p.dataset.p;drag={k:'w',f:p.dataset.id,br:b==='y'||b==='n'?b:undefined,s:b,pt:pt(e)}}
-else if(g){const n=nd(g.dataset.n),q=pt(e);sel=n.id;drag={k:'n',id:n.id,dx:q[0]-n.x,dy:q[1]-n.y}}
-else sel=w?w.dataset.w:null;R();P()});
-document.addEventListener('pointermove',e=>{if(!drag)return;const q=pt(e);if(drag.k==='w')drag.pt=q;else{const n=nd(drag.id);n.x=Math.max(0,q[0]-drag.dx);n.y=Math.max(0,q[1]-drag.dy)}R()});
-document.addEventListener('pointerup',e=>{if(!drag)return;const d=drag;drag=null;
-if(d.k==='w'){const g=document.elementFromPoint(e.clientX,e.clientY),t=g&&g.closest&&g.closest('[data-n]'),a=nd(d.f),b=t&&nd(t.dataset.n);
-if(b&&b.id!==a.id&&!W.wires.some(w=>w.f===a.id&&w.t===b.id&&w.br===d.br)){const w={id:'w'+Date.now(),f:a.id,t:b.id,on:true};if(d.br)w.br=d.br;W.wires.push(w);sel=w.id}}
-S();R();P()});
-document.addEventListener('keydown',e=>{if(e.key==='Delete'&&sel&&document.getElementById('s-wiring')?.classList.contains('active')&&!/INPUT|SELECT/.test(e.target.tagName))BFW.del(sel)});
-window.BFW={has,emit,undo,render:()=>{R();P()},dry:v=>{dry=v;toast(v?'Dry-run ON':'Dry-run OFF')},
-tog:id=>{const w=W.wires.find(x=>x.id===id);w.on=w.on===false;S();R();P()},
-del:id=>{W.wires=W.wires.filter(x=>x.id!==id);if(sel===id)sel=null;S();R();P()},
-delN:id=>{W.wires=W.wires.filter(x=>x.f!==id&&x.t!==id);W.nodes=W.nodes.filter(x=>x.id!==id);sel=null;S();R();P()},
-cfg:(id,ev,k,v)=>{const w=W.wires.find(x=>x.id===id);w.cfg=w.cfg||{};w.cfg[ev]=Object.assign({},DEF[ev],w.cfg[ev]);w.cfg[ev][k]=v;if(k==='type')w.cfg[ev].cat=(DB_CATS[v][0]||{}).id;S();P()},
-setC:(id,k,v)=>{nd(id)[k]=v;S();R();P()},
-addC:()=>{const n={id:'c'+Date.now(),t:'c',x:330,y:150,f:'mode',v:'Cash'};W.nodes.push(n);sel=n.id;S();R();P()},
-reset:()=>{if(confirm('Diagram default par laoge? Tumhari wires hat jaayengi.')){W=def();sel=null;S();R();P()}}};
-})();
-</script>
 </body>
 </html>
