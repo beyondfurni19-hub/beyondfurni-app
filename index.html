@@ -2880,12 +2880,18 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
     <div class="fg" id="db-supplier-wrap" style="display:none">
       <label id="db-supplier-label">Supplier / Party Name <span style="color:var(--muted);font-size:9px">(optional)</span></label>
       <div style="display:flex;gap:6px">
-        <select class="finp" id="db-supplier" style="font-size:13px;flex:1">
+        <select class="finp" id="db-supplier" style="font-size:13px;flex:1" onchange="_dbOnPartyChange()">
           <option value="">— Supplier chunno —</option>
         </select>
         <button onclick="_dbSupplierClear()" style="padding:8px 10px;background:#f0f4ff;border:1px solid var(--border);border-radius:var(--r2);font-size:12px;cursor:pointer;color:var(--muted);font-weight:800;flex-shrink:0">✕</button>
       </div>
-      <input class="finp" id="db-supplier-manual" placeholder="Ya naam type karo..." style="font-size:13px;margin-top:6px" oninput="document.getElementById('db-supplier').value=''">
+      <input class="finp" id="db-supplier-manual" placeholder="Ya naam type karo..." style="font-size:13px;margin-top:6px" oninput="document.getElementById('db-supplier').value='';_dbOnPartyChange()">
+    </div>
+
+    <!-- Invoice link (income only, jab customer ke pending invoices ho) -->
+    <div class="fg" id="db-invoice-wrap" style="display:none">
+      <label>Kaun si Invoice ka payment? <span style="color:var(--muted);font-size:9px">(optional)</span></label>
+      <select class="finp" id="db-invoice" style="font-size:13px"><option value="">— Koi invoice nahi —</option></select>
     </div>
 
     <!-- Amount + Date -->
@@ -10694,22 +10700,21 @@ function _invRemaining(inv){
 function _addInvPayment(invId, amt, mode, date, note){
   const inv=INVOICES.find(i=>i.id===invId);
   if(!inv) return;
-  if(!inv.payments) inv.payments=[];
-  const pmt={id:'pmt_'+Date.now().toString(36), amt:Number(amt), mode:mode||'Cash', date:date||new Date().toISOString().split('T')[0], note:note||'', ts:Date.now()};
-  inv.payments.push(pmt);
-  const paid=inv.payments.reduce((s,p)=>s+p.amt,0);
-  inv.status=paid>=inv.grandTotal-0.01?'paid':paid>0?'partial':'unpaid';
-  inv.recoveryAmt=paid;
-  save('bf9_invoices',INVOICES);
-  // Ledger credit entry
-  const c=_ensureCustomer(inv.party,inv.phone,inv.address,inv.gstin);
-  if(!LEDGER[c.id]) LEDGER[c.id]=[];
-  LEDGER[c.id].push({id:'le_'+Date.now().toString(36), date:pmt.date, type:'cr', amt:pmt.amt, note:'Payment · Inv '+inv.num+(note?' · '+note:''), mode:pmt.mode, ref:invId});
-  save('bf9_ledger',LEDGER);
+  // Payment ab Daybook se aati hai: yahan Daybook entry banti hai, aur usse Invoice + Ledger update hote hain
+  const m=String(mode||'Cash').toLowerCase();
+  const dbMode = m.includes('cash')?'cash' : m.includes('upi')?'upi' : (m.includes('cheq')||m.includes('check'))?'cheque' : 'bank';
+  const e={id:'db_'+Date.now(), date:date||new Date().toISOString().split('T')[0], type:'income', category:'payment_recv',
+    supplier:inv.party, amount:Number(amt), mode:dbMode, note:'Inv '+inv.num+(note?' · '+note:''), invId:inv.id, createdAt:new Date().toISOString()};
+  DAYBOOK.push(e);
+  save('bf9_daybook', DAYBOOK);
+  _dbSyncInvoice(e);
+  _dbSyncLedger(e);
   renderInvList();
+  if(typeof renderDaybook==='function') renderDaybook();
   if(typeof renderCustomerList==='function') renderCustomerList();
-  toast('✅ ₹'+_fmtAmt(pmt.amt)+' payment record ho gayi!');
+  toast('✅ ₹'+_fmtAmt(e.amount)+' payment record ho gayi (Daybook + Invoice + Ledger)');
 }
+
 
 /* ── 3-dot Menu ── */
 let _iamEl=null;
@@ -10860,17 +10865,13 @@ function deleteInvPayment(invId, pmtId){
   if(!confirm('Payment delete karo?')) return;
   const inv=INVOICES.find(i=>i.id===invId);
   if(!inv||!inv.payments) return;
-  inv.payments=inv.payments.filter(p=>p.id!==pmtId);
+  const _pm=inv.payments.find(p=>p.id===pmtId);
+  if(_pm && _pm.dbId){ _dbDeleteLinked(_pm.dbId); }   // Daybook se bani payment: Daybook + Ledger se bhi hatao
+  else { inv.payments=inv.payments.filter(p=>p.id!==pmtId); }
   const paid=inv.payments.reduce((s,p)=>s+p.amt,0);
   inv.status=paid>=inv.grandTotal-0.01?'paid':paid>0?'partial':'unpaid';
   inv.recoveryAmt=paid;
   save('bf9_invoices',INVOICES);
-  // Remove matching ledger credit entry
-  const c=_ensureCustomer(inv.party,inv.phone,inv.address,inv.gstin);
-  if(LEDGER[c.id]){
-    LEDGER[c.id]=LEDGER[c.id].filter(e=>!(e.ref===invId&&e.type==='cr'&&e.id.includes(pmtId.replace('pmt_',''))));
-    save('bf9_ledger',LEDGER);
-  }
   renderInvList();
   toast('Payment delete ho gayi');
   openPartialPayModal(invId);
@@ -16422,8 +16423,9 @@ function _dbOpenEdit(id){
   if(sup){ Array.from(supSel.options).forEach(o=>{ if(o.value===sup){ supSel.value=sup; matched=true; }}); }
   if(!matched && sup) document.getElementById('db-supplier-manual').value = sup;
   document.getElementById('db-category').value = e.category||'';
-  // Show supplier field for expense
-  document.getElementById('db-supplier-wrap').style.display = e.type==='expense'?'block':'none';
+  // Party field expense + income dono me
+  document.getElementById('db-supplier-wrap').style.display = 'block';
+  _dbOnPartyChange(e.invId||'');
   document.getElementById('db-edit-id').textContent = id;
   document.getElementById('db-modal').style.display='flex';
 }
@@ -16456,34 +16458,59 @@ function _dbSetType(type){
     iBtn.style.color       = type==='income'?'var(--green-dark)':'var(--muted)';
   }
   _dbRenderCatChips(type);
-  // Supplier only for expense
+  // Party field: expense (supplier) aur income (customer) dono me
   const supWrap = document.getElementById('db-supplier-wrap');
-  if(supWrap) supWrap.style.display = type==='expense'?'block':'none';
+  const supLbl  = document.getElementById('db-supplier-label');
+  if(supWrap) supWrap.style.display = 'block';
+  if(supLbl) supLbl.innerHTML = type==='income'
+    ? 'Customer Name <span style="color:var(--muted);font-size:9px">(Ledger + Invoice me payment judne ke liye)</span>'
+    : 'Supplier / Party Name <span style="color:var(--muted);font-size:9px">(optional)</span>';
+  _dbPopulateSuppliers();
+  _dbOnPartyChange();
 }
 
 function _dbPopulateSuppliers(){
   const sel = document.getElementById('db-supplier');
   if(!sel) return;
-  // Ledger se suppliers pull karo (type === 'supplier')
-  const ledgerSuppliers = (CUSTOMERS||[])
-    .filter(c => c.type==='supplier')
-    .map(c => c.name)
-    .sort();
-  // Daybook se bhi unique suppliers collect karo
-  const dbSuppliers = [...new Set(
-    DAYBOOK.filter(e=>e.supplier).map(e=>e.supplier)
-  )].sort();
-  // Merge unique
-  const all = [...new Set([...ledgerSuppliers, ...dbSuppliers])];
-  sel.innerHTML = '<option value="">— Ledger se chunno —</option>' +
+  const cur = sel.value;
+  const isInc = _dbType==='income';
+  // Ledger se party pull karo: income -> customers, expense -> suppliers
+  const ledgerParties = (CUSTOMERS||[])
+    .filter(c => isInc ? c.type!=='supplier' : c.type==='supplier')
+    .map(c => c.name);
+  // Daybook se bhi unique naam collect karo (same type ke)
+  const dbParties = DAYBOOK.filter(e=>e.supplier && e.type===(isInc?'income':'expense')).map(e=>e.supplier);
+  const all = [...new Set([...ledgerParties, ...dbParties])];
+  sel.innerHTML = '<option value="">'+(isInc?'— Customer chunno —':'— Ledger se chunno —')+'</option>' +
     (all.length
       ? _az(all).map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('')
-      : '<option disabled>Koi supplier nahi mila — Ledger mein add karo</option>');
+      : '<option disabled>Koi party nahi mili — Ledger mein add karo</option>');
+  if(cur) sel.value = cur;
+}
+
+/* Customer ke pending invoices dikhao (income entry me) */
+function _dbOnPartyChange(keep){
+  const wrap=document.getElementById('db-invoice-wrap'), sel=document.getElementById('db-invoice');
+  if(!wrap||!sel) return;
+  const prev = keep!==undefined ? keep : sel.value;
+  const name=(_dbGetSupplier()||'').toLowerCase().trim();
+  let opts=[];
+  if(_dbType==='income' && name){
+    opts=INVOICES.filter(i=>(i.party||'').toLowerCase().trim()===name).map(i=>{
+      const paid=(i.payments||[]).filter(p=>p.dbId!==_dbEditId).reduce((x,p)=>x+p.amt,0);
+      return {i, out:i.grandTotal-paid};
+    }).filter(o=>o.out>0.01 || o.i.id===prev).sort((x,y)=>(x.i.date||'').localeCompare(y.i.date||''));
+  }
+  sel.innerHTML='<option value="">— Koi invoice nahi (advance / alag) —</option>'+
+    opts.map(o=>`<option value="${o.i.id}">${esc(String(o.i.num))} · ${o.i.date||''} · ₹${_fmtAmt(Math.max(0,o.out))} baaki</option>`).join('');
+  wrap.style.display=(_dbType==='income' && opts.length)?'block':'none';
+  if(prev && opts.some(o=>o.i.id===prev)) sel.value=prev;
 }
 
 function _dbSupplierClear(){
   document.getElementById('db-supplier').value='';
   document.getElementById('db-supplier-manual').value='';
+  _dbOnPartyChange();
 }
 
 function _dbGetSupplier(){
@@ -17507,12 +17534,82 @@ function _dbShowDisciplineModal(warnings, blocks, doSave){
   document.body.appendChild(div);
 }
 
+/* ── Daybook ↔ Invoice payment link ── */
+function _invRecalc(inv){
+  const paid=(inv.payments||[]).reduce((s,p)=>s+p.amt,0);
+  inv.status=paid>=inv.grandTotal-0.01?'paid':paid>0?'partial':'unpaid';
+  inv.recoveryAmt=paid;
+}
+function _dbUnsyncInvoice(dbId){
+  let ch=false;
+  INVOICES.forEach(inv=>{
+    const n=(inv.payments||[]).length; if(!n) return;
+    inv.payments=inv.payments.filter(p=>p.dbId!==dbId);
+    if(inv.payments.length!==n){ _invRecalc(inv); ch=true; }
+  });
+  if(ch) save('bf9_invoices',INVOICES);
+  return ch;
+}
+function _dbSyncInvoice(e){
+  if(!e) return;
+  let ch=_dbUnsyncInvoice(e.id);
+  if(e.type==='income' && e.invId){
+    const inv=INVOICES.find(i=>i.id===e.invId);
+    if(inv){
+      if(!inv.payments) inv.payments=[];
+      const ml={cash:'Cash',upi:'UPI',bank:'Bank',cheque:'Cheque'}[e.mode]||'Cash';
+      inv.payments.push({id:'pmt_'+Date.now().toString(36), amt:Number(e.amount), mode:ml, date:e.date, note:e.note||'Daybook', ts:Date.now(), dbId:e.id});
+      _invRecalc(inv); save('bf9_invoices',INVOICES); ch=true;
+    }
+  }
+  if(ch && typeof renderInvList==='function') renderInvList();
+}
+function _dbDeleteLinked(dbId){
+  DAYBOOK = DAYBOOK.filter(e=>e.id!==dbId);
+  save('bf9_daybook', DAYBOOK);
+  _dbUnsyncLedger(dbId);
+  _dbUnsyncInvoice(dbId);
+  if(typeof renderDaybook==='function') renderDaybook();
+}
+
+/* ── Daybook → Ledger sync (party/supplier bhara ho tabhi) ── */
+function _dbUnsyncLedger(dbId){
+  let ch=false;
+  Object.keys(LEDGER).forEach(k=>{
+    const n=LEDGER[k].length;
+    LEDGER[k]=LEDGER[k].filter(e=>e.ref!=='db:'+dbId);
+    if(LEDGER[k].length!==n) ch=true;
+  });
+  if(ch) save('bf9_ledger',LEDGER);
+  return ch;
+}
+function _dbSyncLedger(e){
+  if(!e) return;
+  let ch=_dbUnsyncLedger(e.id);
+  const name=(e.supplier||'').trim();
+  if(name){
+    let c=CUSTOMERS.find(x=>x.name.toLowerCase().trim()===name.toLowerCase());
+    if(!c){
+      c={id:'cust_'+Date.now(),name,phone:'',address:'',gstin:'',type:e.type==='expense'?'supplier':'customer',createdAt:new Date().toISOString()};
+      CUSTOMERS.push(c); save('bf9_customers',CUSTOMERS);
+    }
+    if(!LEDGER[c.id]) LEDGER[c.id]=[];
+    LEDGER[c.id].push({id:'le_'+Date.now().toString(36), date:e.date, type:'cr', amt:e.amount, note:'Daybook · '+e.category+(e.note?' · '+e.note:''), mode:e.mode, ref:'db:'+e.id});
+    save('bf9_ledger',LEDGER); ch=true;
+  }
+  if(ch){
+    if(typeof renderCustomerList==='function') renderCustomerList();
+    if(typeof renderSupplierList==='function') renderSupplierList();
+  }
+}
+
 function _dbSaveEntry(){
   const amount   = parseFloat(document.getElementById('db-amount').value)||0;
   const date     = document.getElementById('db-date').value;
   const category = document.getElementById('db-category').value;
   const note     = document.getElementById('db-note').value.trim();
   const supplier = _dbGetSupplier();
+  const invId    = (_dbType==='income') ? (document.getElementById('db-invoice')?.value||'') : '';
 
   if(amount<=0)    { toast('⚠️ Amount daalo!'); return; }
   if(!date)        { toast('⚠️ Date daalo!'); return; }
@@ -17521,11 +17618,13 @@ function _dbSaveEntry(){
   const doSave = function(){
     if(_dbEditId){
       const idx = DAYBOOK.findIndex(e=>e.id===_dbEditId);
-      if(idx>=0) DAYBOOK[idx] = {...DAYBOOK[idx], type:_dbType, category, supplier, amount, date, mode:_dbMode, note};
+      if(idx>=0) DAYBOOK[idx] = {...DAYBOOK[idx], type:_dbType, category, supplier, amount, date, mode:_dbMode, note, invId};
       toast('✅ Entry update ho gayi!');
+      _dbSyncLedger(DAYBOOK[idx]); _dbSyncInvoice(DAYBOOK[idx]);
     } else {
-      DAYBOOK.push({id:'db_'+Date.now(), date, type:_dbType, category, supplier, amount, mode:_dbMode, note, createdAt:new Date().toISOString()});
+      DAYBOOK.push({id:'db_'+Date.now(), date, type:_dbType, category, supplier, amount, mode:_dbMode, note, invId, createdAt:new Date().toISOString()});
       toast('✅ Entry save ho gayi!');
+      _dbSyncLedger(DAYBOOK[DAYBOOK.length-1]); _dbSyncInvoice(DAYBOOK[DAYBOOK.length-1]);
     }
     save('bf9_daybook', DAYBOOK);
     _dbCloseModal();
@@ -17549,6 +17648,9 @@ function _dbSaveEntry(){
 function _dbDelete(id){
   if(!confirm('Yeh entry delete karo?')) return;
   DAYBOOK = DAYBOOK.filter(e=>e.id!==id);
+  _dbUnsyncLedger(id);
+  _dbUnsyncInvoice(id);
+  if(typeof renderInvList==='function') renderInvList();
   save('bf9_daybook', DAYBOOK);
   renderDaybook();
   toast('🗑 Delete ho gaya');
