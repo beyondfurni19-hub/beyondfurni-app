@@ -1455,7 +1455,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
       <span class="ndot" id="stock-ndot" style="display:none"></span>
     </button>
     <button class="sbnav" data-tab="inv-purchase" onclick="sw('inv-purchase',this)">
-      <span class="sb-ico">🛒</span><span class="sb-lbl">Purchase Entry</span>
+      <span class="sb-ico">🔁</span><span class="sb-lbl">Inward / Outward</span>
     </button>
     <button class="sbnav" data-tab="inv-bom" onclick="sw('inv-bom',this)">
       <span class="sb-ico">📐</span><span class="sb-lbl">BOM</span>
@@ -2021,7 +2021,9 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
       </select>
       <select id="stk-hist-source" class="finp" onchange="renderStockHistory()" style="font-size:11px;padding:7px 9px">
         <option value="">All Sources</option>
-        <option value="purchase">🛒 Purchase</option>
+        <option value="inward">📥 Inward</option>
+        <option value="outward">📤 Outward</option>
+        <option value="purchase">🛒 Purchase (purana)</option>
         <option value="batch">📦 Batch</option>
         <option value="mfg">🏭 Manufacture</option>
         <option value="manual">✋ Manual</option>
@@ -3532,7 +3534,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
   </div>
   <div style="padding:12px 14px;border-top:1px solid #e2e8f0;background:#fff">
     <div style="font-size:10px;font-weight:900;color:#3b82f6;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Kaise Use Karein:</div>
-    <div style="display:flex;gap:10px;margin-bottom:6px;align-items:flex-start"><div style="min-width:20px;height:20px;border-radius:50%;background:#3b82f6;color:#fff;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center">1</div><div style="font-size:12px;font-weight:700;color:#1e293b;line-height:1.5">Purchase Entry module jaao</div></div><div style="display:flex;gap:10px;margin-bottom:6px;align-items:flex-start"><div style="min-width:20px;height:20px;border-radius:50%;background:#3b82f6;color:#fff;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center">2</div><div style="font-size:12px;font-weight:700;color:#1e293b;line-height:1.5">Recent entries mein delete button dabao</div></div><div style="display:flex;gap:10px;margin-bottom:6px;align-items:flex-start"><div style="min-width:20px;height:20px;border-radius:50%;background:#3b82f6;color:#fff;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center">3</div><div style="font-size:12px;font-weight:700;color:#1e293b;line-height:1.5">Confirm karo — stock auto reverse</div></div>
+    <div style="display:flex;gap:10px;margin-bottom:6px;align-items:flex-start"><div style="min-width:20px;height:20px;border-radius:50%;background:#3b82f6;color:#fff;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center">1</div><div style="font-size:12px;font-weight:700;color:#1e293b;line-height:1.5">Inward / Outward module jaao</div></div><div style="display:flex;gap:10px;margin-bottom:6px;align-items:flex-start"><div style="min-width:20px;height:20px;border-radius:50%;background:#3b82f6;color:#fff;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center">2</div><div style="font-size:12px;font-weight:700;color:#1e293b;line-height:1.5">Recent entries mein delete button dabao</div></div><div style="display:flex;gap:10px;margin-bottom:6px;align-items:flex-start"><div style="min-width:20px;height:20px;border-radius:50%;background:#3b82f6;color:#fff;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center">3</div><div style="font-size:12px;font-weight:700;color:#1e293b;line-height:1.5">Confirm karo — stock auto reverse</div></div>
   </div>
 </div><div style="border:1.5px solid #e2e8f0;border-radius:10px;margin-bottom:10px;overflow:hidden">
   <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#f8faff">
@@ -3591,7 +3593,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
   <!-- ═══════════ LIST VIEW ═══════════ -->
   <div id="pur-view-list">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-      <div class="card-title" style="font-size:14px;margin:0">🛒 Supplier Invoices</div>
+      <div class="card-title" style="font-size:14px;margin:0">🔁 Inward / Outward</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <button onclick="_purSetView('trade')" style="padding:6px 10px;background:var(--navy2);color:#fff;border:none;border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;cursor:pointer">📊 Trade Report</button>
         <button onclick="_purSetView('gst3b')" style="padding:6px 10px;background:var(--navy2);color:#fff;border:none;border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;cursor:pointer">🧾 GST-3B</button>
@@ -3599,20 +3601,25 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
       </div>
     </div>
 
-    <div class="g2" style="margin-bottom:12px">
+    <div class="g2" style="margin-bottom:10px">
       <div class="card" style="padding:14px;cursor:pointer" onclick="_purOpenInvoiceForm()">
-        <div style="font-size:22px;margin-bottom:4px">➕</div>
-        <div style="font-size:12px;font-weight:900;color:var(--navy2)">Enter Supplier Invoice</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">Purchase record karo — stock + ledger auto update</div>
+        <div style="font-size:22px;margin-bottom:4px">📥</div>
+        <div style="font-size:12px;font-weight:900;color:var(--navy2)">Inward Entry</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">Maal aaya — stock + (supplier ledger bhi update)</div>
       </div>
-      <div class="card" style="padding:14px;cursor:pointer" onclick="_purOpenDebitForm()">
-        <div style="font-size:22px;margin-bottom:4px">↩️</div>
-        <div style="font-size:12px;font-weight:900;color:var(--navy2)">Enter Debit Note</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">Supplier return / adjustment</div>
+      <div class="card" style="padding:14px;cursor:pointer" onclick="_purOpenOutwardForm()">
+        <div style="font-size:22px;margin-bottom:4px">📤</div>
+        <div style="font-size:12px;font-weight:900;color:var(--navy2)">Outward Entry</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">Maal gaya — stock − (dispatch / powder coating / use)</div>
       </div>
     </div>
+    <div class="card" style="padding:10px 14px;cursor:pointer;margin-bottom:12px;display:flex;align-items:center;gap:10px" onclick="_purOpenDebitForm()">
+      <div style="font-size:20px">↩️</div>
+      <div><div style="font-size:12px;font-weight:900;color:var(--navy2)">Supplier Return (Debit Note)</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:2px">Supplier ko maal wapas — stock − + ledger Cr</div></div>
+    </div>
 
-    <div class="card-title" style="font-size:13px;margin-bottom:8px">📋 Invoices</div>
+    <div class="card-title" style="font-size:13px;margin-bottom:8px">📋 Recent Entries</div>
     <div id="inv-pur-log-mini"></div>
   </div>
 
@@ -3620,7 +3627,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
   <div id="pur-view-form" style="display:none">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
       <button onclick="_purSetView('list')" style="width:30px;height:30px;border:none;background:#f0f4ff;color:var(--navy2);border-radius:8px;cursor:pointer;font-size:14px;font-weight:800">←</button>
-      <div class="card-title" style="font-size:14px;margin:0">🧾 Create Supplier Invoice</div>
+      <div class="card-title" style="font-size:14px;margin:0">📥 Inward Entry — Maal Aaya</div>
     </div>
 
     <!-- Basic Information -->
@@ -3711,7 +3718,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
   <div id="pur-view-debit" style="display:none">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
       <button onclick="_purSetView('list')" style="width:30px;height:30px;border:none;background:#f0f4ff;color:var(--navy2);border-radius:8px;cursor:pointer;font-size:14px;font-weight:800">←</button>
-      <div class="card-title" style="font-size:14px;margin:0">↩️ Enter Debit Note</div>
+      <div class="card-title" style="font-size:14px;margin:0">↩️ Supplier Return — Debit Note (Outward)</div>
     </div>
 
     <div class="card" style="margin-bottom:10px">
@@ -3757,6 +3764,44 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 
     <button class="btn-save" style="width:100%;text-align:center;justify-content:center;font-size:15px;background:var(--red-dark)" onclick="debSaveNote()">
       ✅ Save — Stock + Ledger Update Karo
+    </button>
+  </div>
+
+  <!-- ═══════════ OUTWARD ENTRY ═══════════ -->
+  <div id="pur-view-outward" style="display:none">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <button onclick="_purSetView('list')" style="width:30px;height:30px;border:none;background:#f0f4ff;color:var(--navy2);border-radius:8px;cursor:pointer;font-size:14px;font-weight:800">←</button>
+      <div class="card-title" style="font-size:14px;margin:0">📤 Outward Entry — Maal Gaya</div>
+    </div>
+    <div class="card" style="margin-bottom:10px">
+      <div class="g2">
+        <div class="fg" style="margin:0"><label>Date *</label><input class="finp" type="date" id="out-date"></div>
+        <div class="fg" style="margin:0"><label>Kis liye? *</label><select class="finp" id="out-purpose"></select></div>
+      </div>
+      <div class="fg" style="margin-bottom:0">
+        <label>Party (optional)</label>
+        <select class="finp" id="out-party-sel" style="margin-bottom:6px"></select>
+        <input class="finp" type="text" id="out-party" placeholder="Ya naam type karo" style="font-size:12px">
+      </div>
+      <div class="fg" style="margin-bottom:0">
+        <label>Reference — Invoice / Batch No. (optional)</label>
+        <input class="finp" type="text" id="out-ref" list="out-ref-list" placeholder="e.g. INV-1234 / B-12">
+        <datalist id="out-ref-list"></datalist>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:800;color:var(--navy2)">📦 Items jo gaye</div>
+        <button onclick="outAddRow()" style="padding:6px 13px;background:var(--navy);color:#fff;border:none;border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">＋ Item</button>
+      </div>
+      <div id="out-rows"></div>
+    </div>
+    <div class="fg">
+      <label>Note</label>
+      <input class="finp" type="text" id="out-note" placeholder="koi baat likhni ho">
+    </div>
+    <button class="btn-save" style="width:100%;text-align:center;justify-content:center;font-size:15px;background:var(--red-dark)" onclick="outSave()">
+      ✅ Save — Stock Minus Karo
     </button>
   </div>
 
@@ -3911,7 +3956,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
   <!-- Packing BOM sub -->
   <div id="inv-bom-sub-packing" style="display:none">
     <div style="font-size:11px;color:var(--muted);margin-bottom:12px">
-      Har packing type ke liye materials aur quantity set karo (per stand). Dispatch pe auto-deduct hoga.
+      Har packing type ke liye materials aur quantity set karo (per stand). Ab stock apne aap nahi katta — sirf Inward / Outward entry se minus hota hai.
     </div>
 
     <!-- Product-specific Packing BOM -->
@@ -5153,7 +5198,7 @@ const GD_KEYS = [
   // Invoicing & customers
   'bf9_invoices','bf9_invsettings','bf9_invsettings_sr','bf9_customers','bf9_ledger',
   // Inventory module
-  'bf9_inv_mats','bf9_inv_bom','bf9_inv_bom','bf9_inv_conv','bf9_inv_purlog','bf9_inv_prodlog',
+  'bf9_inv_mats','bf9_inv_bom','bf9_inv_bom','bf9_inv_conv','bf9_inv_purlog','bf9_inv_outlog','bf9_inv_prodlog',
   'bf9_inv_products','bf9_inv_all_boms','bf9_inv_pack_bom',
   // Daybook & Discipline
   'bf9_daybook','bf9_cat_labels','bf9_disc_settings',
@@ -6987,7 +7032,9 @@ function renderStockHistory(){
   // Determine source from note
   function getSource(t){
     const n = (t.note||'').toLowerCase();
-    if(n.includes('purchase') || n.includes('inward') || n.includes('pur'))  return 'purchase';
+    if(n.includes('outward'))  return 'outward';
+    if(n.includes('inward'))   return 'inward';
+    if(n.includes('purchase') || n.includes('pur'))  return 'purchase';
     if(n.includes('batch') || n.includes('dispatch'))                         return 'batch';
     if(n.includes('mfg') || n.includes('manufactur'))                         return 'mfg';
     return 'manual';
@@ -7017,8 +7064,8 @@ function renderStockHistory(){
   }
 
   // Source labels & icons
-  const srcLabel = {purchase:'🛒 Purchase', batch:'📦 Batch', mfg:'🏭 Manufacture', manual:'✋ Manual'};
-  const srcColor = {purchase:'#0891b2', batch:'#7c3aed', mfg:'#1d4ed8', manual:'#78716c'};
+  const srcLabel = {inward:'📥 Inward', outward:'📤 Outward', purchase:'🛒 Purchase', batch:'📦 Batch', mfg:'🏭 Manufacture', manual:'✋ Manual'};
+  const srcColor = {inward:'#0891b2', outward:'#dc2626', purchase:'#0891b2', batch:'#7c3aed', mfg:'#1d4ed8', manual:'#78716c'};
   const batchMap = {}; (BATCHES||[]).forEach(b=>batchMap[b.id]=b);
 
   // Group by date
@@ -8962,17 +9009,7 @@ function createBatch(force){
   const isMulti=allProducts.length>1;
   const totalQty=allProducts.reduce((s,p)=>s+p.qty,0);
 
-  // ── Stock check — sabhi products ke liye combined ──
-  if(!force){
-    let allShort=[];
-    allProducts.forEach(p=>{
-      btCheckStock(p.productId,p.qty).forEach(s=>allShort.push({...s, forProduct:p.product}));
-    });
-    if(allShort.length>0){
-      bomWarnShow(isMulti?`${allProducts.length} Products`:prod, allShort, totalQty);
-      return;
-    }
-  }
+  // (Stock check / warning hata di gayi hai — batch banate waqt koi stock warning nahi aati.)
   const c=CUSTOMERS.find(x=>x.id===custId);
   const party=c?.name||'—';
   const displayProduct=isMulti?allProducts.map(p=>`${p.product} ×${p.qty}`).join(', '):prod;
@@ -9030,10 +9067,8 @@ function confirmBtStage(){
   const s=BT_STAGES[_btPending.si];
   b.stages[s.id]={done:true,date:document.getElementById('btsm-date').value||btToday(),note:document.getElementById('btsm-note').value.trim()};
   save('bf9_batches',BATCHES);
-  // ── Note: stock is no longer auto-deducted here. Dispatch stage is now a
-  // pure production-tracking milestone; actual raw-material + packing stock
-  // is deducted per-piece at invoice time (see createInvoice's batch block),
-  // so partial dispatches (e.g. 30 of 50) don't over-deduct stock. ──
+  // ── Note: stock yahan se (ya invoice se) auto-minus nahi hota. Dispatch stage
+  // sirf production-tracking milestone hai; stock sirf Inward / Outward module se badalta hai. ──
   closeBtModal();
   toast(`✅ ${s.name} done!`);
   updateBatchBadge();
@@ -10193,9 +10228,9 @@ function createInvoice(saveAndNew=false){
   // Link invoice back to delivery if generated from order
   _linkInvoiceToDelivery(inv.id);
 
-  // Batch dispatch — partial-qty aware: deduct stock only for the qty
-  // actually invoiced this time, and keep the batch "active" with a
-  // running balance until its full qty has been dispatched.
+  // Batch dispatch — partial-qty aware: batch ka dispatched count sirf invoice
+  // ki qty se badhta hai, aur batch "active" rehta hai jab tak poori qty dispatch na ho.
+  // (Stock yahan se minus nahi hota — Outward entry se hota hai.)
   if(batchId){
     const b=BATCHES.find(x=>x.id===batchId);
     if(b){
@@ -10204,10 +10239,8 @@ function createInvoice(saveAndNew=false){
       const dispatchQty=Math.max(0,Math.min(remaining,requestedQty));
       if(dispatchQty>0){
         b.dispatched=(b.dispatched||0)+dispatchQty;
-        // Per-item stock deduction — har invoice item apne product ki BOM
-        // ke hisaab se stock minus karta hai. Multi-product batch mein har
-        // product apne productId se alag deduct hota hai; purane single-
-        // product batches ke liye behavior bilkul pehle jaisa hi hai.
+        // NOTE: Stock yahan se minus NAHI hota. Stock sirf Inward / Outward
+        // module se plus-minus hota hai. Yahan sirf product-wise dispatch count rakha jaata hai.
         if(!b.dispatchedByProduct) b.dispatchedByProduct={};
         let capLeft=dispatchQty;
         _invItems.forEach(it=>{
@@ -10216,12 +10249,10 @@ function createInvoice(saveAndNew=false){
           if(itemQty<=0) return;
           const pid = it.productId || b.productId || btGetProductId(it.name) || btGetProductId(b.product);
           if(pid){
-            btDeductStockForItem(pid, itemQty, b.id);
             b.dispatchedByProduct[pid]=(b.dispatchedByProduct[pid]||0)+itemQty;
           }
           capLeft-=itemQty;
         });
-        packDeductStock(b, dispatchQty);
         if(!b.invoiceIds) b.invoiceIds=[];
         b.invoiceIds.push(inv.id);
         const nowRemaining=b.qty-b.dispatched;
@@ -17134,7 +17165,7 @@ const WN_CHANGES = [
         title: 'Purchase Entry — Delete Option',
         desc: 'Galat purchase entry ab delete kar sakte ho — stock bhi automatically reverse hoga.',
         how: [
-          'Purchase Entry module mein jaao',
+          'Inward / Outward module mein jaao',
           'Neeche recent entries list mein 🗑 button dikhega',
           'Delete karo — confirm popup aayega',
           'Stock automatically reverse ho jayega'
@@ -19913,7 +19944,7 @@ function invSavePurchase(keepOpen){
     STXN.push({
       id:Date.now()+'_'+Math.random().toString(36).slice(2,5),
       itemId:mat.id, type:'in', qty:stockToAdd,
-      note:'Purchase'+(useRatio>1?` (${row.qty} ${purUnit}×${useRatio}=${stockToAdd} ${stockUnit})`:'')+(billno?' · Bill:'+billno:''),
+      note:'📥 Inward'+(useRatio>1?` (${row.qty} ${purUnit}×${useRatio}=${stockToAdd} ${stockUnit})`:'')+(billno?' · Bill:'+billno:''),
       date:new Date().toISOString()
     });
 
@@ -19974,28 +20005,52 @@ function invSavePurchase(keepOpen){
   }
 }
 function invRenderPurLogMini(){
-  const log = invGetPurLog().slice(0,20);
   const el = document.getElementById('inv-pur-log-mini');
   if(!el) return;
-  if(!log.length){
-    el.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">Koi invoice nahi abhi</div>';
+  const inLog  = invGetPurLog().map(l=>({...l, _k:(l.docType==='debit'?'debit':'in')}));
+  const outLog = invGetOutLog().map(l=>({...l, _k:'out'}));
+  let all = [...inLog, ...outLog].sort((a,b)=>(b.ts||0)-(a.ts||0));
+  if(_ioFilter==='in') all = all.filter(l=>l._k==='in');
+  else if(_ioFilter==='out') all = all.filter(l=>l._k!=='in');
+  all = all.slice(0,30);
+
+  const chip = (f,label)=>`<button onclick="_ioSetFilter('${f}')" style="padding:5px 12px;border-radius:20px;border:1.5px solid ${_ioFilter===f?'var(--navy2)':'var(--border)'};background:${_ioFilter===f?'var(--navy2)':'#fff'};color:${_ioFilter===f?'#fff':'var(--muted)'};font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">${label}</button>`;
+  const chips = `<div style="display:flex;gap:6px;margin-bottom:10px">${chip('all','Sab')}${chip('in','📥 Inward')}${chip('out','📤 Outward')}</div>`;
+
+  if(!all.length){
+    el.innerHTML = chips+'<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">Koi entry nahi abhi</div>';
     return;
   }
-  el.innerHTML = log.map(l=>{
+  el.innerHTML = chips + all.map(l=>{
+    const dateStr = l.date || new Date(l.ts).toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
+    if(l._k==='out'){
+      return `
+      <div class="inv-log-row">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <div style="font-size:11px;font-weight:800;color:var(--navy2)">📤 ${esc(l.partyName||l.purpose||'Outward')}</div>
+          <button onclick="invDeleteOutward('${l.id}')" style="width:24px;height:24px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800" title="Delete">🗑</button>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:5px">${dateStr}${l.reference?' · '+esc(l.reference):''} <span style="background:#fef2f2;color:var(--red-dark);padding:1px 5px;border-radius:6px;font-weight:800">Outward · ${esc(l.purpose||'')}</span>${l.note?' · '+esc(l.note):''}</div>
+        ${(l.items||[]).map(i=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-top:1px solid var(--border)">
+            <div style="font-size:11px;font-weight:700">${esc(i.matName)}</div>
+            <div style="font-size:10px;color:var(--red-dark);font-weight:800">-${i.qty} ${i.unit||''}</div>
+          </div>`).join('')}
+      </div>`;
+    }
     const items = l.items || [{matName:l.matName, qty:l.qty, punit:l.punit, stockAdded:l.stockAdded||l.qty, stockUnit:l.stockUnit||l.punit, convRatio:l.convRatio, rate:l.rate, total:l.total}];
     const grand = l.grandTotal || l.total || 0;
-    const dateStr = l.date || new Date(l.ts).toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
-    const isDebit = l.docType==='debit';
+    const isDebit = l._k==='debit';
     return `
       <div class="inv-log-row">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-          <div style="font-size:11px;font-weight:800;color:var(--navy2)">${isDebit?'↩️ ':'🧾 '}${l.supplierName||l.supplier||'—'}</div>
+          <div style="font-size:11px;font-weight:800;color:var(--navy2)">${isDebit?'↩️ ':'📥 '}${l.supplierName||l.supplier||'—'}</div>
           <div style="display:flex;align-items:center;gap:7px">
             <div style="font-family:'Bebas Neue';font-size:16px;color:${isDebit?'var(--red-dark)':'var(--green-dark)'}">${isDebit?'-':''}₹${grand.toLocaleString('en-IN')}</div>
             <button onclick="invDeletePurchase('${l.id||l.ts}')" style="width:24px;height:24px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800" title="Delete">🗑</button>
           </div>
         </div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:5px">${dateStr}${l.billno?' · '+l.billno:''}${isDebit?' <span style="background:#fef2f2;color:var(--red-dark);padding:1px 5px;border-radius:6px;font-weight:800">Debit Note</span>':''}${l.supplierId?' <span style="background:#e6fff3;color:var(--green-dark);padding:1px 5px;border-radius:6px;font-weight:800">✓ Ledger</span>':''}</div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:5px">${dateStr}${l.billno?' · '+l.billno:''} ${isDebit?'<span style="background:#fef2f2;color:var(--red-dark);padding:1px 5px;border-radius:6px;font-weight:800">Outward · Supplier Return</span>':'<span style="background:#eff6ff;color:#1d4ed8;padding:1px 5px;border-radius:6px;font-weight:800">Inward</span>'}${l.supplierId?' <span style="background:#e6fff3;color:var(--green-dark);padding:1px 5px;border-radius:6px;font-weight:800">✓ Ledger</span>':''}</div>
         ${items.map(i=>`
           <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-top:1px solid var(--border)">
             <div style="font-size:11px;font-weight:700">${i.matName}</div>
@@ -20042,8 +20097,148 @@ function invDeletePurchase(entryId){
 /* ══════════════════════════════════════════
    SUPPLIER INVOICES — VIEW SWITCHING
 ══════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════
+   OUTWARD — maal gaya (stock minus)
+══════════════════════════════════════════ */
+function invGetOutLog(){ return INV_LS.get('outlog',[]); }
+function invSetOutLog(v){ INV_LS.set('outlog',v); }
+let _outRows = [];
+let _outRowCounter = 0;
+let _ioFilter = 'all';
+const OUT_PURPOSES = ['Customer ko Dispatch','Powder Coating bheja','Production me use','Scrap / Kharab','Other'];
+
+function outInitForm(){
+  const sel = document.getElementById('out-party-sel');
+  if(sel){
+    const cs = CUSTOMERS.filter(c=>c.type!=='supplier'), ss = CUSTOMERS.filter(c=>c.type==='supplier');
+    const opts = a=>_az(a,x=>x.name).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('');
+    sel.innerHTML = '<option value="">-- Party chunno (optional) --</option>' +
+      (cs.length?`<optgroup label="Customers">${opts(cs)}</optgroup>`:'') +
+      (ss.length?`<optgroup label="Suppliers / Vendors">${opts(ss)}</optgroup>`:'');
+  }
+  const pu = document.getElementById('out-purpose');
+  if(pu) pu.innerHTML = OUT_PURPOSES.map(x=>`<option>${x}</option>`).join('');
+  const dl = document.getElementById('out-ref-list');
+  if(dl) dl.innerHTML = [...(INVOICES||[]).map(i=>String(i.num)), ...(BATCHES||[]).filter(b=>!b.deleted).map(b=>b.id)]
+    .map(v=>`<option value="${esc(v)}">`).join('');
+  ['out-party','out-ref','out-note'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  const d = document.getElementById('out-date'); if(d) d.value = new Date().toISOString().split('T')[0];
+  _outRows = []; _outRowCounter = 0;
+  outAddRow();
+}
+function outAddRow(){
+  _outRows.push({id:'or_'+(++_outRowCounter), matId:'', qty:0});
+  outRenderRows();
+}
+function outRemoveRow(id){
+  if(_outRows.length<=1){ invToast('Kam se kam 1 item chahiye!','err'); return; }
+  _outRows = _outRows.filter(r=>r.id!==id);
+  outRenderRows();
+}
+function outRenderRows(){
+  const mats = _az(STK,m=>m.name);
+  document.getElementById('out-rows').innerHTML = _outRows.map((row,i)=>`
+    <div style="border:1.5px solid var(--border);border-radius:var(--r2);padding:10px;margin-bottom:8px;background:${i%2===0?'#fef2f2':'#fff'}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:11px;font-weight:800;color:var(--muted)">Item ${i+1}</div>
+        <button onclick="outRemoveRow('${row.id}')" style="width:24px;height:24px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800">✕</button>
+      </div>
+      <div class="fg" style="margin-bottom:8px">
+        <select class="finp" id="outmat-${row.id}" onchange="outRowCalc('${row.id}')" style="font-size:12px">
+          <option value="">-- Material --</option>
+          ${mats.map(m=>`<option value="${m.id}" ${m.id===row.matId?'selected':''}>${m.ico||'📦'} ${esc(m.name)} (${m.unit})</option>`).join('')}
+        </select>
+      </div>
+      <div class="fg" style="margin-bottom:4px">
+        <label style="font-size:10px">Qty (jo gaya)</label>
+        <input class="finp" type="number" id="outqty-${row.id}" value="${row.qty>0?row.qty:''}" min="0" step="any" placeholder="0"
+          oninput="outRowCalc('${row.id}')" style="font-size:13px">
+      </div>
+      <div id="outhint-${row.id}" style="font-size:10px;font-weight:800;color:var(--muted)"></div>
+    </div>
+  `).join('');
+  _outRows.forEach(r=>outRowCalc(r.id,true));
+}
+function outRowCalc(rowId,quiet){
+  const row = _outRows.find(r=>r.id===rowId);
+  if(!row) return;
+  row.matId = document.getElementById('outmat-'+rowId)?.value||'';
+  row.qty = parseFloat(document.getElementById('outqty-'+rowId)?.value)||0;
+  const h = document.getElementById('outhint-'+rowId);
+  if(!h) return;
+  const mat = STK.find(m=>m.id===row.matId);
+  if(!mat){ h.textContent=''; return; }
+  const left = (mat.current||0) - (row.qty||0);
+  h.style.color = left<0 ? 'var(--red-dark)' : 'var(--muted)';
+  h.textContent = 'Abhi stock: '+(mat.current||0)+' '+mat.unit + (row.qty>0 ? ' → baad me: '+(+left.toFixed(4))+' '+mat.unit : '');
+}
+function outSave(){
+  const date = document.getElementById('out-date').value||new Date().toISOString().split('T')[0];
+  const purpose = document.getElementById('out-purpose').value||'Other';
+  const reference = document.getElementById('out-ref').value.trim();
+  const note = document.getElementById('out-note').value.trim();
+  const partyId = document.getElementById('out-party-sel').value||null;
+  const partyName = partyId ? (CUSTOMERS.find(c=>c.id===partyId)?.name||'') : document.getElementById('out-party').value.trim();
+
+  const rows = _outRows.filter(r=>r.matId && r.qty>0);
+  if(!rows.length){ invToast('Kam se kam 1 item complete karo!','err'); return; }
+
+  // Stock check (same material kai rows me ho to total mila ke)
+  const need = {};
+  rows.forEach(r=>{ need[r.matId]=(need[r.matId]||0)+r.qty; });
+  const short = Object.keys(need).map(id=>STK.find(m=>m.id===id)).filter(m=>m && need[m.id]>(m.current||0));
+  if(short.length && !confirm('Stock kam hai:\n'+short.map(m=>`${m.name}: chahiye ${need[m.id]}, hai ${m.current||0} ${m.unit}`).join('\n')+'\n\nPhir bhi outward karein? (stock 0 ho jayega)')) return;
+
+  const txnNote = '📤 Outward · '+purpose+(partyName?' · '+partyName:'')+(reference?' · Ref: '+reference:'')+(note?' · '+note:'');
+  const txnDate = date+new Date().toISOString().slice(10);
+  const items = [];
+  rows.forEach(r=>{
+    const mat = STK.find(m=>m.id===r.matId);
+    if(!mat) return;
+    mat.current = +Math.max(0,(mat.current||0)-r.qty).toFixed(4);
+    STXN.push({
+      id:Date.now()+'_'+Math.random().toString(36).slice(2,5),
+      itemId:mat.id, type:'out', qty:r.qty, note:txnNote, date:txnDate, source:'outward'
+    });
+    items.push({matId:mat.id, matName:mat.name, qty:r.qty, unit:mat.unit});
+  });
+  save('bf9_stk', STK);
+  save('bf9_stxn', STXN);
+  if(typeof renderStock==='function') renderStock();
+
+  const log = invGetOutLog();
+  log.unshift({id:invUID(), ts:Date.now(), docType:'outward', date, purpose, partyId, partyName, reference, note, items});
+  invSetOutLog(log);
+
+  invToast(`✅ Outward saved · ${items.length} item${items.length>1?'s':''} · stock minus ho gaya`);
+  invCheckLowBadge();
+  _purSetView('list');
+}
+function invDeleteOutward(entryId){
+  const log = invGetOutLog();
+  const entry = log.find(l=>l.id==entryId);
+  if(!entry){ toast('Entry nahi mili!'); return; }
+  if(!confirm('Yeh outward entry delete karo?\n\n⚠️ Stock wapas add ho jayega.')) return;
+  invSetOutLog(log.filter(l=>l.id!=entryId));
+  (entry.items||[]).forEach(it=>{
+    const mat = STK.find(m=>m.id===it.matId);
+    if(!mat) return;
+    mat.current = +((mat.current||0)+(it.qty||0)).toFixed(4);
+    STXN.push({id:Date.now()+'_'+Math.random().toString(36).slice(2,5), itemId:mat.id, type:'in', qty:it.qty,
+      note:'↩ Outward delete (reversal)', date:new Date().toISOString(), source:'outward'});
+  });
+  save('bf9_stk', STK);
+  save('bf9_stxn', STXN);
+  invRenderPurLogMini();
+  if(typeof renderStock==='function') renderStock();
+  toast('🗑 Outward entry delete ho gayi — stock wapas add hua!');
+}
+function _ioSetFilter(f){ _ioFilter=f; invRenderPurLogMini(); }
+function _purOpenOutwardForm(){ _purSetView('outward'); outInitForm(); }
+
 function _purSetView(view){
-  ['list','form','debit','trade','gst3b','analysis'].forEach(v=>{
+  ['list','form','debit','outward','trade','gst3b','analysis'].forEach(v=>{
     const el = document.getElementById('pur-view-'+v);
     if(el) el.style.display = (v===view) ? '' : 'none';
   });
@@ -20175,7 +20370,7 @@ function debSaveNote(){
     STXN.push({
       id:Date.now()+'_'+Math.random().toString(36).slice(2,5),
       itemId:mat.id, type:'out', qty:row.qty,
-      note:'Debit Note'+(billno?' · '+billno:'')+(refInvoice?' · Against '+refInvoice:''),
+      note:'📤 Outward · Supplier Return (Debit Note)'+(billno?' · '+billno:'')+(refInvoice?' · Against '+refInvoice:''),
       date:new Date().toISOString()
     });
     logItems.push({matId:mat.id, matName:mat.name, qty:row.qty, punit:mat.unit, stockAdded:row.qty, stockUnit:mat.unit, rate:row.rate, gstPct:row.gstPct, taxable, cgst, sgst, total:amount});
@@ -20728,65 +20923,6 @@ function openPackProdQuickAddMat(){
   document.getElementById('bqm-modal-bg').classList.add('show');
 }
 
-function packDeductStock(batch, dispatchQty){
-  const packType = batch.packingType||'none';
-  const qty = (dispatchQty!=null) ? dispatchQty : (batch.qty||0);
-  if(qty<=0) return;
-
-  // Product-linked packing BOM (e.g. a new product's own distinct packaging)
-  if(packType.startsWith('product:')){
-    const productId = packType.slice('product:'.length);
-    const allPackBoms = invGetAllPackBOMs();
-    const typeBom = allPackBoms[productId]||{};
-    let deducted=[];
-    Object.keys(typeBom).forEach(matId=>{
-      const perUnit = typeBom[matId]||0;
-      if(perUnit<=0) return;
-      const totalDeduct = perUnit*qty;
-      const idx = STK.findIndex(m=>m.id===matId);
-      if(idx<0) return;
-      STK[idx].current = +Math.max(0,(STK[idx].current||0)-totalDeduct).toFixed(4);
-      STXN.push({id:Date.now()+'_pk_'+Math.random().toString(36).slice(2,4),
-        itemId:matId,type:'out',qty:totalDeduct,
-        note:'Packing(product) Batch '+batch.id,date:new Date().toISOString()});
-      deducted.push(STK[idx].name);
-    });
-    if(deducted.length>0){
-      save('bf9_stk',STK); save('bf9_stxn',STXN);
-      if(typeof renderStock==='function') renderStock();
-      toast('📦 Packing deducted: '+deducted.join(', '));
-    }
-    return;
-  }
-
-  const bom = packBomGet();
-  const typeBom = bom[packType]||{};
-  let deducted = [];
-  Object.keys(typeBom).forEach(matId=>{
-    let perUnit = typeBom[matId]||0;
-    if(perUnit<=0) return;
-    let totalDeduct = perUnit * qty;
-    // Master carton: ceil(qty/10) cartons — detect by name
-    if(packType==='master'){
-      const mat = STK.find(m=>m.id===matId);
-      if(mat && mat.name.toLowerCase().includes('carton')){
-        totalDeduct = Math.ceil(qty/10) * perUnit;
-      }
-    }
-    const idx = STK.findIndex(m=>m.id===matId);
-    if(idx<0) return;
-    STK[idx].current = +Math.max(0,(STK[idx].current||0)-totalDeduct).toFixed(4);
-    STXN.push({id:Date.now()+'_pk_'+Math.random().toString(36).slice(2,4),
-      itemId:matId,type:'out',qty:totalDeduct,
-      note:'Packing('+packType+') Batch '+batch.id,date:new Date().toISOString()});
-    deducted.push(STK[idx].name);
-  });
-  if(deducted.length>0){
-    save('bf9_stk',STK); save('bf9_stxn',STXN);
-    if(typeof renderStock==='function') renderStock();
-    toast('📦 Packing deducted: '+deducted.join(', '));
-  }
-}
 function invRenderBOM(){
   if(!_invSelectedProdId) return;
   const allBoms = invGetAllBOMs();
@@ -20982,16 +21118,8 @@ function btCheckStockOnProductChange(){
   const statusDiv = document.getElementById('bt-stock-status');
   const productId = sel.value;
   btAutoSelectPacking(productId);
-  if(!statusDiv) return;
-  if(!productId || qty<=0){ statusDiv.style.display='none'; return; }
-  const short = btCheckStock(productId, qty);
-  if(short.length===0){
-    statusDiv.style.display='';
-    statusDiv.innerHTML=`<div style="padding:7px 10px;background:var(--green-bg);border:1px solid #6ee7b7;border-radius:var(--r3);font-size:11px;font-weight:800;color:var(--green-dark)">✅ Stock sufficient hai — Batch ready!</div>`;
-  } else {
-    statusDiv.style.display='';
-    statusDiv.innerHTML=`<div style="padding:7px 10px;background:var(--red-bg);border:1px solid #fca5a5;border-radius:var(--r3);font-size:11px;font-weight:800;color:var(--red-dark)">⚠️ ${short.length} material(s) kam hain</div>`;
-  }
+  // Stock status / warning hata diya — sirf packing auto-select rehta hai
+  if(statusDiv) statusDiv.style.display='none';
 }
 
 function bomWarnShow(productName, short, qty){
@@ -21023,39 +21151,7 @@ function bomWarnForceCreate(){
 /* ══════════════════════════════════════════
    STOCK AUTO-DEDUCT — Dispatch stage pe
 ══════════════════════════════════════════ */
-function btDeductStockForItem(productId, qty, batchId){
-  if(!productId || qty<=0) return [];
-  const bom = invGetBOMForProduct(productId);
-  let deducted = [];
-
-  Object.keys(bom).forEach(matId=>{
-    const bomQty = bom[matId]||0;
-    if(bomQty<=0) return;
-    const needed = bomQty * qty;
-    const idx = STK.findIndex(m=>m.id===matId);
-    if(idx<0) return;
-    STK[idx].current = Math.max(0, (STK[idx].current||0) - needed);
-    STXN.push({
-      id:Date.now()+'_'+Math.random().toString(36).slice(2,4),
-      itemId:matId, type:'out', qty:needed,
-      note:'Batch '+(batchId||'')+' dispatch ('+qty+' pcs)',
-      date:new Date().toISOString()
-    });
-    deducted.push(STK[idx].name);
-  });
-
-  save('bf9_stk', STK);
-  save('bf9_stxn', STXN);
-  if(typeof renderStock==='function') renderStock();
-  if(deducted.length) toast('📦 Stock deducted: '+deducted.length+' materials');
-  return deducted;
-}
 // Kept for backward compatibility (old single-product-per-batch call shape)
-function btDeductStockForBatch(batch, dispatchQty){
-  const productId = batch.productId || btGetProductId(batch.product);
-  const qty = (dispatchQty!=null) ? dispatchQty : (batch.qty||0);
-  return btDeductStockForItem(productId, qty, batch.id);
-}
 
 /* Helper: find product id from product name */
 function btGetProductId(productName){
