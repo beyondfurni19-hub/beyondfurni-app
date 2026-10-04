@@ -3600,6 +3600,14 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 #s-inv-purchase .pur-del{width:28px;height:30px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800}
 #s-inv-purchase .pur-si{font-size:10px;color:var(--muted);font-weight:700;margin-top:4px}
 #s-inv-purchase .pur-si:empty{display:none}
+#s-inv-purchase .out-line{display:grid;gap:6px;align-items:end;grid-template-columns:minmax(180px,3fr) minmax(90px,1fr) minmax(130px,1.6fr) auto}
+#s-inv-purchase .out-line label{display:block;font-size:9px;font-weight:800;color:var(--muted);margin:0 0 2px;white-space:nowrap}
+#s-inv-purchase .out-line .finp{padding:7px 8px;font-size:12px;margin:0;width:100%;min-width:0}
+#s-inv-purchase .out-hint{font-size:12px;font-weight:800;color:var(--muted);padding:7px 0;white-space:nowrap}
+@media(max-width:760px){
+  #s-inv-purchase .out-line{grid-template-columns:1fr 1fr auto}
+  #s-inv-purchase .out-line .pur-mat{grid-column:1/-1}
+}
 @media(max-width:760px){
   #s-inv-purchase .pur-line{grid-template-columns:repeat(3,1fr)}
   #s-inv-purchase .pur-line .pur-mat{grid-column:1/-1}
@@ -3808,7 +3816,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
     </div>
     <div class="card" style="margin-bottom:10px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <div style="font-size:12px;font-weight:800;color:var(--navy2)">📦 Items jo gaye</div>
+        <div style="font-size:12px;font-weight:800;color:var(--navy2)">📦 Item List <span style="font-weight:600;color:var(--muted)">(ek se zyada item add kar sakte ho)</span></div>
         <button onclick="outAddRow()" style="padding:6px 13px;background:var(--navy);color:#fff;border:none;border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">＋ Item</button>
       </div>
       <div id="out-rows"></div>
@@ -20137,23 +20145,26 @@ function outRemoveRow(id){
 function outRenderRows(){
   const mats = _az(STK,m=>m.name);
   document.getElementById('out-rows').innerHTML = _outRows.map((row,i)=>`
-    <div style="border:1.5px solid var(--border);border-radius:var(--r2);padding:10px;margin-bottom:8px;background:${i%2===0?'#fef2f2':'#fff'}">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div style="font-size:11px;font-weight:800;color:var(--muted)">Item ${i+1}</div>
-        <button onclick="outRemoveRow('${row.id}')" style="width:24px;height:24px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800">✕</button>
+    <div class="pur-rowbox" style="background:${i%2===0?'#fef7f7':'#fff'}">
+      <div class="out-line">
+        <div class="pur-mat">
+          <label>Material #${i+1}</label>
+          <select class="finp" id="outmat-${row.id}" onchange="outRowCalc('${row.id}')">
+            <option value="">-- Material --</option>
+            ${mats.map(m=>`<option value="${m.id}" ${m.id===row.matId?'selected':''}>${m.ico||'📦'} ${esc(m.name)} (${m.unit})</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label>Qty (jo gaya) <span id="outunit-${row.id}" style="color:var(--orange)"></span></label>
+          <input class="finp" type="number" id="outqty-${row.id}" value="${row.qty>0?row.qty:''}" min="0" step="any" placeholder="0"
+            oninput="outRowCalc('${row.id}')">
+        </div>
+        <div>
+          <label>Stock</label>
+          <div id="outhint-${row.id}" class="out-hint"></div>
+        </div>
+        <button type="button" class="pur-del" title="Item hatao" onclick="outRemoveRow('${row.id}')">✕</button>
       </div>
-      <div class="fg" style="margin-bottom:8px">
-        <select class="finp" id="outmat-${row.id}" onchange="outRowCalc('${row.id}')" style="font-size:12px">
-          <option value="">-- Material --</option>
-          ${mats.map(m=>`<option value="${m.id}" ${m.id===row.matId?'selected':''}>${m.ico||'📦'} ${esc(m.name)} (${m.unit})</option>`).join('')}
-        </select>
-      </div>
-      <div class="fg" style="margin-bottom:4px">
-        <label style="font-size:10px">Qty (jo gaya)</label>
-        <input class="finp" type="number" id="outqty-${row.id}" value="${row.qty>0?row.qty:''}" min="0" step="any" placeholder="0"
-          oninput="outRowCalc('${row.id}')" style="font-size:13px">
-      </div>
-      <div id="outhint-${row.id}" style="font-size:10px;font-weight:800;color:var(--muted)"></div>
     </div>
   `).join('');
   _outRows.forEach(r=>outRowCalc(r.id,true));
@@ -20166,10 +20177,11 @@ function outRowCalc(rowId,quiet){
   const h = document.getElementById('outhint-'+rowId);
   if(!h) return;
   const mat = STK.find(m=>m.id===row.matId);
-  if(!mat){ h.textContent=''; return; }
+  if(!mat){ h.textContent=''; const u0=document.getElementById('outunit-'+rowId); if(u0) u0.textContent=''; return; }
   const left = (mat.current||0) - (row.qty||0);
   h.style.color = left<0 ? 'var(--red-dark)' : 'var(--muted)';
-  h.textContent = 'Abhi stock: '+(mat.current||0)+' '+mat.unit + (row.qty>0 ? ' → baad me: '+(+left.toFixed(4))+' '+mat.unit : '');
+  const u=document.getElementById('outunit-'+rowId); if(u) u.textContent='('+mat.unit+')';
+  h.textContent = (mat.current||0)+' '+mat.unit + (row.qty>0 ? ' → '+(+left.toFixed(4))+' '+mat.unit : '');
 }
 function outSave(){
   const date = document.getElementById('out-date').value||new Date().toISOString().split('T')[0];
@@ -21472,4 +21484,3 @@ authBootstrap();
 
 </body>
 </html>
-      
