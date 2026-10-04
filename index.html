@@ -3604,6 +3604,14 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 #s-inv-purchase .out-line label{display:block;font-size:9px;font-weight:800;color:var(--muted);margin:0 0 2px;white-space:nowrap}
 #s-inv-purchase .out-line .finp{padding:7px 8px;font-size:12px;margin:0;width:100%;min-width:0}
 #s-inv-purchase .out-hint{font-size:12px;font-weight:800;color:var(--muted);padding:7px 0;white-space:nowrap}
+#s-inv-purchase .inf-line{display:grid;gap:6px;align-items:end;grid-template-columns:minmax(180px,3fr) minmax(90px,1fr) minmax(130px,1.6fr) auto}
+#s-inv-purchase .inf-line.inf-pc{grid-template-columns:minmax(180px,3fr) minmax(90px,1fr) minmax(170px,2.2fr) minmax(130px,1.6fr) auto}
+#s-inv-purchase .inf-line label{display:block;font-size:9px;font-weight:800;color:var(--muted);margin:0 0 2px;white-space:nowrap}
+#s-inv-purchase .inf-line .finp{padding:7px 8px;font-size:12px;margin:0;width:100%;min-width:0}
+@media(max-width:760px){
+  #s-inv-purchase .inf-line,#s-inv-purchase .inf-line.inf-pc{grid-template-columns:1fr 1fr auto}
+  #s-inv-purchase .inf-line .pur-mat,#s-inv-purchase .inf-line .inf-rawbox{grid-column:1/-1}
+}
 @media(max-width:760px){
   #s-inv-purchase .out-line{grid-template-columns:1fr 1fr auto}
   #s-inv-purchase .out-line .pur-mat{grid-column:1/-1}
@@ -3628,21 +3636,28 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 
     <div class="g2" style="margin-bottom:10px">
       <div class="card" style="padding:14px;cursor:pointer" onclick="_purOpenInvoiceForm()">
+        <div style="font-size:22px;margin-bottom:4px">🧾</div>
+        <div style="font-size:12px;font-weight:900;color:var(--navy2)">Inward — Purchase</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">Supplier se maal aaya (invoice) — stock + aur supplier ledger update</div>
+      </div>
+      <div class="card" style="padding:14px;cursor:pointer" onclick="_purOpenInwFreeForm()">
         <div style="font-size:22px;margin-bottom:4px">📥</div>
-        <div style="font-size:12px;font-weight:900;color:var(--navy2)">Inward Entry</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">Maal aaya — stock + (supplier ledger bhi update)</div>
+        <div style="font-size:12px;font-weight:900;color:var(--navy2)">Inward — Bina Paise</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">Fabrication ready / Powder Coating se wapas / Return — sirf stock +</div>
       </div>
       <div class="card" style="padding:14px;cursor:pointer" onclick="_purOpenOutwardForm()">
         <div style="font-size:22px;margin-bottom:4px">📤</div>
         <div style="font-size:12px;font-weight:900;color:var(--navy2)">Outward Entry</div>
         <div style="font-size:10px;color:var(--muted);margin-top:2px">Maal gaya — stock − (dispatch / powder coating / use)</div>
       </div>
+      <div class="card" style="padding:14px;cursor:pointer" onclick="_purOpenDebitForm()">
+        <div style="font-size:22px;margin-bottom:4px">↩️</div>
+        <div style="font-size:12px;font-weight:900;color:var(--navy2)">Supplier Return (Debit Note)</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">Supplier ko maal wapas — stock − + ledger Cr</div>
+      </div>
     </div>
-    <div class="card" style="padding:10px 14px;cursor:pointer;margin-bottom:12px;display:flex;align-items:center;gap:10px" onclick="_purOpenDebitForm()">
-      <div style="font-size:20px">↩️</div>
-      <div><div style="font-size:12px;font-weight:900;color:var(--navy2)">Supplier Return (Debit Note)</div>
-      <div style="font-size:10px;color:var(--muted);margin-top:2px">Supplier ko maal wapas — stock − + ledger Cr</div></div>
-    </div>
+
+    <div id="pc-pending-box"></div>
 
     <div class="card-title" style="font-size:13px;margin-bottom:8px">📋 Recent Entries</div>
     <div id="inv-pur-log-mini"></div>
@@ -3652,7 +3667,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
   <div id="pur-view-form" style="display:none">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
       <button onclick="_purSetView('list')" style="width:30px;height:30px;border:none;background:#f0f4ff;color:var(--navy2);border-radius:8px;cursor:pointer;font-size:14px;font-weight:800">←</button>
-      <div class="card-title" style="font-size:14px;margin:0">📥 Inward Entry — Maal Aaya</div>
+      <div class="card-title" style="font-size:14px;margin:0">🧾 Inward — Purchase (Supplier Invoice)</div>
     </div>
 
     <!-- Basic Information -->
@@ -3789,6 +3804,43 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 
     <button class="btn-save" style="width:100%;text-align:center;justify-content:center;font-size:15px;background:var(--red-dark)" onclick="debSaveNote()">
       ✅ Save — Stock + Ledger Update Karo
+    </button>
+  </div>
+
+  <!-- ═══════════ INWARD — BINA PAISE ═══════════ -->
+  <div id="pur-view-inwfree" style="display:none">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <button onclick="_purSetView('list')" style="width:30px;height:30px;border:none;background:#f0f4ff;color:var(--navy2);border-radius:8px;cursor:pointer;font-size:14px;font-weight:800">←</button>
+      <div class="card-title" style="font-size:14px;margin:0">📥 Inward — Bina Paise (Stock +)</div>
+    </div>
+    <div class="card" style="margin-bottom:10px">
+      <div class="g2">
+        <div class="fg" style="margin:0"><label>Date *</label><input class="finp" type="date" id="inf-date"></div>
+        <div class="fg" style="margin:0"><label>Kis liye? *</label><select class="finp" id="inf-purpose" onchange="infPurposeChange()"></select></div>
+      </div>
+      <div class="fg" style="margin-bottom:0">
+        <label id="inf-party-label">Party (optional)</label>
+        <select class="finp" id="inf-party-sel" style="margin-bottom:6px"></select>
+        <input class="finp" type="text" id="inf-party" placeholder="Ya naam type karo" style="font-size:12px">
+      </div>
+      <div class="fg" style="margin-bottom:0">
+        <label>Reference — Challan / Batch No. (optional)</label>
+        <input class="finp" type="text" id="inf-ref" list="out-ref-list" placeholder="e.g. B-12">
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div class="card-title" style="font-size:13px;margin:0">📦 Item List <span style="font-weight:600;color:var(--muted)">(ek se zyada item add kar sakte ho)</span></div>
+        <button onclick="infAddRow()" style="padding:6px 13px;background:var(--navy);color:#fff;border:none;border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">＋ Item</button>
+      </div>
+      <div id="inf-rows"></div>
+    </div>
+    <div class="fg">
+      <label>Note</label>
+      <input class="finp" type="text" id="inf-note" placeholder="koi baat likhni ho">
+    </div>
+    <button class="btn-save" style="width:100%;text-align:center;justify-content:center;font-size:15px;background:var(--green-dark)" onclick="infSave()">
+      ✅ Save — Stock Plus Karo
     </button>
   </div>
 
@@ -5223,7 +5275,7 @@ const GD_KEYS = [
   // Invoicing & customers
   'bf9_invoices','bf9_invsettings','bf9_invsettings_sr','bf9_customers','bf9_ledger',
   // Inventory module
-  'bf9_inv_mats','bf9_inv_bom','bf9_inv_bom','bf9_inv_conv','bf9_inv_purlog','bf9_inv_outlog','bf9_inv_prodlog',
+  'bf9_inv_mats','bf9_inv_bom','bf9_inv_bom','bf9_inv_conv','bf9_inv_purlog','bf9_inv_outlog','bf9_inv_inwlog','bf9_inv_pcmap','bf9_inv_prodlog',
   'bf9_inv_products','bf9_inv_all_boms','bf9_inv_pack_bom',
   // Daybook & Discipline
   'bf9_daybook','bf9_cat_labels','bf9_disc_settings',
@@ -20013,11 +20065,13 @@ function invSavePurchase(keepOpen){
 function invRenderPurLogMini(){
   const el = document.getElementById('inv-pur-log-mini');
   if(!el) return;
+  const pcBox = document.getElementById('pc-pending-box'); if(pcBox) pcBox.innerHTML = _pcPendingHtml();
   const inLog  = invGetPurLog().map(l=>({...l, _k:(l.docType==='debit'?'debit':'in')}));
   const outLog = invGetOutLog().map(l=>({...l, _k:'out'}));
-  let all = [...inLog, ...outLog].sort((a,b)=>(b.ts||0)-(a.ts||0));
-  if(_ioFilter==='in') all = all.filter(l=>l._k==='in');
-  else if(_ioFilter==='out') all = all.filter(l=>l._k!=='in');
+  const inwLog = invGetInwLog().map(l=>({...l, _k:'inw'}));
+  let all = [...inLog, ...outLog, ...inwLog].sort((a,b)=>(b.ts||0)-(a.ts||0));
+  if(_ioFilter==='in') all = all.filter(l=>l._k==='in'||l._k==='inw');
+  else if(_ioFilter==='out') all = all.filter(l=>l._k==='out'||l._k==='debit');
   all = all.slice(0,30);
 
   const chip = (f,label)=>`<button onclick="_ioSetFilter('${f}')" style="padding:5px 12px;border-radius:20px;border:1.5px solid ${_ioFilter===f?'var(--navy2)':'var(--border)'};background:${_ioFilter===f?'var(--navy2)':'#fff'};color:${_ioFilter===f?'#fff':'var(--muted)'};font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">${label}</button>`;
@@ -20029,6 +20083,21 @@ function invRenderPurLogMini(){
   }
   el.innerHTML = chips + all.map(l=>{
     const dateStr = l.date || new Date(l.ts).toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
+    if(l._k==='inw'){
+      return `
+      <div class="inv-log-row">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <div style="font-size:11px;font-weight:800;color:var(--navy2)">📥 ${esc(l.partyName||l.purpose||'Inward')}</div>
+          <button onclick="invDeleteInwFree('${l.id}')" style="width:24px;height:24px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800" title="Delete">🗑</button>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:5px">${dateStr}${l.reference?' · '+esc(l.reference):''} <span style="background:#eff6ff;color:#1d4ed8;padding:1px 5px;border-radius:6px;font-weight:800">Inward · ${esc(l.purpose||'')}</span>${l.note?' · '+esc(l.note):''}</div>
+        ${(l.items||[]).map(i=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-top:1px solid var(--border)">
+            <div style="font-size:11px;font-weight:700">${esc(i.matName)}${i.rawName?` <span style="font-weight:600;color:var(--muted)">(← ${esc(i.rawName)})</span>`:''}</div>
+            <div style="font-size:10px;color:var(--green-dark);font-weight:800">+${i.qty} ${i.unit||''}</div>
+          </div>`).join('')}
+      </div>`;
+    }
     if(l._k==='out'){
       return `
       <div class="inv-log-row">
@@ -20190,6 +20259,7 @@ function outSave(){
   const note = document.getElementById('out-note').value.trim();
   const partyId = document.getElementById('out-party-sel').value||null;
   const partyName = partyId ? (CUSTOMERS.find(c=>c.id===partyId)?.name||'') : document.getElementById('out-party').value.trim();
+  if(purpose===PC_OUT && !partyName){ invToast('Powder coating wale ka naam chuno ya likho!','err'); return; }
 
   const rows = _outRows.filter(r=>r.matId && r.qty>0);
   if(!rows.length){ invToast('Kam se kam 1 item complete karo!','err'); return; }
@@ -20245,10 +20315,215 @@ function invDeleteOutward(entryId){
   toast('🗑 Outward entry delete ho gayi — stock wapas add hua!');
 }
 function _ioSetFilter(f){ _ioFilter=f; invRenderPurLogMini(); }
+/* ══════════════════════════════════════════
+   INWARD (BINA PAISE) — fabrication ready / powder coating se wapas / return  (stock plus)
+══════════════════════════════════════════ */
+const PC_OUT = 'Powder Coating bheja';
+const PC_IN  = 'Powder Coating se wapas';
+const INF_PURPOSES = ['Fabrication ready', PC_IN, 'Customer return', 'Other'];
+function invGetInwLog(){ return INV_LS.get('inwlog',[]); }
+function invSetInwLog(v){ INV_LS.set('inwlog',v); }
+let _infRows = [];
+let _infRowCounter = 0;
+
+function _infIsPC(){ return (document.getElementById('inf-purpose')?.value||'')===PC_IN; }
+function infInitForm(){
+  const sel = document.getElementById('inf-party-sel');
+  if(sel){
+    const cs = CUSTOMERS.filter(c=>c.type!=='supplier'), ss = CUSTOMERS.filter(c=>c.type==='supplier');
+    const opts = a=>_az(a,x=>x.name).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('');
+    sel.innerHTML = '<option value="">-- Party chunno (optional) --</option>' +
+      (ss.length?`<optgroup label="Suppliers / Vendors">${opts(ss)}</optgroup>`:'') +
+      (cs.length?`<optgroup label="Customers">${opts(cs)}</optgroup>`:'');
+  }
+  const pu = document.getElementById('inf-purpose');
+  if(pu) pu.innerHTML = INF_PURPOSES.map(x=>`<option>${x}</option>`).join('');
+  ['inf-party','inf-ref','inf-note'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  const d = document.getElementById('inf-date'); if(d) d.value = new Date().toISOString().split('T')[0];
+  _infRows = []; _infRowCounter = 0;
+  infAddRow();
+  infPurposeChange();
+}
+function infPurposeChange(){
+  const lb = document.getElementById('inf-party-label');
+  if(lb) lb.textContent = _infIsPC() ? 'Powder Coating wala (party) *' : 'Party (optional)';
+  infRenderRows();
+}
+function infAddRow(){
+  _infRows.push({id:'ir_'+(++_infRowCounter), matId:'', qty:0, rawId:''});
+  infRenderRows();
+}
+function infRemoveRow(id){
+  if(_infRows.length<=1){ invToast('Kam se kam 1 item chahiye!','err'); return; }
+  _infRows = _infRows.filter(r=>r.id!==id);
+  infRenderRows();
+}
+function infRenderRows(){
+  const box = document.getElementById('inf-rows');
+  if(!box) return;
+  const isPC = _infIsPC();
+  const mats = _az(STK,m=>m.name);
+  const optsFor = sel => '<option value="">-- Material --</option>' + mats.map(m=>`<option value="${m.id}" ${m.id===sel?'selected':''}>${m.ico||'📦'} ${esc(m.name)} (${m.unit})</option>`).join('');
+  box.innerHTML = _infRows.map((row,i)=>`
+    <div class="pur-rowbox" style="background:${i%2===0?'#f3fbf6':'#fff'}">
+      <div class="inf-line ${isPC?'inf-pc':''}">
+        <div class="pur-mat">
+          <label>${isPC?'Coated Material #':'Material #'}${i+1}</label>
+          <select class="finp" id="infmat-${row.id}" onchange="infMatChange('${row.id}')">${optsFor(row.matId)}</select>
+        </div>
+        <div>
+          <label>Qty (jo aaya) <span id="infunit-${row.id}" style="color:var(--orange)"></span></label>
+          <input class="finp" type="number" id="infqty-${row.id}" value="${row.qty>0?row.qty:''}" min="0" step="any" placeholder="0"
+            oninput="infRowCalc('${row.id}')">
+        </div>
+        ${isPC?`<div class="inf-rawbox">
+          <label>Raw item (jo bheja tha) *</label>
+          <select class="finp" id="infraw-${row.id}" onchange="infRowCalc('${row.id}')">${optsFor(row.rawId)}</select>
+        </div>`:''}
+        <div class="out-hintbox">
+          <label>Stock</label>
+          <div class="out-hint" id="infhint-${row.id}"></div>
+        </div>
+        <button type="button" class="pur-del" title="Item hatao" onclick="infRemoveRow('${row.id}')">✕</button>
+      </div>
+    </div>
+  `).join('');
+  _infRows.forEach(r=>infRowCalc(r.id,true));
+}
+function infMatChange(rowId){
+  const row = _infRows.find(r=>r.id===rowId);
+  if(!row) return;
+  row.matId = document.getElementById('infmat-'+rowId)?.value||'';
+  if(_infIsPC()){
+    const map = INV_LS.get('pcmap',{});
+    if(map[row.matId]){
+      row.rawId = map[row.matId];
+      const rs = document.getElementById('infraw-'+rowId); if(rs) rs.value = row.rawId;
+    }
+  }
+  infRowCalc(rowId);
+}
+function infRowCalc(rowId){
+  const row = _infRows.find(r=>r.id===rowId);
+  if(!row) return;
+  row.matId = document.getElementById('infmat-'+rowId)?.value||'';
+  row.qty = parseFloat(document.getElementById('infqty-'+rowId)?.value)||0;
+  const rs = document.getElementById('infraw-'+rowId); if(rs) row.rawId = rs.value||'';
+  const h = document.getElementById('infhint-'+rowId);
+  if(!h) return;
+  const mat = STK.find(m=>m.id===row.matId);
+  const u = document.getElementById('infunit-'+rowId);
+  if(!mat){ h.textContent=''; if(u) u.textContent=''; return; }
+  if(u) u.textContent='('+mat.unit+')';
+  h.style.color = 'var(--muted)';
+  h.textContent = (mat.current||0)+' '+mat.unit + (row.qty>0 ? ' → '+(+((mat.current||0)+row.qty).toFixed(4))+' '+mat.unit : '');
+}
+function infSave(){
+  const date = document.getElementById('inf-date').value||new Date().toISOString().split('T')[0];
+  const purpose = document.getElementById('inf-purpose').value||'Other';
+  const reference = document.getElementById('inf-ref').value.trim();
+  const note = document.getElementById('inf-note').value.trim();
+  const partyId = document.getElementById('inf-party-sel').value||null;
+  const partyName = partyId ? (CUSTOMERS.find(c=>c.id===partyId)?.name||'') : document.getElementById('inf-party').value.trim();
+  const isPC = purpose===PC_IN;
+
+  const rows = _infRows.filter(r=>r.matId && r.qty>0);
+  if(!rows.length){ invToast('Kam se kam 1 item complete karo!','err'); return; }
+  if(isPC){
+    if(!partyName){ invToast('Powder coating wale ka naam chuno ya likho!','err'); return; }
+    if(rows.some(r=>!r.rawId)){ invToast('Har item ka Raw item chuno (jo powder coating ko bheja tha)!','err'); return; }
+  }
+
+  const txnNote = '📥 Inward · '+purpose+(partyName?' · '+partyName:'')+(reference?' · Ref: '+reference:'')+(note?' · '+note:'');
+  const txnDate = date+new Date().toISOString().slice(10);
+  const map = INV_LS.get('pcmap',{});
+  const items = [];
+  rows.forEach(r=>{
+    const mat = STK.find(m=>m.id===r.matId);
+    if(!mat) return;
+    mat.current = +((mat.current||0)+r.qty).toFixed(4);
+    STXN.push({
+      id:Date.now()+'_'+Math.random().toString(36).slice(2,5),
+      itemId:mat.id, type:'in', qty:r.qty, note:txnNote, date:txnDate, source:'inward'
+    });
+    const it = {matId:mat.id, matName:mat.name, qty:r.qty, unit:mat.unit};
+    if(isPC){ it.rawId = r.rawId; it.rawName = STK.find(m=>m.id===r.rawId)?.name||''; map[mat.id] = r.rawId; }
+    items.push(it);
+  });
+  if(isPC) INV_LS.set('pcmap', map);
+  save('bf9_stk', STK);
+  save('bf9_stxn', STXN);
+  if(typeof renderStock==='function') renderStock();
+
+  const log = invGetInwLog();
+  log.unshift({id:invUID(), ts:Date.now(), docType:'inward_free', date, purpose, partyId, partyName, reference, note, items});
+  invSetInwLog(log);
+
+  invToast(`✅ Inward saved · ${items.length} item${items.length>1?'s':''} · stock plus ho gaya`);
+  invCheckLowBadge();
+  _purSetView('list');
+}
+function invDeleteInwFree(entryId){
+  const log = invGetInwLog();
+  const entry = log.find(l=>l.id==entryId);
+  if(!entry){ toast('Entry nahi mili!'); return; }
+  if(!confirm('Yeh inward entry delete karo?\n\n⚠️ Stock wapas minus ho jayega.')) return;
+  invSetInwLog(log.filter(l=>l.id!=entryId));
+  (entry.items||[]).forEach(it=>{
+    const mat = STK.find(m=>m.id===it.matId);
+    if(!mat) return;
+    mat.current = +Math.max(0,(mat.current||0)-(it.qty||0)).toFixed(4);
+    STXN.push({id:Date.now()+'_'+Math.random().toString(36).slice(2,5), itemId:mat.id, type:'out', qty:it.qty,
+      note:'↩ Inward delete (reversal)', date:new Date().toISOString(), source:'inward'});
+  });
+  save('bf9_stk', STK);
+  save('bf9_stxn', STXN);
+  invRenderPurLogMini();
+  if(typeof renderStock==='function') renderStock();
+  toast('🗑 Inward entry delete ho gayi — stock wapas minus hua!');
+}
+function _purOpenInwFreeForm(){ _purSetView('inwfree'); infInitForm(); }
+
+/* ── Powder Coating pe pending (bheja − wapas aaya) ── */
+function _pcPartyKey(l){ return l.partyId || String(l.partyName||'').toLowerCase().trim(); }
+function pcPending(){
+  const groups = {};
+  const g = (l,rid)=>{ const k=_pcPartyKey(l)+'|'+rid; return groups[k] || (groups[k]={party:l.partyName||'—', rawId:rid, sends:[], back:0}); };
+  invGetOutLog().filter(l=>l.purpose===PC_OUT).forEach(l=>{
+    (l.items||[]).forEach(i=>{ g(l,i.matId).sends.push({date:l.date||'', qty:+i.qty||0}); });
+  });
+  invGetInwLog().filter(l=>l.purpose===PC_IN).forEach(l=>{
+    (l.items||[]).forEach(i=>{ g(l,i.rawId||i.matId).back += (+i.qty||0); });
+  });
+  return Object.values(groups).map(x=>{
+    x.sends.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+    const sent = x.sends.reduce((s,y)=>s+y.qty,0);
+    let rem = x.back, since = null;
+    for(const sd of x.sends){ if(rem>=sd.qty){ rem-=sd.qty; } else { since = sd.date; break; } }
+    return {party:x.party, rawId:x.rawId, sent, back:x.back, pending:+(sent-x.back).toFixed(4), since};
+  }).filter(r=>Math.abs(r.pending)>0.0001);
+}
+function _pcPendingHtml(){
+  const rows = pcPending();
+  if(!rows.length) return '';
+  return `<div class="card" style="padding:12px;margin-bottom:12px;border:1.5px solid #fcd34d;background:#fffbeb">
+    <div style="font-size:12px;font-weight:900;color:#92400e;margin-bottom:6px">🎨 Powder Coating pe pending</div>
+    ${rows.map(r=>{
+      const m = STK.find(x=>x.id===r.rawId);
+      const days = r.since && r.pending>0 ? Math.max(0,Math.floor((Date.now()-new Date(r.since+'T00:00:00').getTime())/864e5)) : null;
+      return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 0;border-top:1px solid #fde68a;flex-wrap:wrap">
+        <div style="font-size:11px;font-weight:800;color:var(--navy2)">${esc(r.party)} · ${esc(m?m.name:'(item hata)')}</div>
+        <div style="font-size:10px;color:var(--muted);font-weight:700">bheja ${r.sent} · aaya ${r.back} ·
+          <b style="color:${r.pending>0?'var(--red-dark)':'#b45309'}">${r.pending>0?'baaki '+r.pending+' '+(m?m.unit:''):'zyada aaya '+(-r.pending)}</b>${days!==null?' · '+days+' din se':''}</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
 function _purOpenOutwardForm(){ _purSetView('outward'); outInitForm(); }
 
 function _purSetView(view){
-  ['list','form','debit','outward','trade','gst3b','analysis'].forEach(v=>{
+  ['list','form','debit','outward','inwfree','trade','gst3b','analysis'].forEach(v=>{
     const el = document.getElementById('pur-view-'+v);
     if(el) el.style.display = (v===view) ? '' : 'none';
   });
