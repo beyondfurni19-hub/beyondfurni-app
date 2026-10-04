@@ -3588,6 +3588,23 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 </div>
 
 <!-- ════ INVENTORY: SUPPLIER INVOICES (Purchase) ════ -->
+<style>
+.body:has(#s-inv-purchase.active){max-width:1100px}
+#s-inv-purchase .pur-rowbox{border:1.5px solid var(--border);border-radius:var(--r2);padding:8px 10px;margin-bottom:8px}
+#s-inv-purchase .pur-line{display:grid;gap:6px;align-items:end;grid-template-columns:minmax(150px,2.4fr) minmax(60px,1fr) minmax(70px,1fr) minmax(70px,1fr) minmax(70px,1fr) minmax(64px,.9fr) minmax(76px,1.1fr) auto auto}
+#s-inv-purchase .pur-line label{display:block;font-size:9px;font-weight:800;color:var(--muted);margin:0 0 2px;white-space:nowrap}
+#s-inv-purchase .pur-line .finp{padding:7px 8px;font-size:12px;margin:0;width:100%;min-width:0}
+#s-inv-purchase .pur-tot div{font-size:14px;font-weight:900;color:var(--navy2);padding:6px 0;white-space:nowrap;text-align:right}
+#s-inv-purchase .pur-tot label{text-align:right}
+#s-inv-purchase .pur-convbtn{padding:7px 8px;background:var(--yellow-bg);border:1px solid #fde68a;border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;cursor:pointer;color:var(--yellow-dark);white-space:nowrap}
+#s-inv-purchase .pur-del{width:28px;height:30px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800}
+#s-inv-purchase .pur-si{font-size:10px;color:var(--muted);font-weight:700;margin-top:4px}
+#s-inv-purchase .pur-si:empty{display:none}
+@media(max-width:760px){
+  #s-inv-purchase .pur-line{grid-template-columns:repeat(3,1fr)}
+  #s-inv-purchase .pur-line .pur-mat{grid-column:1/-1}
+}
+</style>
 <div class="sc" id="s-inv-purchase">
 
   <!-- ═══════════ LIST VIEW ═══════════ -->
@@ -19639,82 +19656,63 @@ function invPurRenderRows(){
   const conv = invGetConv();
 
   document.getElementById('inv-pur-rows').innerHTML = _purRows.map((row,i)=>`
-    <div id="purrow-${row.id}" style="border:1.5px solid var(--border);border-radius:var(--r2);padding:10px;margin-bottom:8px;background:${i%2===0?'#fafbff':'#fff'}">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div style="font-size:11px;font-weight:800;color:var(--muted)">Item ${i+1}</div>
-        <button onclick="invPurRemoveRow('${row.id}')" style="width:24px;height:24px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800">✕</button>
-      </div>
-
-      <!-- Material select -->
-      <div class="fg" style="margin-bottom:8px">
-        <select class="finp" id="purmat-${row.id}" onchange="invPurOnMatChange('${row.id}')" style="font-size:12px">
-          ${matOptions.replace(`value="${row.matId}"`,`value="${row.matId}" selected`)}
-        </select>
-      </div>
-
-      <!-- Qty + Rate -->
-      <div class="g2" style="margin-bottom:6px">
-        <div class="fg" style="margin:0">
-          <label style="font-size:10px">Qty <span id="purunit-${row.id}" style="color:var(--orange);font-size:10px"></span></label>
+    <div id="purrow-${row.id}" class="pur-rowbox" style="background:${i%2===0?'#fafbff':'#fff'}">
+      <div class="pur-line">
+        <div class="pur-mat">
+          <label>Material #${i+1}</label>
+          <select class="finp" id="purmat-${row.id}" onchange="invPurOnMatChange('${row.id}')">
+            ${matOptions.replace(`value="${row.matId}"`,`value="${row.matId}" selected`)}
+          </select>
+        </div>
+        <div>
+          <label>Qty <span id="purunit-${row.id}" style="color:var(--orange)"></span></label>
           <input class="finp" type="number" id="purqty-${row.id}" value="${row.qty>0?row.qty:''}" min="0" step="any" placeholder="0"
-            oninput="invPurRowCalc('${row.id}')" style="font-size:13px">
+            oninput="invPurRowCalc('${row.id}')">
         </div>
-        <div class="fg" style="margin:0">
-          <label style="font-size:10px">Rate (₹/unit)</label>
+        <div>
+          <label>Rate ₹/unit</label>
           <input class="finp" type="number" id="purrate-${row.id}" value="${row.rate>0?row.rate:''}" min="0" step="any" placeholder="0"
-            oninput="invPurRowCalc('${row.id}')" style="font-size:13px">
+            oninput="invPurRowCalc('${row.id}')">
         </div>
-      </div>
-
-      <!-- HSN/SAC + Discount -->
-      <div class="g2" style="margin-bottom:6px">
-        <div class="fg" style="margin:0">
-          <label style="font-size:10px">HSN/SAC</label>
-          <input class="finp" type="text" id="purhsn-${row.id}" value="${row.hsn||''}" placeholder="e.g. 9403"
-            oninput="invPurRowCalc('${row.id}')" style="font-size:12px">
+        <div>
+          <label>HSN/SAC</label>
+          <input class="finp" type="text" id="purhsn-${row.id}" value="${row.hsn||''}" placeholder="9403"
+            oninput="invPurRowCalc('${row.id}')">
         </div>
-        <div class="fg" style="margin:0">
-          <label style="font-size:10px">Discount (₹)</label>
+        <div>
+          <label>Discount ₹</label>
           <input class="finp" type="number" id="purdisc-${row.id}" value="${row.discAmt>0?row.discAmt:''}" min="0" step="any" placeholder="0"
-            oninput="invPurRowCalc('${row.id}')" style="font-size:13px">
+            oninput="invPurRowCalc('${row.id}')">
         </div>
+        <div>
+          <label>GST %</label>
+          <select class="finp" id="purgst-${row.id}" onchange="invPurRowCalc('${row.id}')">
+            ${_az([0,5,12,18,28]).map(g=>`<option value="${g}" ${((row.gstPct||0)==g)?'selected':''}>${g}%</option>`).join('')}
+          </select>
+        </div>
+        <div class="pur-tot">
+          <label>Total</label>
+          <div id="purrowtotal-${row.id}">₹0</div>
+        </div>
+        <button type="button" class="pur-convbtn" title="Unit Conversion" onclick="invPurToggleConv('${row.id}')">🔄 <span id="purconvtoggle-${row.id}">${row.convRatio>0?'✓ ON':'+ Set'}</span></button>
+        <button type="button" class="pur-del" title="Item hatao" onclick="invPurRemoveRow('${row.id}')">✕</button>
       </div>
 
-      <!-- GST% -->
-      <div class="fg" style="margin-bottom:6px">
-        <label style="font-size:10px">GST %</label>
-        <select class="finp" id="purgst-${row.id}" onchange="invPurRowCalc('${row.id}')" style="font-size:12px">
-          ${_az([0,5,12,18,28]).map(g=>`<option value="${g}" ${((row.gstPct||0)==g)?'selected':''}>${g}%</option>`).join('')}
-        </select>
-      </div>
-
-      <!-- Conversion — always toggleable -->
-      <div style="margin-bottom:6px">
-        <button type="button" onclick="invPurToggleConv('${row.id}')"
-          style="padding:4px 10px;background:var(--yellow-bg);border:1px solid #fde68a;border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;cursor:pointer;color:var(--yellow-dark)">
-          🔄 Unit Conversion <span id="purconvtoggle-${row.id}">${row.convRatio>0?'✓ ON':'+ Set'}</span>
-        </button>
-      </div>
-      <div id="purconv-${row.id}" style="display:${row.convRatio>0?'block':'none'};background:var(--yellow-bg);border:1px solid #fde68a;border-radius:var(--r3);padding:8px 10px;margin-bottom:6px">
-        <div style="font-size:10px;color:var(--yellow-dark);margin-bottom:5px;font-weight:800">
-          1 <span id="purconvfrom-${row.id}" style="color:var(--orange)">${row.matId?STK.find(m=>m.id===row.matId)?.unit||'unit':'unit'}</span> =
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
+      <div id="purconv-${row.id}" style="display:${row.convRatio>0?'block':'none'};background:var(--yellow-bg);border:1px solid #fde68a;border-radius:var(--r3);padding:8px 10px;margin-top:6px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div style="font-size:10px;color:var(--yellow-dark);font-weight:800">
+            1 <span id="purconvfrom-${row.id}" style="color:var(--orange)">${row.matId?STK.find(m=>m.id===row.matId)?.unit||'unit':'unit'}</span> =
+          </div>
           <input type="number" id="purconvratio-${row.id}" value="${row.convRatio||''}" min="0" step="any" placeholder="e.g. 41"
             style="width:80px;padding:5px 8px;border:1.5px solid #fde68a;border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;outline:none;background:#fff"
             oninput="invPurRowCalc('${row.id}')">
           <input type="text" id="purconvto-${row.id}" value="${row.convToUnit||'pcs'}"
             style="width:60px;padding:5px 8px;border:1.5px solid #fde68a;border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;outline:none;background:#fff"
             placeholder="unit" oninput="invPurRowCalc('${row.id}')">
+          <div id="purconvpreview-${row.id}" style="font-size:10px;color:var(--green-dark);font-weight:800"></div>
         </div>
-        <div id="purconvpreview-${row.id}" style="font-size:10px;color:var(--green-dark);font-weight:800;margin-top:4px"></div>
       </div>
-
-      <!-- Row total -->
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div id="purstockinfo-${row.id}" style="font-size:10px;color:var(--muted);font-weight:700"></div>
-        <div style="font-size:14px;font-weight:900;color:var(--navy2)" id="purrowtotal-${row.id}">₹0</div>
-      </div>
+      <div id="purstockinfo-${row.id}" class="pur-si"></div>
     </div>
   `).join('');
 
@@ -21474,3 +21472,4 @@ authBootstrap();
 
 </body>
 </html>
+      
