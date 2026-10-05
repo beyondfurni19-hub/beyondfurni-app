@@ -1938,6 +1938,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
     <div id="stk-chip-crit" onclick="stkFilter('crit')" style="padding:6px 13px;background:var(--red-bg);color:var(--red-dark);border:1.5px solid #fca5a5;border-radius:20px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0">🚨 Khatam <span id="stk-cnt-crit">0</span></div>
     <div id="stk-chip-low" onclick="stkFilter('low')" style="padding:6px 13px;background:var(--yellow-bg);color:var(--yellow-dark);border:1.5px solid #fde68a;border-radius:20px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0">⚠️ Low <span id="stk-cnt-low">0</span></div>
     <div id="stk-chip-ok" onclick="stkFilter('ok')" style="padding:6px 13px;background:var(--green-bg);color:var(--green-dark);border:1.5px solid #6ee7b7;border-radius:20px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0">✅ OK <span id="stk-cnt-ok">0</span></div>
+    <div id="stk-chip-off" onclick="stkFilter('off')" style="padding:6px 13px;background:#f1f5f9;color:#64748b;border:1.5px solid #cbd5e1;border-radius:20px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0">💤 Band <span id="stk-cnt-off">0</span></div>
   </div>
 
   <!-- Category Tabs (like ERP inventory view) -->
@@ -4737,6 +4738,9 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
       <label>Order Qty</label>
       <input class="finp" type="number" id="stk-em-orderqty" min="0">
     </div>
+    <label style="display:flex;align-items:center;gap:8px;padding:9px 10px;margin-bottom:10px;background:#f1f5f9;border:1.5px solid #cbd5e1;border-radius:10px;font-size:12px;font-weight:800;color:#475569;cursor:pointer">
+      <input type="checkbox" id="stk-em-inactive" style="width:16px;height:16px"> 💤 Ab use me nahi hai — low stock / reorder alert band karo
+    </label>
 
     <!-- Unit Conversion -->
     <div style="background:var(--yellow-bg);border:1px solid #fde68a;border-radius:var(--r2);padding:10px 12px;margin-bottom:10px">
@@ -6924,13 +6928,20 @@ function saveEOD(){
 
 /* ═══════════════ STOCK ═══════════════ */
 let stkItem=null;
-function getStockStatus(it){ if(it.current<=0) return 'crit'; if(it.current<=it.reorder) return 'low'; return 'ok'; }
+function getStockStatus(it){ if(it.inactive) return 'off'; if(it.current<=0) return 'crit'; if(it.current<=it.reorder) return 'low'; return 'ok'; }
 function getStockAlerts(){ return{ crit:STK.filter(i=>getStockStatus(i)==='crit'), low:STK.filter(i=>getStockStatus(i)==='low') }; }
 
 let _stkFilter = 'all';
 let _stkCatTab = '';      // '' = All categories (tab)
 let _stkPage = 1;
 let _stkPageSize = 10;
+function stkToggleInactive(id){
+  const it=STK.find(x=>x.id===id); if(!it) return;
+  it.inactive=!it.inactive;
+  save('bf9_stk',STK);
+  renderStock();
+  toast(it.inactive?'💤 "'+it.name+'" band — ab low stock alert nahi aayega':'▶ "'+it.name+'" wapas chalu');
+}
 function stkFilter(f){
   _stkFilter=f;
   _stkPage=1;
@@ -6987,6 +6998,7 @@ function renderStock(){
   setTxt('stk-cnt-crit',crit.length);
   setTxt('stk-cnt-low',low.length);
   setTxt('stk-cnt-ok',ok.length);
+  setTxt('stk-cnt-off',STK.filter(i=>i.inactive).length);
 
   // Reorder badge (crit + low)
   const reorderBadge=document.getElementById('stk-reorder-badge');
@@ -7018,6 +7030,7 @@ function renderStock(){
     if(_stkFilter==='crit' && getStockStatus(it)!=='crit') return false;
     if(_stkFilter==='low'  && getStockStatus(it)!=='low')  return false;
     if(_stkFilter==='ok'   && getStockStatus(it)!=='ok')   return false;
+    if(_stkFilter==='off'  && !it.inactive) return false;
     if(_stkCatTab && it.cat!==_stkCatTab) return false;
     if(subcatF && (it.subcat||'')!==subcatF) return false;
     if(impF && (it.importance||'Normal')!==impF) return false;
@@ -7050,16 +7063,16 @@ function renderStock(){
   const impColor={High:'#b91c1c',Normal:'#1d4ed8',Low:'#64748b'};
   el.innerHTML=pageItems.map((it,i)=>{
     const st=getStockStatus(it);
-    const col=st==='crit'?'var(--red)':st==='low'?'#d97706':'var(--green-dark)';
+    const col=st==='crit'?'var(--red)':st==='low'?'#d97706':st==='off'?'#94a3b8':'var(--green-dark)';
     const bg=i%2===0?'#fff':'#fafbff';
     const purUnit=it.purUnit||it.unit;
     const hasConv=it.convRatio>1||purUnit!==it.unit;
     const val=(it.current*(it.rate||0));
     const imp=it.importance||'Normal';
-    return `<tr style="background:${bg};border-bottom:1px solid var(--border)">
+    return `<tr style="background:${bg};border-bottom:1px solid var(--border);${it.inactive?'opacity:.55':''}">
       <td style="padding:8px 8px;text-align:center;font-size:16px">${it.ico||'📦'}</td>
       <td style="padding:8px 8px">
-        <div style="font-size:12px;font-weight:800;color:var(--navy2)">${esc(it.name)}</div>
+        <div style="font-size:12px;font-weight:800;color:var(--navy2)">${esc(it.name)}${it.inactive?' <span style="font-size:9px;background:#e2e8f0;color:#64748b;padding:1px 6px;border-radius:8px;font-weight:800">💤 Band</span>':''}</div>
         ${hasConv?`<div style="font-size:9px;color:var(--muted);font-weight:700">${purUnit}→${it.unit}(×${it.convRatio})</div>`:''}
       </td>
       <td style="padding:8px 8px;font-size:11px;color:var(--muted);font-weight:700">${esc(it.code||'—')}</td>
@@ -7076,6 +7089,7 @@ function renderStock(){
           <button onclick="openStk('${it.id}','in')" title="Aaya" style="width:24px;height:24px;background:var(--green-bg);border:1px solid #6ee7b7;border-radius:6px;cursor:pointer;font-size:11px">+</button>
           <button onclick="openStk('${it.id}','out')" title="Gaya" style="width:24px;height:24px;background:var(--red-bg);border:1px solid #fca5a5;border-radius:6px;cursor:pointer;font-size:11px">−</button>
           ${it.isMfg?`<button onclick="openMfgModal('${it.id}')" title="Manufacture" style="width:24px;height:24px;background:#dbeafe;border:1px solid #93c5fd;border-radius:6px;cursor:pointer;font-size:11px">🏭</button>`:''}
+          <button onclick="stkToggleInactive('${it.id}')" title="${it.inactive?'Wapas chalu karo':'Use me nahi — low stock alert band'}" style="width:24px;height:24px;background:#f1f5f9;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:11px">${it.inactive?'▶':'💤'}</button>
           <button onclick="openStkEditModal('${it.id}')" title="Edit" style="width:24px;height:24px;background:#f1f5f9;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:11px">✎</button>
         </div>
       </td>
@@ -7230,6 +7244,7 @@ function openStkEditModal(id){
   document.getElementById('stk-em-reorder').value=it.reorder||0;
   document.getElementById('stk-em-leadtime').value=it.leadTime||0;
   document.getElementById('stk-em-orderqty').value=it.orderQty||0;
+  document.getElementById('stk-em-inactive').checked=!!it.inactive;
   document.getElementById('stk-em-purunit').innerHTML=_az(units).map(u=>`<option ${purUnit===u?'selected':''}>${u}</option>`).join('');
   document.getElementById('stk-em-stockunit').innerHTML=_az(units).map(u=>`<option ${it.unit===u?'selected':''}>${u}</option>`).join('');
   document.getElementById('stk-em-convratio').value=it.convRatio||1;
@@ -7268,6 +7283,7 @@ function saveStkEditModal(){
   STK[idx].reorder=parseFloat(document.getElementById('stk-em-reorder').value)||0;
   STK[idx].leadTime=parseFloat(document.getElementById('stk-em-leadtime').value)||0;
   STK[idx].orderQty=parseFloat(document.getElementById('stk-em-orderqty').value)||0;
+  STK[idx].inactive=!!document.getElementById('stk-em-inactive').checked;
   STK[idx].purUnit=document.getElementById('stk-em-purunit').value;
   STK[idx].unit=document.getElementById('stk-em-stockunit').value;
   STK[idx].convRatio=parseFloat(document.getElementById('stk-em-convratio').value)||1;
@@ -7567,7 +7583,7 @@ function saveStock(){ save('bf9_stk',STK); toast('Stock save ho gaya! ✓'); }
 /* ═══════════════ REORDER SUGGESTIONS + AUTO PO ═══════════════ */
 let _reorderSelected = new Set();
 function openReorderPanel(){
-  const list=STK.filter(i=>getStockStatus(i)!=='ok');
+  const list=STK.filter(i=>{const q=getStockStatus(i);return q==='crit'||q==='low';});
   _reorderSelected = new Set(list.map(i=>i.id)); // default all selected
   renderReorderList();
   document.getElementById('stk-reorder-modal')?.classList.add('show');
@@ -7585,7 +7601,7 @@ function reorderToggleItem(id){
 function renderReorderList(){
   const wrap=document.getElementById('stk-reorder-list');
   if(!wrap) return;
-  const list=STK.filter(i=>getStockStatus(i)!=='ok').sort((a,b)=>getStockStatus(a)==='crit'?-1:1);
+  const list=STK.filter(i=>{const q=getStockStatus(i);return q==='crit'||q==='low';}).sort((a,b)=>getStockStatus(a)==='crit'?-1:1);
   if(!list.length){
     wrap.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;font-weight:700">🎉 Sab stock theek hai — kuch bhi reorder nahi karna!</div>';
     document.getElementById('stk-reorder-total').textContent='0 items';
@@ -13479,7 +13495,7 @@ function renderDashboard(){
   // ── Module cards ── (grid removed from dashboard UI; stats below still used by Alerts)
   const activeBatches = BATCHES.filter(b=>!b.deleted&&!btIsDone(b));
   const delayedBatches= activeBatches.filter(b=>btStatus(b)==='delayed');
-  const lowStock      = STK.filter(s=>getStockStatus(s)!=='ok');
+  const lowStock      = STK.filter(s=>{const q=getStockStatus(s);return q==='crit'||q==='low';});
   const unpaidInv     = INVOICES.filter(i=>i.status==='unpaid');
   const totalOutstanding = unpaidInv.reduce((s,i)=>s+i.grandTotal,0);
   const hasPlan       = !!curPlan;
@@ -16959,7 +16975,7 @@ function _anRenderStock(months){
   });
 
   // Low stock items
-  const lowItems = stk.filter(m=>m.reorder>0&&m.current<=m.reorder).sort((a,b)=>a.current-b.current).slice(0,5);
+  const lowItems = stk.filter(m=>!m.inactive&&m.reorder>0&&m.current<=m.reorder).sort((a,b)=>a.current-b.current).slice(0,5);
   // High value items
   const highVal = [...stk].sort((a,b)=>(b.current*(b.rate||0))-(a.current*(a.rate||0))).slice(0,5);
   const totalVal = stk.reduce((s,m)=>s+(m.current*(m.rate||0)),0);
@@ -20062,6 +20078,109 @@ function invSavePurchase(keepOpen){
     _purSetView('list');
   }
 }
+
+/* ═══════ CHALLAN (Inward / Outward) — Party copy + Office copy ═══════ */
+function _chalNext(kind){
+  const seq = INV_LS.get('challanSeq',{out:0,in:0});
+  seq[kind] = (seq[kind]||0)+1;
+  INV_LS.set('challanSeq', seq);
+  return (kind==='out'?'OC-':'IC-')+String(seq[kind]).padStart(4,'0');
+}
+function _chalFind(k, id){
+  // returns {entry, setLog, kind}
+  if(k==='out'){ const L=invGetOutLog(); return {entry:L.find(l=>l.id==id), save:()=>invSetOutLog(L), kind:'out'}; }
+  if(k==='inw'){ const L=invGetInwLog(); return {entry:L.find(l=>l.id==id), save:()=>invSetInwLog(L), kind:'in'}; }
+  const L=invGetPurLog(); return {entry:L.find(l=>(l.id||l.ts)==id), save:()=>invSetPurLog(L), kind:(k==='debit'?'out':'in')};
+}
+function challanPrint(k, id){
+  const f = _chalFind(k,id);
+  const e = f.entry;
+  if(!e){ toast('Entry nahi mili!'); return; }
+  if(!e.challanNo){ e.challanNo = _chalNext(f.kind); f.save(); }
+  const co = _invSettings||{};
+  const isOut = f.kind==='out';
+  const partyName = e.partyName || e.supplierName || e.supplier || '';
+  const cust = (e.partyId||e.supplierId) ? CUSTOMERS.find(c=>c.id===(e.partyId||e.supplierId)) : CUSTOMERS.find(c=>c.name&&c.name.toLowerCase()===partyName.toLowerCase());
+  const items = (e.items && e.items.length ? e.items : [{matName:e.matName, qty:e.qty, unit:e.punit}]).map(i=>({
+    name:i.matName||'', qty:(i.stockAdded!=null && k==='in')?i.stockAdded:i.qty, unit:(k==='in'? (i.stockUnit||i.punit) : (i.unit||i.punit))||'', rem:i.rawName?('← '+i.rawName):''
+  }));
+  const purpose = e.purpose || (k==='debit'?'Supplier Return (Debit Note)':(k==='in'?'Purchase Inward':''));
+  const ref = e.reference || e.billno || '';
+  const dt = e.date ? new Date(e.date+(String(e.date).length<=10?'T00:00:00':'')) : new Date(e.ts||Date.now());
+  const dateStr = isNaN(dt)?'':dt.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+  const title = isOut ? 'DELIVERY CHALLAN' : 'RECEIPT CHALLAN';
+  const sub = isOut ? 'Maal bheja gaya (Outward)' : 'Maal prapt hua (Inward)';
+  const totQty = items.reduce((s,i)=>s+(parseFloat(i.qty)||0),0);
+  const half = items.length<=7;
+  const copy = (label)=>`
+    <div class="copy ${half?'half':'full'}">
+      <div class="tag">${label}</div>
+      <div class="hd">
+        <div>
+          <div class="co">${esc(co.name||'BeyondFurni')}</div>
+          <div class="sm">${esc(co.addr1||'')}${co.addr2?', '+esc(co.addr2):''}</div>
+          <div class="sm">${co.phone?'Ph: '+esc(co.phone):''}${co.gstin?' &nbsp;|&nbsp; GSTIN: '+esc(co.gstin):''}</div>
+        </div>
+        <div class="tt"><div class="t1">${title}</div><div class="sm">${sub}</div></div>
+      </div>
+      <div class="meta">
+        <div class="box"><div class="lb">${isOut?'Party (Receiver)':'Party (Sender)'}</div>
+          <div class="pn">${esc(partyName||'—')}</div>
+          ${cust&&cust.address?`<div class="sm">${esc(cust.address)}</div>`:''}
+          ${cust&&cust.phone?`<div class="sm">Ph: ${esc(cust.phone)}</div>`:''}
+          ${cust&&cust.gstin?`<div class="sm">GSTIN: ${esc(cust.gstin)}</div>`:''}
+        </div>
+        <div class="box r">
+          <div><span class="lb">Challan No:</span> <b>${esc(e.challanNo)}</b></div>
+          <div><span class="lb">Date:</span> <b>${dateStr}</b></div>
+          ${purpose?`<div><span class="lb">Purpose:</span> <b>${esc(purpose)}</b></div>`:''}
+          ${ref?`<div><span class="lb">Ref:</span> <b>${esc(ref)}</b></div>`:''}
+        </div>
+      </div>
+      <table><thead><tr><th style="width:36px">#</th><th>Item / Description</th><th style="width:80px;text-align:right">Qty</th><th style="width:60px">Unit</th><th style="width:130px">Remarks</th></tr></thead>
+      <tbody>${items.map((i,n)=>`<tr><td>${n+1}</td><td>${esc(i.name)}</td><td style="text-align:right;font-weight:800">${i.qty}</td><td>${esc(i.unit)}</td><td>${esc(i.rem)}</td></tr>`).join('')}
+      <tr class="tot"><td></td><td style="text-align:right">Total Qty</td><td style="text-align:right">${+totQty.toFixed(3)}</td><td></td><td></td></tr></tbody></table>
+      ${e.note?`<div class="sm" style="margin-top:4px"><b>Note:</b> ${esc(e.note)}</div>`:''}
+      <div class="sig"><div>Prepared by<br><span class="sm">(${esc(co.name||'BeyondFurni')})</span></div><div>${isOut?'Receiver':'Sender / Driver'} Signature<br><span class="sm">(Name &amp; Sign)</span></div></div>
+      <div class="sm" style="text-align:center;margin-top:3px;color:#888">Yeh challan sirf maal ke aavagaman ka record hai — tax invoice nahi hai.</div>
+    </div>`;
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(e.challanNo)}</title>
+<style>
+@page{size:A4;margin:8mm}
+*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:0;font-size:12px}
+.copy{border:1.5px solid #222;padding:9px 12px;position:relative;margin-bottom:0}
+.copy.half{height:133mm;overflow:hidden}
+.copy.full{page-break-after:always;min-height:270mm}
+.sep{border-top:1.5px dashed #888;margin:3mm 0;text-align:center;font-size:9px;color:#888;line-height:0}
+.sep span{background:#fff;padding:0 6px}
+.tag{position:absolute;top:0;right:0;background:#222;color:#fff;font-size:9px;font-weight:800;padding:2px 9px;letter-spacing:.5px}
+.hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1.5px solid #222;padding:8px 0 6px;margin-top:4px}
+.co{font-size:19px;font-weight:900}.sm{font-size:10px;color:#444}
+.tt{text-align:right}.t1{font-size:16px;font-weight:900;letter-spacing:.5px}
+.meta{display:flex;gap:8px;margin:7px 0}.box{flex:1;border:1px solid #999;padding:5px 8px;line-height:1.5}.box.r{flex:.8}
+.lb{font-size:9px;color:#666;font-weight:700;text-transform:uppercase}.pn{font-size:14px;font-weight:900}
+table{width:100%;border-collapse:collapse}th,td{border:1px solid #777;padding:4px 6px;text-align:left;font-size:11px}
+th{background:#eee}.tot td{font-weight:900;background:#f6f6f6}
+.sig{display:flex;justify-content:space-between;margin-top:22px;font-size:11px;font-weight:700}
+.sig>div{border-top:1px solid #222;padding-top:3px;width:42%;text-align:center}
+@media print{.noprint{display:none}}
+.noprint{padding:8px;background:#fffbe6;font-size:12px;text-align:center}
+</style></head><body>
+<div class="noprint">Print dialog me <b>Save as PDF</b> ya printer chuno. Ek page par 2 copy: <b>Party Copy</b> (upar) + <b>Office Copy</b> (neeche) — beech se kaat lo.</div>
+${copy('ORIGINAL — PARTY COPY')}
+${half?'<div class="sep"><span>✂ yahan se kaato</span></div>':''}
+${copy('DUPLICATE — OFFICE COPY')}
+<script>window.onload=function(){setTimeout(function(){window.print();},300);};<\/script>
+</body></html>`;
+  const w = window.open('','_blank','width=900,height=800');
+  if(w){ w.document.write(html); w.document.close(); }
+  else toast('⚠️ Popup blocked! Browser me popup allow karo.');
+  invRenderPurLogMini();
+}
+function _chalBtn(k,id){
+  return `<button onclick="challanPrint('${k}','${id}')" style="height:24px;padding:0 8px;border:1.5px solid var(--navy2);background:#fff;color:var(--navy2);border-radius:6px;cursor:pointer;font-size:10px;font-weight:800;font-family:'Nunito',sans-serif" title="Challan print (Party + Office copy)">🖨️ Challan</button>`;
+}
+
 function invRenderPurLogMini(){
   const el = document.getElementById('inv-pur-log-mini');
   if(!el) return;
@@ -20088,7 +20207,7 @@ function invRenderPurLogMini(){
       <div class="inv-log-row">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
           <div style="font-size:11px;font-weight:800;color:var(--navy2)">📥 ${esc(l.partyName||l.purpose||'Inward')}</div>
-          <button onclick="invDeleteInwFree('${l.id}')" style="width:24px;height:24px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800" title="Delete">🗑</button>
+          <div style="display:flex;gap:6px;align-items:center">${l.challanNo?`<span style="font-size:9px;font-weight:800;color:var(--muted)">${l.challanNo}</span>`:''}${_chalBtn('inw',l.id)}<button onclick="invDeleteInwFree('${l.id}')" style="width:24px;height:24px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800" title="Delete">🗑</button></div>
         </div>
         <div style="font-size:10px;color:var(--muted);margin-bottom:5px">${dateStr}${l.reference?' · '+esc(l.reference):''} <span style="background:#eff6ff;color:#1d4ed8;padding:1px 5px;border-radius:6px;font-weight:800">Inward · ${esc(l.purpose||'')}</span>${l.note?' · '+esc(l.note):''}</div>
         ${(l.items||[]).map(i=>`
@@ -20103,7 +20222,7 @@ function invRenderPurLogMini(){
       <div class="inv-log-row">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
           <div style="font-size:11px;font-weight:800;color:var(--navy2)">📤 ${esc(l.partyName||l.purpose||'Outward')}</div>
-          <button onclick="invDeleteOutward('${l.id}')" style="width:24px;height:24px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800" title="Delete">🗑</button>
+          <div style="display:flex;gap:6px;align-items:center">${l.challanNo?`<span style="font-size:9px;font-weight:800;color:var(--muted)">${l.challanNo}</span>`:''}${_chalBtn('out',l.id)}<button onclick="invDeleteOutward('${l.id}')" style="width:24px;height:24px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800" title="Delete">🗑</button></div>
         </div>
         <div style="font-size:10px;color:var(--muted);margin-bottom:5px">${dateStr}${l.reference?' · '+esc(l.reference):''} <span style="background:#fef2f2;color:var(--red-dark);padding:1px 5px;border-radius:6px;font-weight:800">Outward · ${esc(l.purpose||'')}</span>${l.note?' · '+esc(l.note):''}</div>
         ${(l.items||[]).map(i=>`
@@ -20122,7 +20241,7 @@ function invRenderPurLogMini(){
           <div style="font-size:11px;font-weight:800;color:var(--navy2)">${isDebit?'↩️ ':'📥 '}${l.supplierName||l.supplier||'—'}</div>
           <div style="display:flex;align-items:center;gap:7px">
             <div style="font-family:'Bebas Neue';font-size:16px;color:${isDebit?'var(--red-dark)':'var(--green-dark)'}">${isDebit?'-':''}₹${grand.toLocaleString('en-IN')}</div>
-            <button onclick="invDeletePurchase('${l.id||l.ts}')" style="width:24px;height:24px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800" title="Delete">🗑</button>
+            ${_chalBtn(isDebit?'debit':'in',(l.id||l.ts))}<button onclick="invDeletePurchase('${l.id||l.ts}')" style="width:24px;height:24px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800" title="Delete">🗑</button>
           </div>
         </div>
         <div style="font-size:10px;color:var(--muted);margin-bottom:5px">${dateStr}${l.billno?' · '+l.billno:''} ${isDebit?'<span style="background:#fef2f2;color:var(--red-dark);padding:1px 5px;border-radius:6px;font-weight:800">Outward · Supplier Return</span>':'<span style="background:#eff6ff;color:#1d4ed8;padding:1px 5px;border-radius:6px;font-weight:800">Inward</span>'}${l.supplierId?' <span style="background:#e6fff3;color:var(--green-dark);padding:1px 5px;border-radius:6px;font-weight:800">✓ Ledger</span>':''}</div>
