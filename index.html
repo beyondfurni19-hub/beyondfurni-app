@@ -2831,8 +2831,17 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
   <!-- Month Summary Cards -->
   <div id="db-summary-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px"></div>
 
+  <style>
+  .db-cols{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:12px;align-items:start}
+  .db-cols>.db-side{order:2;position:sticky;top:8px;max-height:calc(100vh - 20px);overflow-y:auto}
+  .db-cols>.db-main{order:1;min-width:0}
+  .db-cols .card{margin-bottom:0!important}
+  @media(max-width:900px){.db-cols{grid-template-columns:1fr}.db-cols>.db-side{order:0;position:static;max-height:none;margin-bottom:10px}}
+  .body:has(#s-daybook.active){max-width:1250px}
+  </style>
+  <div class="db-cols">
   <!-- Category Breakdown -->
-  <div class="card" style="margin-bottom:10px" id="db-cat-card">
+  <div class="card db-side" id="db-cat-card">
     <div class="card-hdr">
       <div class="card-title">📊 Category Breakdown</div>
       <div id="db-month-label" style="font-size:11px;color:var(--muted);font-weight:700"></div>
@@ -2841,12 +2850,13 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
   </div>
 
   <!-- Entries List -->
-  <div class="card">
+  <div class="card db-main">
     <div class="card-hdr">
       <div class="card-title">📋 All Entries</div>
       <div id="db-entries-count" style="font-size:11px;color:var(--muted);font-weight:700"></div>
     </div>
     <div id="db-entries-list"></div>
+  </div>
   </div>
 </div>
 
