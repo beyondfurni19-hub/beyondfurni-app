@@ -3639,6 +3639,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
       <div class="card-title" style="font-size:14px;margin:0">🔁 Inward / Outward</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button onclick="_purSetView('ioreport')" style="padding:6px 10px;background:var(--orange);color:#fff;border:none;border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;cursor:pointer">📑 Monthly / Party Report</button>
         <button onclick="_purSetView('trade')" style="padding:6px 10px;background:var(--navy2);color:#fff;border:none;border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;cursor:pointer">📊 Trade Report</button>
         <button onclick="_purSetView('gst3b')" style="padding:6px 10px;background:var(--navy2);color:#fff;border:none;border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;cursor:pointer">🧾 GST-3B</button>
         <button onclick="_purSetView('analysis')" style="padding:6px 10px;background:var(--navy2);color:#fff;border:none;border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;cursor:pointer">📈 Purchase Analysis</button>
@@ -3891,6 +3892,27 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
     <button class="btn-save" style="width:100%;text-align:center;justify-content:center;font-size:15px;background:var(--red-dark)" onclick="outSave()">
       ✅ Save — Stock Minus Karo
     </button>
+  </div>
+
+  <!-- ═══════════ MONTHLY / PARTY REPORT (Inward + Outward) ═══════════ -->
+  <div id="pur-view-ioreport" style="display:none">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <button onclick="_purSetView('list')" style="width:30px;height:30px;border:none;background:#f0f4ff;color:var(--navy2);border-radius:8px;cursor:pointer;font-size:14px;font-weight:800">←</button>
+      <div class="card-title" style="font-size:14px;margin:0;flex:1">📑 Monthly / Party Report — Inward &amp; Outward</div>
+      <button onclick="ioRepPrint()" style="padding:8px 14px;background:var(--navy2);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🖨️ Print / PDF</button>
+    </div>
+    <div class="card" style="margin-bottom:10px">
+      <div class="g2">
+        <div class="fg" style="margin:0"><label>Mahina <span style="color:var(--muted);font-size:9px">(khali = sab)</span></label><input class="finp" type="month" id="iorep-month" onchange="ioRepRender()"></div>
+        <div class="fg" style="margin:0"><label>Type</label>
+          <select class="finp" id="iorep-type" onchange="ioRepRender()">
+            <option value="">Inward + Outward</option><option value="in">Sirf Inward</option><option value="out">Sirf Outward</option>
+          </select></div>
+      </div>
+      <div class="fg" style="margin:8px 0 0"><label>Party</label>
+        <select class="finp" id="iorep-party" onchange="ioRepRender()"><option value="">Sab Party</option></select></div>
+    </div>
+    <div id="iorep-body"></div>
   </div>
 
   <!-- ═══════════ TRADE REPORT ═══════════ -->
@@ -20081,6 +20103,123 @@ function invSavePurchase(keepOpen){
   }
 }
 
+
+/* ═══════ MONTHLY / PARTY REPORT (Inward + Outward) ═══════ */
+function ioRepCollect(){
+  const rows = [];
+  const push = (kind, l, party, purpose, ref, items)=>{
+    (items||[]).forEach(i=>rows.push({
+      kind, date:l.date||(l.ts?new Date(l.ts).toISOString().slice(0,10):''), party:(party||'').trim()||'(Party nahi chuni)',
+      challan:l.challanNo||'', purpose, ref:ref||'', item:i.name, rem:i.rem||'', qty:+i.qty||0, unit:i.unit||'', amt:i.amt||0
+    }));
+  };
+  invGetPurLog().forEach(l=>{
+    const isDeb = l.docType==='debit';
+    push(isDeb?'out':'in', l, l.supplierName||l.supplier, isDeb?'Supplier Return':'Purchase', l.billno||l.reference,
+      (l.items||[{matName:l.matName,qty:l.qty,punit:l.punit}]).map(i=>({name:i.matName, qty:(i.stockAdded!=null?i.stockAdded:i.qty), unit:i.stockUnit||i.punit, amt:i.total||0})));
+  });
+  invGetOutLog().forEach(l=>push('out', l, l.partyName, l.purpose, l.reference, (l.items||[]).map(i=>({name:i.matName, qty:i.qty, unit:i.unit}))));
+  invGetInwLog().forEach(l=>push('in', l, l.partyName, l.purpose, l.reference, (l.items||[]).map(i=>({name:i.matName, rem:i.rawName?'← '+i.rawName:'', qty:i.qty, unit:i.unit}))));
+  return rows;
+}
+function ioRepInit(){
+  const m = document.getElementById('iorep-month');
+  if(m && !m.dataset.init){ m.value = new Date().toISOString().slice(0,7); m.dataset.init='1'; }
+  const sel = document.getElementById('iorep-party');
+  if(sel){
+    const cur = sel.value;
+    const names = [...new Set(ioRepCollect().map(r=>r.party))].sort((a,b)=>a.localeCompare(b,'en',{sensitivity:'base'}));
+    sel.innerHTML = '<option value="">Sab Party</option>'+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
+    if(names.includes(cur)) sel.value = cur;
+  }
+}
+function ioRepData(){
+  const month = document.getElementById('iorep-month')?.value||'';
+  const type  = document.getElementById('iorep-type')?.value||'';
+  const party = document.getElementById('iorep-party')?.value||'';
+  let rows = ioRepCollect();
+  if(month) rows = rows.filter(r=>(r.date||'').startsWith(month));
+  if(type)  rows = rows.filter(r=>r.kind===type);
+  if(party) rows = rows.filter(r=>r.party===party);
+  rows.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  const groups = {};
+  rows.forEach(r=>{ (groups[r.party]=groups[r.party]||[]).push(r); });
+  const parties = Object.keys(groups).sort((a,b)=>a.localeCompare(b,'en',{sensitivity:'base'}));
+  const periodLabel = month ? new Date(month+'-01T00:00:00').toLocaleDateString('en-IN',{month:'long',year:'numeric'}) : 'Sab Samay (All time)';
+  return {rows, groups, parties, month, type, party, periodLabel};
+}
+function _ioFmtD(d){ const x=new Date(d+'T00:00:00'); return isNaN(x)?d:x.toLocaleDateString('en-IN',{day:'2-digit',month:'short'}); }
+function _ioN(n){ return +(+n).toFixed(3); }
+function ioRepBuildHtml(d, forPrint){
+  if(!d.rows.length) return '<div style="text-align:center;padding:24px;color:#888;font-size:13px">Is selection me koi entry nahi mili</div>';
+  const inQ = d.rows.filter(r=>r.kind==='in'), outQ = d.rows.filter(r=>r.kind==='out');
+  const ents = new Set(d.rows.map(r=>r.kind+'|'+r.party+'|'+r.date+'|'+r.challan+'|'+r.ref+'|'+r.purpose)).size;
+  const hasAmt = d.rows.some(r=>r.amt>0);
+  const sum = `<div class="ior-sum">
+    <div><b>${d.parties.length}</b><span>Party</span></div>
+    <div><b>${ents}</b><span>Entries</span></div>
+    <div style="color:#15803d"><b>${inQ.length}</b><span>Inward lines</span></div>
+    <div style="color:#b91c1c"><b>${outQ.length}</b><span>Outward lines</span></div>
+  </div>`;
+  const blocks = d.parties.map(pn=>{
+    const rs = d.groups[pn];
+    const tot = {};
+    rs.forEach(r=>{ const k=r.item+'|'+r.unit; const t=tot[k]=tot[k]||{item:r.item,unit:r.unit,in:0,out:0}; t[r.kind]+=r.qty; });
+    const totRows = Object.values(tot).sort((a,b)=>a.item.localeCompare(b.item));
+    const amtIn = rs.filter(r=>r.kind==='in').reduce((s,r)=>s+r.amt,0);
+    return `<div class="ior-party">
+      <div class="ior-ph"><span>👤 ${esc(pn)}</span><span class="ior-sm">${rs.length} line${rs.length>1?'s':''}</span></div>
+      <table class="ior-t"><thead><tr><th>Date</th><th>In/Out</th><th>Challan</th><th>Purpose / Ref</th><th>Item</th><th style="text-align:right">Qty</th><th>Unit</th>${hasAmt?'<th style="text-align:right">₹ Amount</th>':''}</tr></thead><tbody>
+      ${rs.map(r=>`<tr><td>${_ioFmtD(r.date)}</td><td><b style="color:${r.kind==='in'?'#15803d':'#b91c1c'}">${r.kind==='in'?'IN':'OUT'}</b></td><td>${esc(r.challan||'—')}</td><td>${esc(r.purpose||'')}${r.ref?' · '+esc(r.ref):''}</td><td>${esc(r.item)}${r.rem?` <span class="ior-sm">(${esc(r.rem)})</span>`:''}</td><td style="text-align:right;font-weight:800">${_ioN(r.qty)}</td><td>${esc(r.unit)}</td>${hasAmt?`<td style="text-align:right">${r.amt?'₹'+Math.round(r.amt).toLocaleString('en-IN'):''}</td>`:''}</tr>`).join('')}
+      </tbody></table>
+      <table class="ior-t ior-tot"><thead><tr><th>Item-wise total</th><th style="text-align:right">Inward</th><th style="text-align:right">Outward</th><th style="text-align:right">Net (In − Out)</th><th>Unit</th></tr></thead><tbody>
+      ${totRows.map(t=>`<tr><td>${esc(t.item)}</td><td style="text-align:right;color:#15803d">${t.in?_ioN(t.in):'—'}</td><td style="text-align:right;color:#b91c1c">${t.out?_ioN(t.out):'—'}</td><td style="text-align:right;font-weight:800">${_ioN(t.in-t.out)}</td><td>${esc(t.unit)}</td></tr>`).join('')}
+      </tbody></table>
+      ${hasAmt&&amtIn>0?`<div class="ior-sm" style="text-align:right;margin-top:3px">Purchase value (is party ka): <b>₹${Math.round(amtIn).toLocaleString('en-IN')}</b></div>`:''}
+    </div>`;
+  }).join('');
+  return sum+blocks;
+}
+const IOR_CSS = `
+.ior-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+.ior-sum>div{background:#fff;border:1px solid #d6dbe6;border-radius:10px;padding:8px;text-align:center}
+.ior-sum b{display:block;font-size:20px}.ior-sum span{font-size:10px;color:#667}
+.ior-party{background:#fff;border:1px solid #d6dbe6;border-radius:10px;padding:10px;margin-bottom:10px;overflow-x:auto}
+.ior-ph{display:flex;justify-content:space-between;font-size:14px;font-weight:900;margin-bottom:6px;color:#16385c}
+.ior-sm{font-size:10px;color:#667;font-weight:700}
+.ior-t{width:100%;border-collapse:collapse;margin-bottom:6px}
+.ior-t th,.ior-t td{border:1px solid #c8cfdc;padding:4px 6px;font-size:11px;text-align:left}
+.ior-t th{background:#eef1f7}
+.ior-tot th{background:#e4efe8}`;
+function ioRepRender(){
+  const el = document.getElementById('iorep-body'); if(!el) return;
+  if(!document.getElementById('iorep-css')){ const st=document.createElement('style'); st.id='iorep-css'; st.textContent=IOR_CSS; document.head.appendChild(st); }
+  el.innerHTML = ioRepBuildHtml(ioRepData(), false);
+}
+function ioRepPrint(){
+  const d = ioRepData();
+  if(!d.rows.length){ toast('Print karne ke liye koi entry nahi hai'); return; }
+  const co = _invSettings||{};
+  const typeLbl = d.type==='in'?'Sirf Inward':d.type==='out'?'Sirf Outward':'Inward + Outward';
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Inward Outward Report</title>
+<style>@page{size:A4;margin:10mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:12px;margin:0}
+.hd{border-bottom:2px solid #222;padding-bottom:6px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-end}
+.co{font-size:18px;font-weight:900}.sm{font-size:10px;color:#444}.t1{font-size:15px;font-weight:900;text-align:right}
+${IOR_CSS}
+.ior-party{page-break-inside:auto;border-radius:0}.ior-t tr{page-break-inside:avoid}.ior-sum>div{border-radius:0}
+.noprint{padding:8px;background:#fffbe6;text-align:center;font-size:12px}@media print{.noprint{display:none}}
+.ft{margin-top:8px;font-size:9px;color:#777;text-align:center}</style></head><body>
+<div class="noprint">Print dialog me <b>Save as PDF</b> ya printer chuno.</div>
+<div class="hd"><div><div class="co">${esc(co.name||'BeyondFurni')}</div><div class="sm">${esc(co.addr1||'')}${co.phone?' | Ph: '+esc(co.phone):''}${co.gstin?' | GSTIN: '+esc(co.gstin):''}</div></div>
+<div><div class="t1">INWARD / OUTWARD REPORT</div><div class="sm" style="text-align:right">Period: <b>${esc(d.periodLabel)}</b> · ${typeLbl}${d.party?' · Party: <b>'+esc(d.party)+'</b>':' · Sab Party'}</div></div></div>
+${ioRepBuildHtml(d,true)}
+<div class="ft">Generated: ${new Date().toLocaleString('en-IN')} · BeyondFurni ERP</div>
+<script>window.onload=function(){setTimeout(function(){window.print();},300);};<\/script></body></html>`;
+  const w = window.open('','_blank','width=900,height=800');
+  if(w){ w.document.write(html); w.document.close(); }
+  else toast('⚠️ Popup blocked! Browser me popup allow karo.');
+}
+
 /* ═══════ CHALLAN (Inward / Outward) — Party copy + Office copy ═══════ */
 function _chalNext(kind){
   const seq = INV_LS.get('challanSeq',{out:0,in:0});
@@ -20658,11 +20797,12 @@ function _pcPendingHtml(){
 function _purOpenOutwardForm(){ _purSetView('outward'); outInitForm(); }
 
 function _purSetView(view){
-  ['list','form','debit','outward','inwfree','trade','gst3b','analysis'].forEach(v=>{
+  ['list','form','debit','outward','inwfree','ioreport','trade','gst3b','analysis'].forEach(v=>{
     const el = document.getElementById('pur-view-'+v);
     if(el) el.style.display = (v===view) ? '' : 'none';
   });
   if(view==='list'){ invRenderPurLogMini(); }
+  else if(view==='ioreport'){ ioRepInit(); ioRepRender(); }
   else if(view==='trade'){ _purInitTradeFilters(); _purRenderTrade(); }
   else if(view==='gst3b'){ _purInitGst3bFilter(); _purRenderGst3b(); }
   else if(view==='analysis'){ _purRenderAnalysis(); }
