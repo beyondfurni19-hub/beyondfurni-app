@@ -3649,7 +3649,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
       <div class="card" style="padding:14px;cursor:pointer" onclick="_purOpenInvoiceForm()">
         <div style="font-size:22px;margin-bottom:4px">🧾</div>
         <div style="font-size:12px;font-weight:900;color:var(--navy2)">Inward — Purchase</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">Supplier se maal aaya (invoice) — stock + aur supplier ledger update</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">Supplier ki bill — sirf supplier ledger update (stock alag se Inward me)</div>
       </div>
       <div class="card" style="padding:14px;cursor:pointer" onclick="_purOpenInwFreeForm()">
         <div style="font-size:22px;margin-bottom:4px">📥</div>
@@ -3664,7 +3664,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
       <div class="card" style="padding:14px;cursor:pointer" onclick="_purOpenDebitForm()">
         <div style="font-size:22px;margin-bottom:4px">↩️</div>
         <div style="font-size:12px;font-weight:900;color:var(--navy2)">Supplier Return (Debit Note)</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">Supplier ko maal wapas — stock − + ledger Cr</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">Supplier ko maal wapas — sirf ledger Cr (stock alag se Outward me)</div>
       </div>
     </div>
 
@@ -19906,7 +19906,7 @@ function invPurRowCalc(rowId){
     const mat = STK.find(m=>m.id===row.matId);
     const fromUnit = mat?.unit||'unit';
     const stockAdded = row.qty * row.convRatio;
-    preview.textContent = `✅ ${row.qty} ${fromUnit} × ${row.convRatio} = ${stockAdded} ${row.convToUnit} stock mein`;
+    preview.textContent = `✅ ${row.qty} ${fromUnit} × ${row.convRatio} = ${stockAdded} ${row.convToUnit}`;
   } else if(preview) preview.textContent='';
 
   invPurUpdateGrandTotal();
@@ -20014,23 +20014,14 @@ function invSavePurchase(keepOpen){
     let stockToAdd = row.qty * useRatio;
     let stockUnit = mat.unit;
 
-    // Weighted-average per-unit cost (Taxable Value only — GST excluded, standard practice)
-    const oldQty = +(mat.current||0), oldRate = +(mat.rate||0);
-    const newQty = oldQty + stockToAdd;
-    if(stockToAdd>0){
-      const unitTaxableRate = taxable / stockToAdd;
-      const newRate = newQty>0 ? ((oldQty*oldRate) + (stockToAdd*unitTaxableRate)) / newQty : oldRate;
-      STK[idx].rate = +newRate.toFixed(2);
+    // NOTE: Purchase entry stock qty ko change nahi karti — stock "Inward — Bina Paise" se manually hota hai.
+    // Sirf item ka rate (latest purchase rate, GST ke bina, stock unit ke hisaab se) update hota hai.
+    let prevRate = null, newRate = null;
+    if(stockToAdd>0 && taxable>0){
+      prevRate = +(mat.rate||0);
+      newRate = +(taxable/stockToAdd).toFixed(2);
+      STK[idx].rate = newRate;
     }
-    STK[idx].current = newQty;
-
-    // Add transaction log
-    STXN.push({
-      id:Date.now()+'_'+Math.random().toString(36).slice(2,5),
-      itemId:mat.id, type:'in', qty:stockToAdd,
-      note:'📥 Inward'+(useRatio>1?` (${row.qty} ${purUnit}×${useRatio}=${stockToAdd} ${stockUnit})`:'')+(billno?' · Bill:'+billno:''),
-      date:new Date().toISOString()
-    });
 
     logItems.push({
       matId:mat.id, matName:mat.name,
@@ -20038,13 +20029,12 @@ function invSavePurchase(keepOpen){
       stockAdded:stockToAdd, stockUnit,
       convRatio:useRatio>1?useRatio:null,
       hsn:row.hsn||'', discAmt, gstPct, taxable, cgst, sgst,
-      rate:row.rate, total:rowAmount
+      rate:row.rate, total:rowAmount, prevRate, newRate
     });
   });
 
-  save('bf9_stk', STK);
-  save('bf9_stxn', STXN);
   invSetConv(conv);
+  save('bf9_stk', STK);
   if(typeof renderStock==='function') renderStock();
 
   // ── Supplier info ──
@@ -20057,11 +20047,13 @@ function invSavePurchase(keepOpen){
   }
 
   // ── Single DR entry in supplier ledger ──
+  let purLedgerId = null;
   if(supplierId && grandTotal>0){
     if(!LEDGER[supplierId]) LEDGER[supplierId]=[];
     const itemsSummary = logItems.map(i=>i.matName+' ×'+i.qty).join(', ');
+    purLedgerId = 'pur_'+Date.now().toString(36);
     LEDGER[supplierId].push({
-      id:'pur_'+Date.now().toString(36),
+      id:purLedgerId,
       date, type:'dr', amt:grandTotal,
       note:'Purchase: '+itemsSummary+(billno?' · Bill: '+billno:'')+(note?' · '+note:''),
       ref:'purchase'
@@ -20074,11 +20066,11 @@ function invSavePurchase(keepOpen){
   log.unshift({
     id:invUID(), ts:Date.now(), docType:'invoice',
     date, billno, reference, dueDate, terms, supplierId, supplierName,
-    items:logItems, grandTaxable, grandCgst, grandSgst, grandTotal, note
+    items:logItems, grandTaxable, grandCgst, grandSgst, grandTotal, note, noStock:true, ledgerId:purLedgerId
   });
   invSetPurLog(log);
 
-  invToast(`✅ ${logItems.length} items saved · ₹${grandTotal.toLocaleString('en-IN')}${supplierId?' · Ledger ✓':''}`);
+  invToast(`✅ ${logItems.length} items saved · ₹${grandTotal.toLocaleString('en-IN')}${supplierId?' · Ledger ✓':''} · stock alag se Inward me karo`);
   invRenderPurLogMini();
   invCheckLowBadge();
 
@@ -20254,7 +20246,7 @@ function invRenderPurLogMini(){
             ${_chalBtn(isDebit?'debit':'in',(l.id||l.ts))}<button onclick="invDeletePurchase('${l.id||l.ts}')" style="width:24px;height:24px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800" title="Delete">🗑</button>
           </div>
         </div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:5px">${dateStr}${l.billno?' · '+l.billno:''} ${isDebit?'<span style="background:#fef2f2;color:var(--red-dark);padding:1px 5px;border-radius:6px;font-weight:800">Outward · Supplier Return</span>':'<span style="background:#eff6ff;color:#1d4ed8;padding:1px 5px;border-radius:6px;font-weight:800">Inward</span>'}${l.supplierId?' <span style="background:#e6fff3;color:var(--green-dark);padding:1px 5px;border-radius:6px;font-weight:800">✓ Ledger</span>':''}</div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:5px">${dateStr}${l.billno?' · '+l.billno:''} ${isDebit?'<span style="background:#fef2f2;color:var(--red-dark);padding:1px 5px;border-radius:6px;font-weight:800">Outward · Supplier Return</span>':'<span style="background:#eff6ff;color:#1d4ed8;padding:1px 5px;border-radius:6px;font-weight:800">Inward</span>'}${l.noStock?' <span style="background:#f1f5f9;color:#64748b;padding:1px 5px;border-radius:6px;font-weight:800">Stock alag</span>':''}${l.supplierId?' <span style="background:#e6fff3;color:var(--green-dark);padding:1px 5px;border-radius:6px;font-weight:800">✓ Ledger</span>':''}</div>
         ${items.map(i=>`
           <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-top:1px solid var(--border)">
             <div style="font-size:11px;font-weight:700">${i.matName}</div>
@@ -20274,7 +20266,8 @@ function invDeletePurchase(entryId){
   const entry = log.find(l=>(l.id||l.ts)==entryId);
   if(!entry){ toast('Entry nahi mili!'); return; }
   const isDebit = entry.docType==='debit';
-  if(!confirm(`Yeh ${isDebit?'debit note':'purchase entry'} delete karo?\n\n⚠️ Stock ${isDebit?'wapas add':'reverse'} ho jayega.`)) return;
+  const _noStk = !!entry.noStock;
+  if(!confirm(`Yeh ${isDebit?'debit note':'purchase entry'} delete karo?\n\n🧾 Supplier ledger se bhi iski entry hat jayegi.\n${_noStk?'ℹ️ Stock me koi change nahi hoga (is entry ne stock nahi badla tha).':'⚠️ Stock '+(isDebit?'wapas add':'reverse')+' ho jayega.'}`)) return;
 
   // Remove from log
   log = log.filter(l=>(l.id||l.ts)!=entryId);
@@ -20283,7 +20276,20 @@ function invDeletePurchase(entryId){
   // Reverse stock — invoice ka stock wapas ghatao, debit note ka stock wapas jodo
   const items = entry.items || [{matId:entry.matId, stockAdded:entry.stockAdded||entry.qty}];
   const allStk = load('bf9_stk')||[];
-  items.forEach(item=>{
+  // Supplier ledger entry hatao + rate restore
+  const _ref = isDebit?'debit_note':'purchase';
+  const sid = entry.supplierId;
+  if(sid && LEDGER[sid]){
+    let li = entry.ledgerId ? LEDGER[sid].findIndex(x=>x.id===entry.ledgerId) : -1;
+    if(li<0 && !entry.ledgerId) li = LEDGER[sid].findIndex(x=>x.ref===_ref && Math.abs((x.amt||0)-(entry.grandTotal||0))<0.01 && (!entry.date||x.date===entry.date));
+    if(li>=0){ LEDGER[sid].splice(li,1); save('bf9_ledger',LEDGER); }
+  }
+  if(!isDebit) (entry.items||[]).forEach(item=>{
+    if(item.newRate==null || !item.matId) return;
+    const m0 = allStk.find(m=>m.id===item.matId);
+    if(m0 && +m0.rate===+item.newRate) m0.rate = item.prevRate;
+  });
+  if(!_noStk) items.forEach(item=>{
     if(!item.matId) return;
     const mat = allStk.find(m=>m.id===item.matId);
     if(!mat) return;
@@ -20295,7 +20301,7 @@ function invDeletePurchase(entryId){
 
   invRenderPurLogMini();
   renderStock();
-  toast(isDebit ? '🗑 Debit note delete ho gayi — stock wapas add hua!' : '🗑 Purchase entry delete ho gayi — stock reverse hua!');
+  toast(_noStk ? '🗑 Entry delete ho gayi (stock unchanged)' : (isDebit ? '🗑 Debit note delete ho gayi — stock wapas add hua!' : '🗑 Purchase entry delete ho gayi — stock reverse hua!'));
 }
 
 /* ══════════════════════════════════════════
@@ -20780,29 +20786,21 @@ function debSaveNote(){
     const amount = taxable+cgst+sgst;
     grandTaxable+=taxable; grandCgst+=cgst; grandSgst+=sgst; grandTotal+=amount;
 
-    STK[idx].current = Math.max(0, (mat.current||0) - row.qty);
-    STXN.push({
-      id:Date.now()+'_'+Math.random().toString(36).slice(2,5),
-      itemId:mat.id, type:'out', qty:row.qty,
-      note:'📤 Outward · Supplier Return (Debit Note)'+(billno?' · '+billno:'')+(refInvoice?' · Against '+refInvoice:''),
-      date:new Date().toISOString()
-    });
+    // Debit note stock ko change nahi karta — maal wapas bhejna ho to "Outward Entry" se karo.
     logItems.push({matId:mat.id, matName:mat.name, qty:row.qty, punit:mat.unit, stockAdded:row.qty, stockUnit:mat.unit, rate:row.rate, gstPct:row.gstPct, taxable, cgst, sgst, total:amount});
   });
-
-  save('bf9_stk', STK);
-  save('bf9_stxn', STXN);
-  if(typeof renderStock==='function') renderStock();
 
   let supplierName='', supplierId=supplierSelId||null;
   if(supplierSelId){ supplierName = CUSTOMERS.find(c=>c.id===supplierSelId)?.name||''; }
   else if(supplierManual){ supplierName = supplierManual; }
 
+  let debLedgerId = null;
   if(supplierId && grandTotal>0){
     if(!LEDGER[supplierId]) LEDGER[supplierId]=[];
     const itemsSummary = logItems.map(i=>i.matName+' ×'+i.qty).join(', ');
+    debLedgerId = 'deb_'+Date.now().toString(36);
     LEDGER[supplierId].push({
-      id:'deb_'+Date.now().toString(36),
+      id:debLedgerId,
       date, type:'cr', amt:grandTotal,
       note:'Debit Note: '+itemsSummary+(billno?' · '+billno:'')+(note?' · '+note:''),
       ref:'debit_note'
@@ -20814,7 +20812,7 @@ function debSaveNote(){
   log.unshift({
     id:invUID(), ts:Date.now(), docType:'debit',
     date, billno, reference:refInvoice, supplierId, supplierName,
-    items:logItems, grandTaxable, grandCgst, grandSgst, grandTotal, note
+    items:logItems, grandTaxable, grandCgst, grandSgst, grandTotal, note, noStock:true, ledgerId:debLedgerId
   });
   invSetPurLog(log);
 
