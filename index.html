@@ -20348,9 +20348,9 @@ function invRenderPurLogMini(){
       <div class="inv-log-row">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
           <div style="font-size:11px;font-weight:800;color:var(--navy2)">📥 ${esc(l.partyName||l.purpose||'Inward')}</div>
-          <div style="display:flex;gap:6px;align-items:center">${l.challanNo?`<span style="font-size:9px;font-weight:800;color:var(--muted)">${l.challanNo}</span>`:''}${_chalBtn('inw',l.id)}<button onclick="invDeleteInwFree('${l.id}')" style="width:24px;height:24px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800" title="Delete">🗑</button></div>
+          <div style="display:flex;gap:6px;align-items:center">${l.challanNo?`<span style="font-size:9px;font-weight:800;color:var(--muted)">${l.challanNo}</span>`:''}${_chalBtn('inw',l.id)}${_editBtn('inw',l.id)}<button onclick="invDeleteInwFree('${l.id}')" style="width:24px;height:24px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800" title="Delete">🗑</button></div>
         </div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:5px">${dateStr}${l.reference?' · '+esc(l.reference):''} <span style="background:#eff6ff;color:#1d4ed8;padding:1px 5px;border-radius:6px;font-weight:800">Inward · ${esc(l.purpose||'')}</span>${l.note?' · '+esc(l.note):''}</div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:5px">${dateStr}${_edTag(l)}${l.reference?' · '+esc(l.reference):''} <span style="background:#eff6ff;color:#1d4ed8;padding:1px 5px;border-radius:6px;font-weight:800">Inward · ${esc(l.purpose||'')}</span>${l.note?' · '+esc(l.note):''}</div>
         ${(l.items||[]).map(i=>`
           <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-top:1px solid var(--border)">
             <div style="font-size:11px;font-weight:700">${esc(i.matName)}${i.rawName?` <span style="font-weight:600;color:var(--muted)">(← ${esc(i.rawName)})</span>`:''}</div>
@@ -20363,9 +20363,9 @@ function invRenderPurLogMini(){
       <div class="inv-log-row">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
           <div style="font-size:11px;font-weight:800;color:var(--navy2)">📤 ${esc(l.partyName||l.purpose||'Outward')}</div>
-          <div style="display:flex;gap:6px;align-items:center">${l.challanNo?`<span style="font-size:9px;font-weight:800;color:var(--muted)">${l.challanNo}</span>`:''}${_chalBtn('out',l.id)}<button onclick="invDeleteOutward('${l.id}')" style="width:24px;height:24px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800" title="Delete">🗑</button></div>
+          <div style="display:flex;gap:6px;align-items:center">${l.challanNo?`<span style="font-size:9px;font-weight:800;color:var(--muted)">${l.challanNo}</span>`:''}${_chalBtn('out',l.id)}${_editBtn('out',l.id)}<button onclick="invDeleteOutward('${l.id}')" style="width:24px;height:24px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800" title="Delete">🗑</button></div>
         </div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:5px">${dateStr}${l.reference?' · '+esc(l.reference):''} <span style="background:#fef2f2;color:var(--red-dark);padding:1px 5px;border-radius:6px;font-weight:800">Outward · ${esc(l.purpose||'')}</span>${l.note?' · '+esc(l.note):''}</div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:5px">${dateStr}${_edTag(l)}${l.reference?' · '+esc(l.reference):''} <span style="background:#fef2f2;color:var(--red-dark);padding:1px 5px;border-radius:6px;font-weight:800">Outward · ${esc(l.purpose||'')}</span>${l.note?' · '+esc(l.note):''}</div>
         ${(l.items||[]).map(i=>`
           <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-top:1px solid var(--border)">
             <div style="font-size:11px;font-weight:700">${esc(i.matName)}</div>
@@ -20382,10 +20382,10 @@ function invRenderPurLogMini(){
           <div style="font-size:11px;font-weight:800;color:var(--navy2)">${isDebit?'↩️ ':'📥 '}${l.supplierName||l.supplier||'—'}</div>
           <div style="display:flex;align-items:center;gap:7px">
             <div style="font-family:'Bebas Neue';font-size:16px;color:${isDebit?'var(--red-dark)':'var(--green-dark)'}">${isDebit?'-':''}₹${grand.toLocaleString('en-IN')}</div>
-            ${_chalBtn(isDebit?'debit':'in',(l.id||l.ts))}<button onclick="invDeletePurchase('${l.id||l.ts}')" style="width:24px;height:24px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800" title="Delete">🗑</button>
+            ${_chalBtn(isDebit?'debit':'in',(l.id||l.ts))}${_editBtn(isDebit?'debit':'in',(l.id||l.ts))}<button onclick="invDeletePurchase('${l.id||l.ts}')" style="width:24px;height:24px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800" title="Delete">🗑</button>
           </div>
         </div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:5px">${dateStr}${l.billno?' · '+l.billno:''} ${isDebit?'<span style="background:#fef2f2;color:var(--red-dark);padding:1px 5px;border-radius:6px;font-weight:800">Outward · Supplier Return</span>':'<span style="background:#eff6ff;color:#1d4ed8;padding:1px 5px;border-radius:6px;font-weight:800">Inward</span>'}${l.noStock?' <span style="background:#f1f5f9;color:#64748b;padding:1px 5px;border-radius:6px;font-weight:800">Stock alag</span>':''}${l.supplierId?' <span style="background:#e6fff3;color:var(--green-dark);padding:1px 5px;border-radius:6px;font-weight:800">✓ Ledger</span>':''}</div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:5px">${dateStr}${_edTag(l)}${l.billno?' · '+l.billno:''} ${isDebit?'<span style="background:#fef2f2;color:var(--red-dark);padding:1px 5px;border-radius:6px;font-weight:800">Outward · Supplier Return</span>':'<span style="background:#eff6ff;color:#1d4ed8;padding:1px 5px;border-radius:6px;font-weight:800">Inward</span>'}${l.noStock?' <span style="background:#f1f5f9;color:#64748b;padding:1px 5px;border-radius:6px;font-weight:800">Stock alag</span>':''}${l.supplierId?' <span style="background:#e6fff3;color:var(--green-dark);padding:1px 5px;border-radius:6px;font-weight:800">✓ Ledger</span>':''}</div>
         ${items.map(i=>`
           <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-top:1px solid var(--border)">
             <div style="font-size:11px;font-weight:700">${i.matName}</div>
@@ -20589,6 +20589,312 @@ function invDeleteOutward(entryId){
   toast('🗑 Outward entry delete ho gayi — stock wapas add hua!');
 }
 function _ioSetFilter(f){ _ioFilter=f; invRenderPurLogMini(); }
+
+/* ══════════════════════════════════════════════════════════════
+   ✏️ EDIT — Recent entries (Inward / Outward / Purchase / Debit)
+   Stock ka fark apne aap adjust hota hai, ledger bhi update hota hai.
+══════════════════════════════════════════════════════════════ */
+let _ioEd = null;
+const _ioq = s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function _editBtn(k,id){
+  return `<button onclick="ioEditOpen('${k}','${id}')" style="width:24px;height:24px;border:none;background:#eff6ff;color:#1d4ed8;border-radius:6px;cursor:pointer;font-size:12px;font-weight:800" title="Edit">✏️</button>`;
+}
+function _edTag(l){
+  return l.editedAt ? ' <span style="background:#fefce8;color:#a16207;padding:1px 5px;border-radius:6px;font-weight:800">✏️ edited</span>' : '';
+}
+function _ioFindEntry(kind,id){
+  if(kind==='out') return invGetOutLog().find(l=>l.id==id);
+  if(kind==='inw') return invGetInwLog().find(l=>l.id==id);
+  return invGetPurLog().find(l=>(l.id||l.ts)==id);
+}
+function ioEditOpen(kind,id){
+  const e = _ioFindEntry(kind,id);
+  if(!e){ toast('Entry nahi mili!'); return; }
+  if((kind==='in'||kind==='debit') && !(e.items&&e.items.length)){
+    invToast('Yeh purani entry hai — edit nahi ho sakti. Delete karke dobara banao.','err'); return;
+  }
+  const pid = (e.partyId && CUSTOMERS.find(c=>c.id===e.partyId)) ? e.partyId : '';
+  _ioEd = {
+    kind, id,
+    h:{
+      date: e.date || new Date(e.ts||Date.now()).toISOString().split('T')[0],
+      purpose: e.purpose || (kind==='out'?'Other':''),
+      partyId: pid, partyName: e.partyName||'',
+      reference: e.reference||'', note: e.note||'', billno: e.billno||''
+    },
+    rows:(e.items||[]).map((it,i)=>({rid:'er'+i, matId:it.matId||'', qty:+it.qty||0, rawId:it.rawId||'',
+      rate:+it.rate||0, disc:+it.discAmt||0, gst:+it.gstPct||0, matName:it.matName||'', _old:it})),
+    n:(e.items||[]).length
+  };
+  ioEditRender();
+  document.getElementById('io-edit-modal').classList.add('show');
+}
+function ioEditClose(){
+  const bg = document.getElementById('io-edit-modal');
+  if(bg) bg.classList.remove('show');
+  _ioEd = null;
+}
+function ioEditSync(){
+  const S=_ioEd; if(!S) return;
+  const g=id=>document.getElementById(id), h=S.h;
+  if(g('ioe-date')) h.date = g('ioe-date').value || h.date;
+  if(g('ioe-purpose')) h.purpose = g('ioe-purpose').value;
+  if(g('ioe-party-sel')) h.partyId = g('ioe-party-sel').value;
+  if(g('ioe-party')) h.partyName = g('ioe-party').value.trim();
+  if(g('ioe-ref')) h.reference = g('ioe-ref').value.trim();
+  if(g('ioe-note')) h.note = g('ioe-note').value.trim();
+  if(g('ioe-bill')) h.billno = g('ioe-bill').value.trim();
+  S.rows.forEach(r=>{
+    const v=p=>g('ioe-'+p+'-'+r.rid);
+    if(v('mat')) r.matId = v('mat').value;
+    if(v('qty')) r.qty = parseFloat(v('qty').value)||0;
+    if(v('raw')) r.rawId = v('raw').value;
+    if(v('rate')) r.rate = parseFloat(v('rate').value)||0;
+    if(v('disc')) r.disc = parseFloat(v('disc').value)||0;
+    if(v('gst')) r.gst = parseFloat(v('gst').value)||0;
+  });
+}
+function _ioCalcRow(r,isDebit){
+  const sub = (r.qty||0)*(r.rate||0);
+  const taxable = isDebit ? sub : Math.max(0, sub-(r.disc||0));
+  const gst = r.gst||0;
+  const cgst = taxable*gst/200, sgst = taxable*gst/200;
+  return {taxable, cgst, sgst, total: taxable+cgst+sgst};
+}
+function ioEditCalc(){
+  ioEditSync();
+  const S=_ioEd; if(!S) return;
+  const isDebit = S.kind==='debit';
+  const tot = S.rows.reduce((s,r)=>s+_ioCalcRow(r,isDebit).total,0);
+  const el = document.getElementById('ioe-total');
+  if(el) el.textContent = '₹'+tot.toLocaleString('en-IN',{maximumFractionDigits:2});
+}
+function ioEditAddRow(){
+  ioEditSync();
+  _ioEd.rows.push({rid:'er'+(_ioEd.n++), matId:'', qty:0, rawId:'', rate:0, disc:0, gst:0, matName:''});
+  ioEditRender();
+}
+function ioEditRemoveRow(rid){
+  ioEditSync();
+  if(_ioEd.rows.length<=1){ invToast('Kam se kam 1 item chahiye!','err'); return; }
+  _ioEd.rows = _ioEd.rows.filter(r=>r.rid!==rid);
+  ioEditRender();
+}
+function ioEditRender(){
+  const S=_ioEd; if(!S) return;
+  let bg = document.getElementById('io-edit-modal');
+  if(!bg){
+    bg = document.createElement('div');
+    bg.className = 'modal-bg'; bg.id = 'io-edit-modal';
+    bg.addEventListener('click', ev=>{ if(ev.target===bg) ioEditClose(); });
+    document.body.appendChild(bg);
+  }
+  const old = bg.querySelector('.modal'); const st = old ? old.scrollTop : 0;
+  const k=S.kind, h=S.h, isStk=(k==='out'||k==='inw'), isDebit=(k==='debit');
+  const lab = 'font-size:10px;font-weight:800;color:var(--muted)';
+  const mats = _az(STK,m=>m.name);
+  const matOpts = sel => '<option value="">-- Material --</option>' +
+    mats.map(m=>`<option value="${_ioq(m.id)}" ${m.id===sel?'selected':''}>${m.ico||'📦'} ${esc(m.name)} (${esc(m.unit)})</option>`).join('') +
+    ((sel && !STK.find(m=>m.id===sel)) ? `<option value="${_ioq(sel)}" selected>(item hata diya gaya)</option>` : '');
+  const title = {out:'📤 Outward Entry — Edit', inw:'📥 Inward Entry — Edit', in:'🧾 Purchase Entry — Edit', debit:'↩️ Debit Note — Edit'}[k];
+  let head='', rowsHtml='', info='';
+
+  if(isStk){
+    const base = k==='out' ? OUT_PURPOSES : INF_PURPOSES;
+    const plist = base.includes(h.purpose)||!h.purpose ? base : [...base, h.purpose];
+    const cs = CUSTOMERS.filter(c=>c.type!=='supplier'), ss = CUSTOMERS.filter(c=>c.type==='supplier');
+    const opts = a=>_az(a,x=>x.name).map(x=>`<option value="${_ioq(x.id)}" ${x.id===h.partyId?'selected':''}>${esc(x.name)}</option>`).join('');
+    const partyOpts = '<option value="">-- Party chunno (optional) --</option>' +
+      (k==='out' ? (cs.length?`<optgroup label="Customers">${opts(cs)}</optgroup>`:'')+(ss.length?`<optgroup label="Suppliers / Vendors">${opts(ss)}</optgroup>`:'')
+                 : (ss.length?`<optgroup label="Suppliers / Vendors">${opts(ss)}</optgroup>`:'')+(cs.length?`<optgroup label="Customers">${opts(cs)}</optgroup>`:''));
+    head = `
+      <div class="g2">
+        <div class="fg"><label style="${lab}">Date</label><input class="finp" type="date" id="ioe-date" value="${_ioq(h.date)}"></div>
+        <div class="fg"><label style="${lab}">Purpose</label><select class="finp" id="ioe-purpose" onchange="ioEditSync();ioEditRender()">${plist.map(x=>`<option ${x===h.purpose?'selected':''}>${esc(x)}</option>`).join('')}</select></div>
+      </div>
+      <div class="fg"><label style="${lab}">Party</label><select class="finp" id="ioe-party-sel">${partyOpts}</select></div>
+      <div class="fg"><label style="${lab}">Ya party ka naam likho</label><input class="finp" id="ioe-party" value="${_ioq(h.partyId?'':h.partyName)}" placeholder="Party ka naam"></div>
+      <div class="g2">
+        <div class="fg"><label style="${lab}">Reference</label><input class="finp" id="ioe-ref" value="${_ioq(h.reference)}"></div>
+        <div class="fg"><label style="${lab}">Note</label><input class="finp" id="ioe-note" value="${_ioq(h.note)}"></div>
+      </div>`;
+    const showRaw = (k==='inw' && h.purpose===PC_IN);
+    rowsHtml = S.rows.map((r,i)=>`
+      <div style="padding:8px;margin-bottom:6px;background:${i%2?'#fff':'#f8fafc'};border-radius:10px;border:1px solid var(--border)">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end">
+          <div style="flex:2 1 170px;display:flex;flex-direction:column;gap:3px"><label style="${lab}">Material #${i+1}</label><select class="finp" id="ioe-mat-${r.rid}">${matOpts(r.matId)}</select></div>
+          <div style="flex:1 1 80px;display:flex;flex-direction:column;gap:3px"><label style="${lab}">Qty</label><input class="finp" type="number" id="ioe-qty-${r.rid}" value="${r.qty>0?r.qty:''}" min="0" step="any" placeholder="0"></div>
+          ${showRaw?`<div style="flex:2 1 170px;display:flex;flex-direction:column;gap:3px"><label style="${lab}">Raw item (jo bheja tha)</label><select class="finp" id="ioe-raw-${r.rid}">${matOpts(r.rawId)}</select></div>`:''}
+          <button type="button" onclick="ioEditRemoveRow('${r.rid}')" title="Item hatao" style="width:28px;height:34px;border:none;background:var(--red-bg);color:var(--red-dark);border-radius:6px;cursor:pointer;font-size:13px;font-weight:800">✕</button>
+        </div>
+      </div>`).join('') +
+      `<button type="button" onclick="ioEditAddRow()" style="width:100%;padding:8px;border:1.5px dashed var(--border);background:#fff;color:var(--navy2);border-radius:10px;cursor:pointer;font-weight:800;font-size:12px;font-family:'Nunito',sans-serif">＋ Item add karo</button>`;
+    info = 'ℹ️ Save karte hi stock ka fark apne aap adjust ho jayega (Stock history me "edit adjust" entry banegi).';
+  } else {
+    const e = _ioFindEntry(k,S.id)||{};
+    head = `
+      <div style="font-size:11px;font-weight:800;color:var(--navy2);margin-bottom:8px">Supplier: ${esc(e.supplierName||e.supplier||'—')}</div>
+      <div class="g2">
+        <div class="fg"><label style="${lab}">Date</label><input class="finp" type="date" id="ioe-date" value="${_ioq(h.date)}"></div>
+        <div class="fg"><label style="${lab}">${isDebit?'Debit Note No.':'Bill No.'}</label><input class="finp" id="ioe-bill" value="${_ioq(h.billno)}"></div>
+      </div>
+      <div class="g2">
+        <div class="fg"><label style="${lab}">${isDebit?'Ref Invoice':'Reference'}</label><input class="finp" id="ioe-ref" value="${_ioq(h.reference)}"></div>
+        <div class="fg"><label style="${lab}">Note</label><input class="finp" id="ioe-note" value="${_ioq(h.note)}"></div>
+      </div>`;
+    rowsHtml = S.rows.map((r,i)=>`
+      <div style="padding:8px;margin-bottom:6px;background:${i%2?'#fff':'#f8fafc'};border-radius:10px;border:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:800;margin-bottom:5px">${esc(r.matName||'—')}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <div style="flex:1 1 70px;display:flex;flex-direction:column;gap:3px"><label style="${lab}">Qty${r._old&&r._old.punit?' ('+esc(r._old.punit)+')':''}</label><input class="finp" type="number" id="ioe-qty-${r.rid}" value="${r.qty>0?r.qty:''}" min="0" step="any" oninput="ioEditCalc()"></div>
+          <div style="flex:1 1 70px;display:flex;flex-direction:column;gap:3px"><label style="${lab}">Rate ₹</label><input class="finp" type="number" id="ioe-rate-${r.rid}" value="${r.rate>0?r.rate:''}" min="0" step="any" oninput="ioEditCalc()"></div>
+          ${isDebit?'':`<div style="flex:1 1 70px;display:flex;flex-direction:column;gap:3px"><label style="${lab}">Discount ₹</label><input class="finp" type="number" id="ioe-disc-${r.rid}" value="${r.disc>0?r.disc:''}" min="0" step="any" oninput="ioEditCalc()"></div>`}
+          <div style="flex:1 1 60px;display:flex;flex-direction:column;gap:3px"><label style="${lab}">GST %</label><input class="finp" type="number" id="ioe-gst-${r.rid}" value="${r.gst>0?r.gst:''}" min="0" step="any" oninput="ioEditCalc()"></div>
+        </div>
+      </div>`).join('') +
+      `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 4px;font-weight:900;color:var(--navy2)"><span>Grand Total</span><span id="ioe-total" style="font-family:'Bebas Neue';font-size:20px">₹${S.rows.reduce((s,r)=>s+_ioCalcRow(r,isDebit).total,0).toLocaleString('en-IN',{maximumFractionDigits:2})}</span></div>`;
+    info = `ℹ️ Qty 0 karoge to woh line hat jayegi.${e.supplierId?' Supplier ledger bhi update ho jayega.':''}${isDebit?'':' Stock quantity is entry se nahi badalti.'}`;
+  }
+
+  bg.innerHTML = `
+    <div class="modal" style="max-height:92vh;overflow-y:auto">
+      <div class="modal-handle"></div>
+      <h3 style="font-family:'Bebas Neue';font-size:20px;color:var(--navy2);letter-spacing:1px;margin-bottom:10px">${title}</h3>
+      ${head}
+      <div style="font-size:11px;font-weight:900;color:var(--navy2);margin:4px 0 6px">Items</div>
+      ${rowsHtml}
+      <div style="font-size:10px;color:var(--muted);font-weight:700;margin:8px 0 10px;line-height:1.5">${info}</div>
+      <div style="display:flex;gap:8px">
+        <button type="button" onclick="ioEditClose()" style="flex:1;padding:12px;border:1.5px solid var(--border);background:#fff;color:var(--muted);border-radius:12px;cursor:pointer;font-weight:800;font-size:13px;font-family:'Nunito',sans-serif">Cancel</button>
+        <button type="button" onclick="ioEditSave()" style="flex:2;padding:12px;border:none;background:var(--navy2);color:#fff;border-radius:12px;cursor:pointer;font-weight:900;font-size:13px;font-family:'Nunito',sans-serif">💾 Changes Save Karo</button>
+      </div>
+    </div>`;
+  const nm = bg.querySelector('.modal'); if(nm) nm.scrollTop = st;
+}
+function ioEditSave(){
+  ioEditSync();
+  const S=_ioEd; if(!S) return;
+  if(S.kind==='out'||S.kind==='inw') _ioEditSaveStock(); else _ioEditSaveBill();
+}
+function _ioEditSaveStock(){
+  const S=_ioEd, h=S.h, isOut=(S.kind==='out');
+  const log = isOut ? invGetOutLog() : invGetInwLog();
+  const idx = log.findIndex(l=>l.id==S.id);
+  if(idx<0){ toast('Entry nahi mili!'); return; }
+  const e = log[idx];
+  const partyName = h.partyId ? (CUSTOMERS.find(c=>c.id===h.partyId)?.name||'') : h.partyName;
+  const purpose = h.purpose || (isOut?'Other':'Other');
+  const isPC = isOut ? purpose===PC_OUT : purpose===PC_IN;
+  const rows = S.rows.filter(r=>r.matId && r.qty>0);
+  if(!rows.length){ invToast('Kam se kam 1 item complete karo!','err'); return; }
+  if(isPC && !partyName){ invToast('Powder coating wale ka naam chuno ya likho!','err'); return; }
+  if(!isOut && isPC && rows.some(r=>!r.rawId)){ invToast('Har item ka Raw item chuno (jo powder coating ko bheja tha)!','err'); return; }
+
+  // Purani aur nayi qty (material-wise) — sirf fark stock me jayega
+  const oldQ={}, newQ={};
+  (e.items||[]).forEach(it=>{ if(it.matId) oldQ[it.matId]=(oldQ[it.matId]||0)+(+it.qty||0); });
+  rows.forEach(r=>{ newQ[r.matId]=(newQ[r.matId]||0)+r.qty; });
+  const ids = [...new Set([...Object.keys(oldQ),...Object.keys(newQ)])];
+
+  if(isOut){
+    const short = ids.map(id=>STK.find(m=>m.id===id)).filter(m=>m && ((newQ[m.id]||0)-(oldQ[m.id]||0))>(m.current||0));
+    if(short.length && !confirm('Stock kam hai:\n'+short.map(m=>`${m.name}: extra chahiye ${+(((newQ[m.id]||0)-(oldQ[m.id]||0)).toFixed(4))}, hai ${m.current||0} ${m.unit}`).join('\n')+'\n\nPhir bhi save karein? (stock 0 ho jayega)')) return;
+  }
+
+  const tag = isOut ? '📤 Outward' : '📥 Inward';
+  ids.forEach(id=>{
+    const m = STK.find(x=>x.id===id); if(!m) return;
+    const d = +((newQ[id]||0)-(oldQ[id]||0)).toFixed(4);
+    if(!d) return;
+    const delta = isOut ? -d : d;           // stock par asar
+    m.current = +Math.max(0,(m.current||0)+delta).toFixed(4);
+    STXN.push({
+      id:Date.now()+'_'+Math.random().toString(36).slice(2,5),
+      itemId:m.id, type:delta>0?'in':'out', qty:Math.abs(d),
+      note:tag+' edit (adjust)'+(partyName?' · '+partyName:'')+(h.reference?' · Ref: '+h.reference:''),
+      date:new Date().toISOString(), source:isOut?'outward':'inward'
+    });
+  });
+
+  const map = INV_LS.get('pcmap',{});
+  const items = [];
+  rows.forEach(r=>{
+    const mat = STK.find(m=>m.id===r.matId);
+    if(!mat){
+      if(r._old && r._old.matId===r.matId) items.push(r._old);   // hata hua item — jaisa tha waisa rakho
+      return;
+    }
+    const it = {matId:mat.id, matName:mat.name, qty:r.qty, unit:mat.unit};
+    if(!isOut && isPC){ it.rawId=r.rawId; it.rawName=STK.find(m=>m.id===r.rawId)?.name||''; map[mat.id]=r.rawId; }
+    items.push(it);
+  });
+  if(!isOut && isPC) INV_LS.set('pcmap', map);
+
+  Object.assign(e, {date:h.date||e.date, purpose, partyId:h.partyId||null, partyName, reference:h.reference, note:h.note, items, editedAt:Date.now()});
+  if(isOut) invSetOutLog(log); else invSetInwLog(log);
+  save('bf9_stk', STK);
+  save('bf9_stxn', STXN);
+  if(typeof renderStock==='function') renderStock();
+  invRenderPurLogMini();
+  if(typeof invCheckLowBadge==='function') invCheckLowBadge();
+  ioEditClose();
+  invToast('✅ Entry update ho gayi · stock adjust hua');
+}
+function _ioEditSaveBill(){
+  const S=_ioEd, h=S.h, isDebit=(S.kind==='debit');
+  const log = invGetPurLog();
+  const idx = log.findIndex(l=>(l.id||l.ts)==S.id);
+  if(idx<0){ toast('Entry nahi mili!'); return; }
+  const old = log[idx];
+  const rows = S.rows.filter(r=>r.qty>0 && (isDebit || r.rate>0));
+  if(!rows.length){ invToast(isDebit?'Kam se kam 1 item me qty bharo!':'Kam se kam 1 item me qty aur rate bharo!','err'); return; }
+
+  let gT=0, gC=0, gS=0, gG=0;
+  const items = rows.map(r=>{
+    const o = r._old||{};
+    const c = _ioCalcRow(r,isDebit);
+    gT+=c.taxable; gC+=c.cgst; gS+=c.sgst; gG+=c.total;
+    const it = {...o, qty:r.qty, rate:r.rate, gstPct:r.gst, taxable:c.taxable, cgst:c.cgst, sgst:c.sgst, total:c.total};
+    if(isDebit){ it.stockAdded = r.qty; }
+    else {
+      it.discAmt = r.disc||0;
+      const ratio = (o.qty>0 && o.stockAdded>0) ? o.stockAdded/o.qty : 1;
+      it.stockAdded = r.qty*ratio;
+      // Item ka latest purchase rate — sirf tab badlo jab abhi bhi isi entry ka rate chal raha ho
+      const mat = STK.find(m=>m.id===o.matId);
+      if(mat && o.newRate!=null && +mat.rate===+o.newRate){
+        const nr = (it.stockAdded>0 && c.taxable>0) ? +(c.taxable/it.stockAdded).toFixed(2) : o.prevRate;
+        mat.rate = nr; it.newRate = (it.stockAdded>0 && c.taxable>0) ? nr : null;
+      }
+    }
+    return it;
+  });
+
+  // Supplier ledger update
+  const sid = old.supplierId;
+  if(sid && LEDGER[sid]){
+    const ref = isDebit?'debit_note':'purchase';
+    let li = old.ledgerId ? LEDGER[sid].findIndex(x=>x.id===old.ledgerId)
+                          : LEDGER[sid].findIndex(x=>x.ref===ref && Math.abs((x.amt||0)-(old.grandTotal||0))<0.01 && (!old.date||x.date===old.date));
+    if(li>=0){
+      const summary = items.map(i=>i.matName+' ×'+i.qty).join(', ');
+      const L = LEDGER[sid][li];
+      L.amt = gG; L.date = h.date||old.date;
+      L.note = isDebit ? ('Debit Note: '+summary+(h.billno?' · '+h.billno:'')+(h.note?' · '+h.note:''))
+                       : ('Purchase: '+summary+(h.billno?' · Bill: '+h.billno:'')+(h.note?' · '+h.note:''));
+      save('bf9_ledger', LEDGER);
+    }
+  }
+
+  Object.assign(old, {date:h.date||old.date, billno:h.billno, reference:h.reference, note:h.note,
+    items, grandTaxable:gT, grandCgst:gC, grandSgst:gS, grandTotal:gG, editedAt:Date.now()});
+  invSetPurLog(log);
+  save('bf9_stk', STK);
+  if(typeof renderStock==='function') renderStock();
+  invRenderPurLogMini();
+  ioEditClose();
+  invToast(`✅ ${isDebit?'Debit note':'Purchase entry'} update ho gayi · ₹${gG.toLocaleString('en-IN',{maximumFractionDigits:2})}${old.supplierId?' · Ledger ✓':''}`);
+}
 /* ══════════════════════════════════════════
    INWARD (BINA PAISE) — fabrication ready / powder coating se wapas / return  (stock plus)
 ══════════════════════════════════════════ */
