@@ -7154,6 +7154,7 @@ function renderStockHistory(){
 
   // Determine source from note
   function getSource(t){
+    if(t.source==='manual') return 'manual';
     const n = (t.note||'').toLowerCase();
     if(n.includes('outward'))  return 'outward';
     if(n.includes('inward'))   return 'inward';
@@ -7241,6 +7242,9 @@ function renderStockHistory(){
               ${isIn?'+':'-'}${+parseFloat(t.qty||0).toFixed(4)} <span style="font-size:10px;font-weight:700">${unit}</span>
             </div>
           </div>
+          ${(!t.source||t.source==='manual')
+            ? `<button onclick="deleteStockTxn('${t.id}')" title="Delete — stock wapas pehle jaisa ho jayega" style="width:26px;height:26px;border:none;background:#fee2e2;color:#b91c1c;border-radius:7px;cursor:pointer;font-size:12px;flex-shrink:0">🗑</button>`
+            : `<span title="${t.source==='gsheet'?'Google Form se aayi entry — yahan se delete nahi hoti':'Inward/Outward list se delete karo — wahan se stock apne aap adjust hoga'}" style="font-size:12px;opacity:.45;flex-shrink:0;width:26px;text-align:center">🔒</span>`}
         </div>`;
       }).join('')}
     </div>`;
@@ -7251,6 +7255,38 @@ function renderStockHistory(){
 
 // Keep old function name for backward compat
 function renderStockReport(){ renderStockHistory(); }
+
+/* 🗑 Stock history entry delete — stock wapas pehle jaisa ho jata hai */
+function deleteStockTxn(id){
+  const t = STXN.find(x=>String(x.id)===String(id));
+  if(!t){ toast('Entry nahi mili!'); return; }
+  if(t.source && t.source!=='manual'){
+    toast(t.source==='gsheet' ? 'Google Form wali entry yahan se delete nahi hoti' : 'Yeh entry Inward/Outward list se delete karo');
+    return;
+  }
+  const mat = STK.find(m=>m.id===t.itemId);
+  const qty = +t.qty||0;
+  const isIn = t.type==='in';
+  let msg, after = null;
+  if(mat){
+    const cur = +mat.current||0;
+    const raw = +(cur + (isIn ? -qty : qty)).toFixed(4);
+    after = Math.max(0, raw);
+    msg = `Is entry ko delete karein?\n\n${mat.name}: ${isIn?'+':'-'}${qty} ${mat.unit}${t.note?'\n('+t.note+')':''}\n\nStock: ${cur} → ${after} ${mat.unit}`;
+    if(raw<0) msg += `\n\n⚠️ Itna stock abhi hai hi nahi (baad me use ho chuka) — stock 0 ho jayega.`;
+  } else {
+    msg = 'Is entry ko delete karein?';
+  }
+  if(/🏭/.test(t.note||'')) msg += '\n\nℹ️ Yeh Manufacture se bani entry hai — sirf yahi ek line reverse hogi.';
+  if(!confirm(msg)) return;
+  if(mat){ mat.current = after; }
+  STXN = STXN.filter(x=>x!==t);
+  save('bf9_stk', STK);
+  save('bf9_stxn', STXN);
+  if(typeof renderStock==='function') renderStock();
+  renderStockHistory();
+  toast(mat ? `🗑 Delete ho gayi — ${mat.name} ka stock ${after} ${mat.unit} ho gaya` : '🗑 Entry delete ho gayi');
+}
 
 
 function openStkEditModal(id){
@@ -7586,7 +7622,7 @@ function confirmStock(){
   const it=STK.find(i=>i.id===stkCtx.id); if(!it) return;
   if(stkCtx.type==='in') it.current=+((it.current||0)+qty).toFixed(4);
   else{ if(qty>it.current){ toast('Stock se zyada use nahi ho sakta!'); return; } it.current=+(it.current-qty).toFixed(4); }
-  STXN.push({id:Date.now(),itemId:it.id,type:stkCtx.type,qty,note,date:new Date().toISOString()});
+  STXN.push({id:Date.now(),itemId:it.id,type:stkCtx.type,qty,note,date:new Date().toISOString(),source:'manual'});
   if(STXN.length>500) STXN=STXN.slice(-500);
   save('bf9_stk',STK); save('bf9_stxn',STXN);
   closeStockModal(); renderStock();
