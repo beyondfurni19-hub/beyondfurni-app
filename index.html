@@ -14485,15 +14485,16 @@ function _attMonthStats(key){
         pct:tot?Math.round((w.onduty||0)/tot*100):0,
         rate:s.rate||0, type:s.type,
         adv:(s.advanceAmt||0)+(s.extraDeduct||0),
+        dbAdv:s.dbAdvanceAmt||0,
         net:s.netSalary||0,
         gross:Math.max(0,(s.netSalary||0)+(s.advanceAmt||0)+(s.extraDeduct||0)-(s.pendingSalAmt||0)),
       };
     });
   } finally { _attPeriod=prev; }
-  const t={workers:rows.length,present:0,absent:0,late:0,otHrs:0,adv:0,net:0,gross:0,noRate:0};
+  const t={workers:rows.length,present:0,absent:0,late:0,otHrs:0,adv:0,dbAdv:0,net:0,gross:0,noRate:0};
   rows.forEach(r=>{
     t.present+=r.present; t.absent+=r.absent; t.late+=r.late; t.otHrs+=r.otHrs;
-    t.adv+=r.adv; t.net+=r.net; t.gross+=r.gross; if(!r.rate) t.noRate++;
+    t.adv+=r.adv; t.dbAdv+=r.dbAdv; t.net+=r.net; t.gross+=r.gross; if(!r.rate) t.noRate++;
   });
   t.otHrs=+t.otHrs.toFixed(1);
   t.pct=(t.present+t.absent)?Math.round(t.present/(t.present+t.absent)*100):0;
@@ -14518,7 +14519,7 @@ function renderAttDashboard(){
       <div style="font-family:'Bebas Neue';font-size:40px;line-height:1.1;margin-top:2px">${fm(t.net)}</div>
       <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:11px;color:#7a9bcc">
         <span>Salary earned: <b style="color:#fff">${fm(t.gross)}</b></span>
-        <span>Advance / Deduction: <b style="color:#fff">− ${fm(t.adv)}</b></span>
+        <span>Advance / Deduction: <b style="color:#fff">− ${fm(t.adv)}</b>${t.dbAdv?` <span style="opacity:.8">(Daybook se ${fm(t.dbAdv)})</span>`:''}</span>
         <span>Workers: <b style="color:#fff">${t.workers}</b></span>
       </div>
     </div>`;
@@ -14560,6 +14561,9 @@ function renderAttDashboard(){
         <tfoot><tr><td>TOTAL</td><td>${t.present}</td><td>${t.absent}</td><td>${t.late}</td><td>${t.otHrs}</td><td>${t.pct}%</td><td>${fm(t.gross)}</td><td>${t.adv?'− '+fm(t.adv):'—'}</td><td>${fm(t.net)}</td></tr></tfoot>
       </table></div>
     </div>`;
+
+  // 3b) Daybook labour entries jo kisi worker se match nahi hui
+  html+=_renderAttUnmatched(_attPeriod);
 
   // 4) Month-wise table
   const maxNet=Math.max(1,...all.map(m=>m.st.total.net));
@@ -14991,7 +14995,7 @@ function renderAttWorkerDetail(w){
             <span style="color:#4ade80;font-weight:700">+₹${_fmtAmt(sal.otEarned)}</span>
           </div>`:''}
           ${sal.advanceAmt?`<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0">
-            <span style="color:#f87171">Advance (${getAdvances(w.empId).filter(a=>a.type==='advance').length} entries)</span>
+            <span style="color:#f87171">Advance (${getAdvances(w.empId).filter(a=>a.type==='advance').length + _attDbEntriesFor(w).filter(e=>!e.attSkip).length} entries)</span>
             <span style="color:#f87171;font-weight:700">-₹${_fmtAmt(sal.advanceAmt)}</span>
           </div>`:''}
           ${sal.extraDeduct?`<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0">
@@ -15015,6 +15019,7 @@ function renderAttWorkerDetail(w){
           <button onclick="openAdvanceForm('${esc(w.empId)}','${esc(w.name)}')"
             style="padding:5px 12px;background:var(--orange);color:#fff;border:none;border-radius:var(--r3);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">+ Add</button>
         </div>
+        ${_renderDbAdvList(w)}
         <div id="adv-list-${w.empId}">
           ${_renderAdvanceList(w.empId,w.name)}
         </div>
@@ -15241,6 +15246,178 @@ function toggleHalfDay(workerName, dayNum){
   toast(d.halfDay?'½ Half day mark ho gaya':'Full day ho gaya');
 }
 
+/* ═══ Daybook → Attendance: labour advance (live link) ═══
+   Daybook ki "Labour / Majdoori" (category 'labour') entries, jinki date
+   attendance period ke andar hai, worker ke naam (supplier/note) se match hoti hain
+   aur uske advance mein judti hain. Edit/Delete seedha Daybook entry pe hota hai.
+   Extra fields on daybook entry:  labEmp (manual worker assign),  attSkip (count mat karo) */
+function _attNorm(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9\u0900-\u097f ]+/g,' ').replace(/\s+/g,' ').trim(); }
+
+function _attPeriodRange(key){
+  const raw=String((ATT_DATA[key]&&ATT_DATA[key].period)||key||'');
+  let m=raw.match(/(\d{4})-(\d{2})-(\d{2})\s*[~–—]\s*(\d{4})-(\d{2})-(\d{2})/);
+  if(m) return {from:`${m[1]}-${m[2]}-${m[3]}`, to:`${m[4]}-${m[5]}-${m[6]}`};
+  m=raw.match(/^(\d{4})-(\d{2})$/);
+  if(m){ const last=new Date(+m[1],+m[2],0).getDate(); return {from:`${m[1]}-${m[2]}-01`, to:`${m[1]}-${m[2]}-${String(last).padStart(2,'0')}`}; }
+  return null;
+}
+
+function _attMatchWorker(e, workers){
+  if(e.labEmp){ const w=workers.find(x=>String(x.empId)===String(e.labEmp)); if(w) return w; }
+  const names=workers.map(w=>({w,n:_attNorm(w.name)})).filter(x=>x.n);
+  const find=txt=>{
+    const t=_attNorm(txt); if(!t) return null;
+    const exact=names.filter(x=>x.n===t); if(exact.length===1) return exact[0].w;
+    const pad=' '+t+' ';
+    const hit=names.filter(x=>pad.includes(' '+x.n+' '));
+    return hit.length===1 ? hit[0].w : null;
+  };
+  return find(e.supplier)||find(e.note)||null;
+}
+
+function _attDbLabourEntries(key){
+  const r=_attPeriodRange(key); if(!r) return [];
+  return (typeof DAYBOOK!=='undefined'?DAYBOOK:[])
+    .filter(e=>e.type==='expense'&&e.category==='labour'&&e.date>=r.from&&e.date<=r.to)
+    .sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+}
+function _attDbEntriesFor(w, key){
+  const k=key||_attPeriod; const data=ATT_DATA[k]; if(!data) return [];
+  return _attDbLabourEntries(k).filter(e=>{
+    const m=_attMatchWorker(e,data.workers);
+    return m && m.name===w.name && String(m.empId)===String(w.empId);
+  });
+}
+function _attDbAdvTotal(w){
+  return _attDbEntriesFor(w).filter(e=>!e.attSkip).reduce((t,e)=>t+(Number(e.amount)||0),0);
+}
+function _attDbCanEdit(){
+  if(typeof _tabLevel==='function' && _tabLevel('daybook')==='read'){ toast('👁️ Daybook read-only hai — edit/delete allowed nahi'); return false; }
+  return true;
+}
+function _attDbSaveRefresh(){
+  save('bf9_daybook', DAYBOOK);
+  if(typeof renderDaybook==='function') { try{ renderDaybook(); }catch(_){} }
+  renderAttSummary();
+}
+
+function _renderDbAdvList(w){
+  const list=_attDbEntriesFor(w);
+  if(!list.length) return '';
+  const total=list.filter(e=>!e.attSkip).reduce((t,e)=>t+(Number(e.amount)||0),0);
+  return `<div style="margin-bottom:8px;padding:8px 10px;background:#f0f7ff;border:1px solid #bfdbfe;border-radius:var(--r3)">
+    <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:800;color:var(--navy2);margin-bottom:2px">
+      <span>📔 Daybook se (auto) — ${list.length} entry</span><span style="color:var(--red)">−₹${_fmtAmt(total)}</span></div>
+    ${list.map(e=>`
+      <div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-top:1px solid #dbeafe;${e.attSkip?'opacity:.55':''}">
+        <div style="flex:1">
+          <div style="font-size:11px;font-weight:800;color:var(--red);${e.attSkip?'text-decoration:line-through':''}">💸 Advance — ₹${_fmtAmt(e.amount)}${e.attSkip?' <span style="font-size:9px;background:#e5e7eb;color:#374151;padding:1px 6px;border-radius:20px;font-weight:800;text-decoration:none;display:inline-block">count nahi</span>':''}</div>
+          <div style="font-size:10px;color:var(--muted)">${_fmtDate(e.date)} · ${esc(e.mode||'cash')}${e.note?' · '+esc(e.note):''}</div>
+        </div>
+        <button onclick="_attDbEdit('${e.id}')" title="Edit" style="width:26px;height:26px;border-radius:50%;border:none;background:#dbeafe;color:var(--navy2);cursor:pointer;font-size:12px;flex-shrink:0">✏️</button>
+        <button onclick="_attDbDelete('${e.id}')" title="Delete" style="width:26px;height:26px;border-radius:50%;border:none;background:var(--red-bg);color:var(--red-dark);cursor:pointer;font-size:11px;flex-shrink:0">✕</button>
+      </div>`).join('')}
+  </div>`;
+}
+
+function _renderAttUnmatched(key){
+  const data=ATT_DATA[key]; if(!data) return '';
+  const list=_attDbLabourEntries(key).filter(e=>!_attMatchWorker(e,data.workers));
+  if(!list.length) return '';
+  const opts=data.workers.map(w=>`<option value="${esc(String(w.empId))}">${esc(w.name)}</option>`).join('');
+  const active=list.filter(e=>!e.attSkip).length;
+  return `<details class="card" style="margin-bottom:12px" ${active?'open':''}>
+    <summary style="cursor:pointer;font-size:12px;font-weight:900;color:var(--navy2)">📔 Daybook labour entries — worker match nahi hua (${list.length})</summary>
+    <div style="font-size:10px;color:var(--muted);margin:6px 0 4px">Daybook ki “Labour / Majdoori” ki yeh entries kisi worker ke naam se match nahi hui. Worker chuno toh uski advance mein judegi. Advance nahi hai toh “Ignore” dabao.</div>
+    ${list.map(e=>`
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:7px 0;border-top:1px solid var(--border);${e.attSkip?'opacity:.5':''}">
+        <div style="flex:1;min-width:150px">
+          <div style="font-size:12px;font-weight:800;color:var(--red)">₹${_fmtAmt(e.amount)}</div>
+          <div style="font-size:10px;color:var(--muted)">${_fmtDate(e.date)}${e.supplier?' · '+esc(e.supplier):''}${e.note?' · '+esc(e.note):''}</div>
+        </div>
+        <select class="finp" style="width:130px;padding:5px 6px;font-size:11px" onchange="_attDbAssign('${e.id}',this.value)">
+          <option value="">Worker chuno…</option>${opts}
+        </select>
+        <button onclick="_attDbToggleSkip('${e.id}')" style="padding:5px 9px;border-radius:var(--r3);border:1px solid var(--border);background:var(--card);color:var(--muted);font-size:10px;font-weight:800;cursor:pointer">${e.attSkip?'↩ Restore':'Ignore'}</button>
+        <button onclick="_attDbDelete('${e.id}')" title="Delete" style="width:26px;height:26px;border-radius:50%;border:none;background:var(--red-bg);color:var(--red-dark);cursor:pointer;font-size:11px">✕</button>
+      </div>`).join('')}
+  </details>`;
+}
+
+function _attDbAssign(id, empId){
+  if(!empId||!_attDbCanEdit()) { renderAttSummary(); return; }
+  const e=DAYBOOK.find(x=>x.id===id); if(!e) return;
+  e.labEmp=empId; e.attSkip=false;
+  _attDbSaveRefresh();
+  toast('✅ Entry worker ke advance mein jud gayi');
+}
+function _attDbToggleSkip(id){
+  if(!_attDbCanEdit()) return;
+  const e=DAYBOOK.find(x=>x.id===id); if(!e) return;
+  e.attSkip=!e.attSkip;
+  _attDbSaveRefresh();
+  toast(e.attSkip?'Entry salary mein count nahi hogi':'Entry wapas count hogi');
+}
+function _attDbDelete(id){
+  if(!_attDbCanEdit()) return;
+  const e=DAYBOOK.find(x=>x.id===id); if(!e) return;
+  if(!confirm(`Yeh Daybook entry delete hogi (Daybook se bhi hat jayegi):\n\n${_fmtDate(e.date)} — ₹${_fmtAmt(e.amount)}${e.note?'\n'+e.note:''}\n\nPakka delete karna hai?`)) return;
+  _dbDeleteLinked(id);
+  renderAttSummary();
+  toast('🗑 Daybook entry delete ho gayi');
+}
+function _attDbEdit(id){
+  if(!_attDbCanEdit()) return;
+  const e=DAYBOOK.find(x=>x.id===id); if(!e) return;
+  const data=ATT_DATA[_attPeriod]; if(!data) return;
+  const cur=_attMatchWorker(e,data.workers);
+  document.getElementById('att-dbedit-panel')?.remove();
+  const panel=document.createElement('div');
+  panel.id='att-dbedit-panel';
+  panel.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;display:flex;align-items:center;justify-content:center;padding:16px';
+  panel.innerHTML=`
+    <div style="background:#fff;border-radius:var(--r);max-width:380px;width:100%;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-size:15px;font-weight:900;color:var(--navy2)">✏️ Daybook Entry Edit</div>
+        <button onclick="document.getElementById('att-dbedit-panel').remove()" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:#f0f4ff;cursor:pointer">✕</button>
+      </div>
+      <div class="g2">
+        <div class="fg" style="margin:0"><label>Amount ₹</label>
+          <input class="finp" type="number" id="adbe-amt" value="${Number(e.amount)||''}"></div>
+        <div class="fg" style="margin:0"><label>Date</label>
+          <input class="finp" type="date" id="adbe-date" value="${esc(e.date||'')}"></div>
+      </div>
+      <div class="fg"><label>Worker</label>
+        <select class="finp" id="adbe-emp">
+          ${data.workers.map(w=>`<option value="${esc(String(w.empId))}" ${cur&&cur.name===w.name&&String(cur.empId)===String(w.empId)?'selected':''}>${esc(w.name)}</option>`).join('')}
+        </select></div>
+      <div class="fg"><label>Note</label>
+        <input class="finp" id="adbe-note" value="${esc(e.note||'')}" placeholder="Advance reason, details..."></div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:12px;cursor:pointer">
+        <input type="checkbox" id="adbe-skip" ${e.attSkip?'checked':''}> Is mahine ki salary mein count mat karo (advance nahi hai)
+      </label>
+      <button onclick="_attDbEditSave('${e.id}')" style="width:100%;padding:11px;background:var(--orange);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">💾 Save (Daybook bhi update hoga)</button>
+    </div>`;
+  document.body.appendChild(panel);
+}
+function _attDbEditSave(id){
+  const idx=DAYBOOK.findIndex(x=>x.id===id); if(idx<0) return;
+  const amt=parseFloat(document.getElementById('adbe-amt').value)||0;
+  const date=document.getElementById('adbe-date').value;
+  if(amt<=0){ toast('⚠️ Amount daalo!'); return; }
+  if(!date){ toast('⚠️ Date daalo!'); return; }
+  DAYBOOK[idx]={...DAYBOOK[idx],
+    amount:amt, date,
+    note:document.getElementById('adbe-note').value.trim(),
+    labEmp:document.getElementById('adbe-emp').value,
+    attSkip:document.getElementById('adbe-skip').checked};
+  _dbSyncLedger(DAYBOOK[idx]);
+  document.getElementById('att-dbedit-panel')?.remove();
+  _attDbSaveRefresh();
+  const r=_attPeriodRange(_attPeriod);
+  toast(r&&(date<r.from||date>r.to) ? '✅ Save hua — par date is mahine ke bahar hai, isliye yahan se hat gayi' : '✅ Entry update ho gayi (Daybook bhi)');
+}
+
 function _calcSalary(w){
   const rules    = _salaryRules;
   const config   = _getWorkerSalConfig(w.empId);
@@ -15332,10 +15509,14 @@ function _calcSalary(w){
   netSalary=Math.max(0,netSalary-lateDeduct) + (otAlreadyInEarned ? 0 : otEarned);
 
   // Advance / extra deductions
-  const advanceAmt    = _totalAdvances(w.empId);
+  const advanceManual = _totalAdvances(w.empId);
+  const dbAdvanceAmt  = _attDbAdvTotal(w);          // Daybook (Labour) se auto advance
+  const advanceAmt    = advanceManual + dbAdvanceAmt;
   const extraDeduct   = _totalDeductions(w.empId);
   const pendingSalAmt = _totalPendingSalary(w.empId);
-  netSalary = Math.max(0, netSalary + pendingSalAmt - advanceAmt - extraDeduct);
+  const _netBase      = netSalary + pendingSalAmt - extraDeduct;
+  netSalary = Math.max(0, _netBase - advanceAmt);
+  const netExDaybook  = Math.max(0, _netBase - advanceManual); // CFO ke liye (pehle jaisa)
 
   return {
     rate, type,
@@ -15344,7 +15525,7 @@ function _calcSalary(w){
     totalWorkedHours, earned,
     absentDeduct, halfDayDeduct, lateDeduct,
     totalOTMin, totalOTHours, otRate, otEarned,
-    advanceAmt, extraDeduct, pendingSalAmt, netSalary,
+    advanceAmt, dbAdvanceAmt, extraDeduct, pendingSalAmt, netSalary, netExDaybook,
   };
 }
 
@@ -15526,7 +15707,7 @@ function openAdvanceForm(empId, name){
 
 function _renderAdvanceList(empId, name){
   const entries=getAdvances(empId);
-  if(!entries.length) return '<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px">Koi entry nahi</div>';
+  if(!entries.length) return '<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px">Koi manual entry nahi</div>';
   return entries.map(a=>{
     const isPendingSal = a.type==='pendingsal';
     const isAdvance    = a.type==='advance';
@@ -15555,7 +15736,9 @@ function generateSalarySlip(workerName){
   if(!w){toast('Worker nahi mila!');return;}
   const s=_invSettings;
   const sal=_calcSalary(w);
-  const advances=getAdvances(w.empId);
+  const advances=[...getAdvances(w.empId),
+    ..._attDbEntriesFor(w).filter(e=>!e.attSkip).map(e=>({date:e.date,type:'advance',amt:Number(e.amount)||0,note:'Daybook'+(e.note?' · '+e.note:'')}))
+  ].sort((a,b)=>String(a.date).localeCompare(String(b.date)));
   const period=data.period||_attPeriod;
 
   const advRows=advances.map(a=>`
@@ -19427,7 +19610,7 @@ function _cfoAutoFetch(){
     let totalLabour = 0;
     ATT_DATA[attPeriodKey].workers.forEach(w => {
       const sal = _calcSalary(w);
-      totalLabour += (sal?.netSalary || 0);
+      totalLabour += (sal?.netExDaybook ?? sal?.netSalary ?? 0);
     });
     if(totalLabour > 0) _cfoSetField('labour', Math.round(totalLabour));
   }
