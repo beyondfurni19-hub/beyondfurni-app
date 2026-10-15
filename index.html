@@ -14485,16 +14485,16 @@ function _attMonthStats(key){
         pct:tot?Math.round((w.onduty||0)/tot*100):0,
         rate:s.rate||0, type:s.type,
         adv:(s.advanceAmt||0)+(s.extraDeduct||0),
-        dbAdv:s.dbAdvanceAmt||0,
+        dbAdv:s.dbAdvanceAmt||0, paid:s.dbPaidAmt||0, balance:s.balanceDue||0,
         net:s.netSalary||0,
         gross:Math.max(0,(s.netSalary||0)+(s.advanceAmt||0)+(s.extraDeduct||0)-(s.pendingSalAmt||0)),
       };
     });
   } finally { _attPeriod=prev; }
-  const t={workers:rows.length,present:0,absent:0,late:0,otHrs:0,adv:0,dbAdv:0,net:0,gross:0,noRate:0};
+  const t={workers:rows.length,present:0,absent:0,late:0,otHrs:0,adv:0,dbAdv:0,paid:0,balance:0,net:0,gross:0,noRate:0};
   rows.forEach(r=>{
     t.present+=r.present; t.absent+=r.absent; t.late+=r.late; t.otHrs+=r.otHrs;
-    t.adv+=r.adv; t.dbAdv+=r.dbAdv; t.net+=r.net; t.gross+=r.gross; if(!r.rate) t.noRate++;
+    t.adv+=r.adv; t.dbAdv+=r.dbAdv; t.paid+=r.paid; t.balance+=r.balance; t.net+=r.net; t.gross+=r.gross; if(!r.rate) t.noRate++;
   });
   t.otHrs=+t.otHrs.toFixed(1);
   t.pct=(t.present+t.absent)?Math.round(t.present/(t.present+t.absent)*100):0;
@@ -14520,6 +14520,8 @@ function renderAttDashboard(){
       <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:11px;color:#7a9bcc">
         <span>Salary earned: <b style="color:#fff">${fm(t.gross)}</b></span>
         <span>Advance / Deduction: <b style="color:#fff">− ${fm(t.adv)}</b>${t.dbAdv?` <span style="opacity:.8">(Daybook se ${fm(t.dbAdv)})</span>`:''}</span>
+        <span>Daybook se diya: <b style="color:#fff">${fm(t.paid)}</b></span>
+        <span>Baaki dena: <b style="color:#fff">${fm(t.balance)}</b></span>
         <span>Workers: <b style="color:#fff">${t.workers}</b></span>
       </div>
     </div>`;
@@ -14545,7 +14547,7 @@ function renderAttDashboard(){
       <div class="card-hdr"><div class="card-title">👷 Labour-wise — ${esc(curM.label)}</div>
         <div style="font-size:10px;color:var(--muted);font-weight:700">Row tap karo → detail</div></div>
       <div style="overflow-x:auto"><table class="attd-tbl">
-        <thead><tr><th>Worker</th><th>Present</th><th>Absent</th><th>Late</th><th>OT hrs</th><th>Att %</th><th>Salary</th><th>Adv/Ded</th><th>Net Payable</th></tr></thead>
+        <thead><tr><th>Worker</th><th>Present</th><th>Absent</th><th>Late</th><th>OT hrs</th><th>Att %</th><th>Salary</th><th>Adv/Ded</th><th>Net Payable</th><th>Diya</th><th>Baaki</th></tr></thead>
         <tbody>${cur.rows.map((r,i)=>`
           <tr class="attd-click" onclick="_attOpenWorker(${i})">
             <td style="font-weight:900">${esc(r.name)}${r.rate?'':' <span title="Rate set nahi" style="color:var(--yellow-dark)">⚠️</span>'}</td>
@@ -14557,8 +14559,10 @@ function renderAttDashboard(){
             <td>${fm(r.gross)}</td>
             <td>${r.adv?'− '+fm(r.adv):'—'}</td>
             <td style="font-weight:900;color:var(--navy2)">${fm(r.net)}</td>
+            <td style="color:var(--green-dark)">${r.paid?fm(r.paid):'—'}</td>
+            <td style="color:${r.balance>0?'var(--red)':'var(--green-dark)'}">${r.paid||r.net?fm(r.balance):'—'}</td>
           </tr>`).join('')}</tbody>
-        <tfoot><tr><td>TOTAL</td><td>${t.present}</td><td>${t.absent}</td><td>${t.late}</td><td>${t.otHrs}</td><td>${t.pct}%</td><td>${fm(t.gross)}</td><td>${t.adv?'− '+fm(t.adv):'—'}</td><td>${fm(t.net)}</td></tr></tfoot>
+        <tfoot><tr><td>TOTAL</td><td>${t.present}</td><td>${t.absent}</td><td>${t.late}</td><td>${t.otHrs}</td><td>${t.pct}%</td><td>${fm(t.gross)}</td><td>${t.adv?'− '+fm(t.adv):'—'}</td><td>${fm(t.net)}</td><td>${fm(t.paid)}</td><td>${fm(t.balance)}</td></tr></tfoot>
       </table></div>
     </div>`;
 
@@ -14996,7 +15000,7 @@ function renderAttWorkerDetail(w){
             <span style="color:#4ade80;font-weight:700">+₹${_fmtAmt(sal.otEarned)}</span>
           </div>`:''}
           ${sal.advanceAmt?`<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0">
-            <span style="color:#f87171">Advance (${getAdvances(w.empId).filter(a=>a.type==='advance').length + _attDbEntriesFor(w).filter(e=>!e.attSkip).length} entries)</span>
+            <span style="color:#f87171">Advance (${getAdvances(w.empId).filter(a=>a.type==='advance').length + _attAllocFor(w).adv.length} entries)</span>
             <span style="color:#f87171;font-weight:700">-₹${_fmtAmt(sal.advanceAmt)}</span>
           </div>`:''}
           ${sal.extraDeduct?`<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0">
@@ -15289,16 +15293,78 @@ function _attDbHiddenEntries(key){
     .filter(e=>e.type==='expense'&&e.category==='labour'&&e.date>=r.from&&e.date<=r.to&&e.attHide)
     .sort((a,b)=>String(a.date).localeCompare(String(b.date)));
 }
-function _attDbEntriesFor(w, key){
-  const k=key||_attPeriod; const data=ATT_DATA[k]; if(!data) return [];
-  return _attDbLabourEntries(k).filter(e=>{
-    const m=_attMatchWorker(e,data.workers);
-    return m && m.name===w.name && String(m.empId)===String(w.empId);
-  });
+
+/* ── Allocation: Daybook labour payment kis mahine ki salary mein jaye ──
+   Rule (auto):
+   1) Entry ki date se pehle jo mahine khatam ho chuke hain unka baaki pehle chukaya jata hai (purana pehle).
+   2) Jo bacha wo us mahine ka advance hai jis mahine ki date hai.
+   Manual override: entry edit mein "Kis mahine ki salary ke liye" (attFor). */
+let _attAllocBusy=false;
+
+function _attAllWorkers(){
+  const seen={}, out=[];
+  Object.values(ATT_DATA).forEach(d=>(d.workers||[]).forEach(w=>{
+    const k=String(w.empId)+'|'+w.name;
+    if(!seen[k]){ seen[k]=1; out.push({name:w.name,empId:w.empId}); }
+  }));
+  return out;
 }
-function _attDbAdvTotal(w){
-  return _attDbEntriesFor(w).filter(e=>!e.attSkip).reduce((t,e)=>t+(Number(e.amount)||0),0);
+function _attSameWorker(m,w){ return !!m && m.name===w.name && String(m.empId)===String(w.empId); }
+
+function _attWorkerEntries(w){
+  const all=_attAllWorkers();
+  return (typeof DAYBOOK!=='undefined'?DAYBOOK:[])
+    .filter(e=>e.type==='expense'&&e.category==='labour'&&!e.attHide&&!e.attSkip&&_attSameWorker(_attMatchWorker(e,all),w))
+    .sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.id).localeCompare(String(b.id)));
 }
+
+function _attAllocCompute(w){
+  const res={byPeriod:{},byEntry:{},outs:{}};
+  const prevPeriod=_attPeriod, prevBusy=_attAllocBusy;
+  _attAllocBusy=true;
+  try{
+    const periods=[];
+    Object.keys(ATT_DATA).sort().forEach(k=>{
+      const r=_attPeriodRange(k); if(!r) return;
+      const wp=(ATT_DATA[k].workers||[]).find(x=>_attSameWorker(x,w)); if(!wp) return;
+      _attPeriod=k;
+      periods.push({key:k,from:r.from,to:r.to,out:_calcSalary(wp).netSalary||0});
+      res.byPeriod[k]={adv:[],settle:[]};
+    });
+    _attWorkerEntries(w).forEach(e=>{
+      let rem=Number(e.amount)||0; if(rem<=0) return;
+      const put=(pr,amt,kind)=>{
+        res.byPeriod[pr.key][kind].push({e,amt});
+        (res.byEntry[e.id]=res.byEntry[e.id]||[]).push({key:pr.key,amt,kind});
+        pr.out-=amt; rem-=amt;
+      };
+      if(e.attFor){
+        const pr=periods.find(x=>x.key===e.attFor);
+        if(pr){ put(pr,rem,e.date<=pr.to?'adv':'settle'); return; }
+      }
+      for(const pr of periods){
+        if(rem<=0) break;
+        if(pr.to<e.date && pr.out>0.5) put(pr,Math.min(rem,pr.out),'settle');
+      }
+      if(rem>0){
+        const q=periods.find(x=>x.from<=e.date&&e.date<=x.to);
+        if(q) put(q,rem,'adv');
+      }
+    });
+    periods.forEach(pr=>{ res.outs[pr.key]=pr.out; });
+  } finally { _attPeriod=prevPeriod; _attAllocBusy=prevBusy; }
+  return res;
+}
+
+function _attAllocFor(w){
+  const A=_attAllocCompute(w);
+  const b=A.byPeriod[_attPeriod]||{adv:[],settle:[]};
+  const sum=a=>a.reduce((t,x)=>t+x.amt,0);
+  const prevList=Object.keys(A.outs).filter(k=>_attPeriod&&k<_attPeriod&&A.outs[k]>0.5)
+    .map(k=>({key:k,label:_attPeriodLabel(k),out:Math.round(A.outs[k])}));
+  return {adv:b.adv,settle:b.settle,advTotal:sum(b.adv),settleTotal:sum(b.settle),byEntry:A.byEntry,prevList};
+}
+function _attDbAdvTotal(w){ return _attAllocBusy ? 0 : _attAllocFor(w).advTotal; }
 function _attDbCanEdit(){
   if(typeof _tabLevel==='function' && _tabLevel('daybook')==='read'){ toast('👁️ Daybook read-only hai — edit/delete allowed nahi'); return false; }
   return true;
@@ -15310,27 +15376,61 @@ function _attDbSaveRefresh(){
 }
 
 function _renderDbAdvList(w){
-  const list=_attDbEntriesFor(w);
-  if(!list.length) return '';
-  const total=list.filter(e=>!e.attSkip).reduce((t,e)=>t+(Number(e.amount)||0),0);
-  return `<div style="margin-bottom:8px;padding:8px 10px;background:#f0f7ff;border:1px solid #bfdbfe;border-radius:var(--r3)">
-    <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:800;color:var(--navy2);margin-bottom:2px">
-      <span>📔 Daybook se (auto) — ${list.length} entry</span><span style="color:var(--red)">−₹${_fmtAmt(total)}</span></div>
-    ${list.map(e=>`
-      <div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-top:1px solid #dbeafe;${e.attSkip?'opacity:.55':''}">
-        <div style="flex:1">
-          <div style="font-size:11px;font-weight:800;color:var(--red);${e.attSkip?'text-decoration:line-through':''}">💸 Advance — ₹${_fmtAmt(e.amount)}${e.attSkip?' <span style="font-size:9px;background:#e5e7eb;color:#374151;padding:1px 6px;border-radius:20px;font-weight:800;text-decoration:none;display:inline-block">count nahi</span>':''}</div>
-          <div style="font-size:10px;color:var(--muted)">${_fmtDate(e.date)} · ${esc(e.mode||'cash')}${e.note?' · '+esc(e.note):''}</div>
-        </div>
+  const al=_attAllocFor(w);
+  const r=_attPeriodRange(_attPeriod);
+  const all=_attAllWorkers();
+  const skipped=_attDbLabourEntries(_attPeriod).filter(e=>e.attSkip&&_attSameWorker(_attMatchWorker(e,all),w));
+  const moved=[];
+  _attWorkerEntries(w).forEach(e=>{
+    if(r&&e.date>=r.from&&e.date<=r.to)
+      (al.byEntry[e.id]||[]).filter(x=>x.key!==_attPeriod).forEach(x=>moved.push({e,x}));
+  });
+  if(!al.adv.length&&!al.settle.length&&!skipped.length&&!moved.length&&!al.prevList.length) return '';
+  const btns=e=>`
         <button onclick="_attDbEdit('${e.id}')" title="Edit" style="width:26px;height:26px;border-radius:50%;border:none;background:#dbeafe;color:var(--navy2);cursor:pointer;font-size:12px;flex-shrink:0">✏️</button>
-        <button onclick="_attDbDelete('${e.id}')" title="Attendance se hatao (Daybook mein rahegi)" style="width:26px;height:26px;border-radius:50%;border:none;background:var(--red-bg);color:var(--red-dark);cursor:pointer;font-size:11px;flex-shrink:0">✕</button>
-      </div>`).join('')}
-  </div>`;
+        <button onclick="_attDbDelete('${e.id}')" title="Attendance se hatao (Daybook mein rahegi)" style="width:26px;height:26px;border-radius:50%;border:none;background:var(--red-bg);color:var(--red-dark);cursor:pointer;font-size:11px;flex-shrink:0">✕</button>`;
+  const part=(e,amt)=>(Number(e.amount)||0)!==amt?` <span style="font-weight:600;color:var(--muted)">(₹${_fmtAmt(e.amount)} mein se)</span>`:'';
+  const row=(e,amt,kind)=>`
+      <div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-top:1px solid #dbeafe">
+        <div style="flex:1">
+          <div style="font-size:11px;font-weight:800;color:${kind==='adv'?'var(--red)':'var(--green-dark)'}">${kind==='adv'?'💸 Advance':'✅ Salary payment'} — ₹${_fmtAmt(amt)}${part(e,amt)}</div>
+          <div style="font-size:10px;color:var(--muted)">${_fmtDate(e.date)} · ${esc(e.mode||'cash')}${e.note?' · '+esc(e.note):''}${e.attFor?' · 📌 manual':''}</div>
+        </div>${btns(e)}
+      </div>`;
+  const sal=_calcSalary(w);
+  let h=`<div style="margin-bottom:8px;padding:8px 10px;background:#f0f7ff;border:1px solid #bfdbfe;border-radius:var(--r3)">
+    <div style="font-size:11px;font-weight:900;color:var(--navy2);margin-bottom:2px">📔 Daybook se (auto)</div>`;
+  if(al.adv.length) h+=`<div style="display:flex;justify-content:space-between;font-size:10px;font-weight:800;color:var(--muted);margin-top:4px"><span>Is mahine ke Advance (salary se minus)</span><span style="color:var(--red)">−₹${_fmtAmt(al.advTotal)}</span></div>`+al.adv.map(x=>row(x.e,x.amt,'adv')).join('');
+  if(al.settle.length) h+=`<div style="display:flex;justify-content:space-between;font-size:10px;font-weight:800;color:var(--muted);margin-top:8px"><span>Is mahine ki salary ka payment (baad mein diya)</span><span style="color:var(--green-dark)">₹${_fmtAmt(al.settleTotal)}</span></div>`+al.settle.map(x=>row(x.e,x.amt,'settle')).join('');
+  if(moved.length) h+=`<div style="font-size:10px;font-weight:800;color:var(--muted);margin-top:8px">Is mahine mein diye, par pichle mahine ki salary mein gaye</div>`+moved.map(({e,x})=>`
+      <div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-top:1px solid #dbeafe">
+        <div style="flex:1">
+          <div style="font-size:11px;font-weight:800;color:var(--muted)">↪ ₹${_fmtAmt(x.amt)} → ${esc(_attPeriodLabel(x.key))} ki salary${part(e,x.amt)}</div>
+          <div style="font-size:10px;color:var(--muted)">${_fmtDate(e.date)} · ${esc(e.mode||'cash')}${e.note?' · '+esc(e.note):''}</div>
+        </div>${btns(e)}
+      </div>`).join('');
+  if(skipped.length) h+=`<div style="font-size:10px;font-weight:800;color:var(--muted);margin-top:8px">Count nahi ho rahi</div>`+skipped.map(e=>`
+      <div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-top:1px solid #dbeafe;opacity:.55">
+        <div style="flex:1">
+          <div style="font-size:11px;font-weight:800;text-decoration:line-through">₹${_fmtAmt(e.amount)}</div>
+          <div style="font-size:10px;color:var(--muted)">${_fmtDate(e.date)}${e.note?' · '+esc(e.note):''}</div>
+        </div>${btns(e)}
+      </div>`).join('');
+  if(al.settle.length||al.adv.length){
+    h+=`<div style="display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px dashed #93c5fd;font-size:11px;font-weight:800">
+      <span style="color:var(--navy2)">Net salary ₹${_fmtAmt(sal.netSalary)}</span>
+      <span style="color:var(--green-dark)">Daybook se diya ₹${_fmtAmt(sal.dbPaidAmt)}</span>
+      <span style="color:${sal.balanceDue>0?'var(--red)':'var(--green-dark)'}">${sal.overpaid>0?'Zyada diya ₹'+_fmtAmt(sal.overpaid):'Baaki ₹'+_fmtAmt(sal.balanceDue)}</span>
+    </div>`;
+  }
+  if(al.prevList.length) h+=`<div style="margin-top:6px;padding:6px 8px;background:var(--yellow-bg);border:1px solid var(--yellow);border-radius:var(--r3);font-size:10px;font-weight:800;color:var(--yellow-dark)">⚠️ Pichle mahino ka baaki: ${al.prevList.map(x=>esc(x.label)+' ₹'+_fmtAmt(x.out)).join(', ')} — agla payment pehle ise chukayega</div>`;
+  return h+`</div>`;
 }
 
 function _renderAttUnmatched(key){
   const data=ATT_DATA[key]; if(!data) return '';
-  const list=_attDbLabourEntries(key).filter(e=>!_attMatchWorker(e,data.workers));
+  const _allW=_attAllWorkers();
+  const list=_attDbLabourEntries(key).filter(e=>!_attMatchWorker(e,_allW));
   if(!list.length) return '';
   const opts=data.workers.map(w=>`<option value="${esc(String(w.empId))}">${esc(w.name)}</option>`).join('');
   const active=list.filter(e=>!e.attSkip).length;
@@ -15419,7 +15519,13 @@ function _attDbEdit(id){
       </div>
       <div class="fg"><label>Worker</label>
         <select class="finp" id="adbe-emp">
+          ${cur?'':'<option value="">— worker chuno —</option>'}
           ${data.workers.map(w=>`<option value="${esc(String(w.empId))}" ${cur&&cur.name===w.name&&String(cur.empId)===String(w.empId)?'selected':''}>${esc(w.name)}</option>`).join('')}
+        </select></div>
+      <div class="fg"><label>Kis mahine ki salary ke liye</label>
+        <select class="finp" id="adbe-for">
+          <option value="">Auto — pehle purane mahine ka baaki, phir is mahine ka advance</option>
+          ${_attKeys().map(k=>`<option value="${esc(k)}" ${e.attFor===k?'selected':''}>${esc(_attPeriodLabel(k))}</option>`).join('')}
         </select></div>
       <div class="fg"><label>Note</label>
         <input class="finp" id="adbe-note" value="${esc(e.note||'')}" placeholder="Advance reason, details..."></div>
@@ -15440,12 +15546,12 @@ function _attDbEditSave(id){
     amount:amt, date,
     note:document.getElementById('adbe-note').value.trim(),
     labEmp:document.getElementById('adbe-emp').value,
+    attFor:document.getElementById('adbe-for').value,
     attSkip:document.getElementById('adbe-skip').checked};
   _dbSyncLedger(DAYBOOK[idx]);
   document.getElementById('att-dbedit-panel')?.remove();
   _attDbSaveRefresh();
-  const r=_attPeriodRange(_attPeriod);
-  toast(r&&(date<r.from||date>r.to) ? '✅ Save hua — par date is mahine ke bahar hai, isliye yahan se hat gayi' : '✅ Entry update ho gayi (Daybook bhi)');
+  toast('✅ Entry update ho gayi (Daybook bhi)');
 }
 
 function _calcSalary(w){
@@ -15540,13 +15646,17 @@ function _calcSalary(w){
 
   // Advance / extra deductions
   const advanceManual = _totalAdvances(w.empId);
-  const dbAdvanceAmt  = _attDbAdvTotal(w);          // Daybook (Labour) se auto advance
+  const _al           = _attAllocBusy ? null : _attAllocFor(w);
+  const dbAdvanceAmt  = _al ? _al.advTotal : 0;      // Daybook se auto advance (is mahine ka)
+  const dbPaidAmt     = _al ? _al.settleTotal : 0;   // Daybook se diya (baad mein, is mahine ki salary ka payment)
   const advanceAmt    = advanceManual + dbAdvanceAmt;
   const extraDeduct   = _totalDeductions(w.empId);
   const pendingSalAmt = _totalPendingSalary(w.empId);
   const _netBase      = netSalary + pendingSalAmt - extraDeduct;
   netSalary = Math.max(0, _netBase - advanceAmt);
   const netExDaybook  = Math.max(0, _netBase - advanceManual); // CFO ke liye (pehle jaisa)
+  const balanceDue    = Math.max(0, netSalary - dbPaidAmt);
+  const overpaid      = Math.max(0, dbPaidAmt - netSalary);
 
   return {
     rate, type,
@@ -15555,7 +15665,7 @@ function _calcSalary(w){
     totalWorkedHours, earned,
     absentDeduct, halfDayDeduct, lateDeduct,
     totalOTMin, totalOTHours, otRate, otEarned,
-    advanceAmt, dbAdvanceAmt, extraDeduct, pendingSalAmt, netSalary, netExDaybook,
+    advanceAmt, dbAdvanceAmt, dbPaidAmt, balanceDue, overpaid, extraDeduct, pendingSalAmt, netSalary, netExDaybook,
   };
 }
 
@@ -15767,7 +15877,7 @@ function generateSalarySlip(workerName){
   const s=_invSettings;
   const sal=_calcSalary(w);
   const advances=[...getAdvances(w.empId),
-    ..._attDbEntriesFor(w).filter(e=>!e.attSkip).map(e=>({date:e.date,type:'advance',amt:Number(e.amount)||0,note:'Daybook'+(e.note?' · '+e.note:'')}))
+    ..._attAllocFor(w).adv.map(x=>({date:x.e.date,type:'advance',amt:x.amt,note:'Daybook'+(x.e.note?' · '+x.e.note:'')}))
   ].sort((a,b)=>String(a.date).localeCompare(String(b.date)));
   const period=data.period||_attPeriod;
 
