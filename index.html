@@ -14564,6 +14564,7 @@ function renderAttDashboard(){
 
   // 3b) Daybook labour entries jo kisi worker se match nahi hui
   html+=_renderAttUnmatched(_attPeriod);
+  html+=_renderAttHidden(_attPeriod);
 
   // 4) Month-wise table
   const maxNet=Math.max(1,...all.map(m=>m.st.total.net));
@@ -15278,7 +15279,14 @@ function _attMatchWorker(e, workers){
 function _attDbLabourEntries(key){
   const r=_attPeriodRange(key); if(!r) return [];
   return (typeof DAYBOOK!=='undefined'?DAYBOOK:[])
-    .filter(e=>e.type==='expense'&&e.category==='labour'&&e.date>=r.from&&e.date<=r.to)
+    .filter(e=>e.type==='expense'&&e.category==='labour'&&e.date>=r.from&&e.date<=r.to&&!e.attHide)
+    .sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+}
+// Attendance se hatai gayi entries (Daybook mein jyon ki tyon hain)
+function _attDbHiddenEntries(key){
+  const r=_attPeriodRange(key); if(!r) return [];
+  return (typeof DAYBOOK!=='undefined'?DAYBOOK:[])
+    .filter(e=>e.type==='expense'&&e.category==='labour'&&e.date>=r.from&&e.date<=r.to&&e.attHide)
     .sort((a,b)=>String(a.date).localeCompare(String(b.date)));
 }
 function _attDbEntriesFor(w, key){
@@ -15315,7 +15323,7 @@ function _renderDbAdvList(w){
           <div style="font-size:10px;color:var(--muted)">${_fmtDate(e.date)} · ${esc(e.mode||'cash')}${e.note?' · '+esc(e.note):''}</div>
         </div>
         <button onclick="_attDbEdit('${e.id}')" title="Edit" style="width:26px;height:26px;border-radius:50%;border:none;background:#dbeafe;color:var(--navy2);cursor:pointer;font-size:12px;flex-shrink:0">✏️</button>
-        <button onclick="_attDbDelete('${e.id}')" title="Delete" style="width:26px;height:26px;border-radius:50%;border:none;background:var(--red-bg);color:var(--red-dark);cursor:pointer;font-size:11px;flex-shrink:0">✕</button>
+        <button onclick="_attDbDelete('${e.id}')" title="Attendance se hatao (Daybook mein rahegi)" style="width:26px;height:26px;border-radius:50%;border:none;background:var(--red-bg);color:var(--red-dark);cursor:pointer;font-size:11px;flex-shrink:0">✕</button>
       </div>`).join('')}
   </div>`;
 }
@@ -15328,7 +15336,7 @@ function _renderAttUnmatched(key){
   const active=list.filter(e=>!e.attSkip).length;
   return `<details class="card" style="margin-bottom:12px" ${active?'open':''}>
     <summary style="cursor:pointer;font-size:12px;font-weight:900;color:var(--navy2)">📔 Daybook labour entries — worker match nahi hua (${list.length})</summary>
-    <div style="font-size:10px;color:var(--muted);margin:6px 0 4px">Daybook ki “Labour / Majdoori” ki yeh entries kisi worker ke naam se match nahi hui. Worker chuno toh uski advance mein judegi. Advance nahi hai toh “Ignore” dabao.</div>
+    <div style="font-size:10px;color:var(--muted);margin:6px 0 4px">Daybook ki “Labour / Majdoori” ki yeh entries kisi worker ke naam se match nahi hui. Worker chuno toh uski advance mein judegi. Advance nahi hai toh “Ignore” dabao, ya ✕ se attendance se hata do (Daybook mein rahegi).</div>
     ${list.map(e=>`
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:7px 0;border-top:1px solid var(--border);${e.attSkip?'opacity:.5':''}">
         <div style="flex:1;min-width:150px">
@@ -15339,7 +15347,7 @@ function _renderAttUnmatched(key){
           <option value="">Worker chuno…</option>${opts}
         </select>
         <button onclick="_attDbToggleSkip('${e.id}')" style="padding:5px 9px;border-radius:var(--r3);border:1px solid var(--border);background:var(--card);color:var(--muted);font-size:10px;font-weight:800;cursor:pointer">${e.attSkip?'↩ Restore':'Ignore'}</button>
-        <button onclick="_attDbDelete('${e.id}')" title="Delete" style="width:26px;height:26px;border-radius:50%;border:none;background:var(--red-bg);color:var(--red-dark);cursor:pointer;font-size:11px">✕</button>
+        <button onclick="_attDbDelete('${e.id}')" title="Attendance se hatao (Daybook mein rahegi)" style="width:26px;height:26px;border-radius:50%;border:none;background:var(--red-bg);color:var(--red-dark);cursor:pointer;font-size:11px">✕</button>
       </div>`).join('')}
   </details>`;
 }
@@ -15359,12 +15367,34 @@ function _attDbToggleSkip(id){
   toast(e.attSkip?'Entry salary mein count nahi hogi':'Entry wapas count hogi');
 }
 function _attDbDelete(id){
-  if(!_attDbCanEdit()) return;
   const e=DAYBOOK.find(x=>x.id===id); if(!e) return;
-  if(!confirm(`Yeh Daybook entry delete hogi (Daybook se bhi hat jayegi):\n\n${_fmtDate(e.date)} — ₹${_fmtAmt(e.amount)}${e.note?'\n'+e.note:''}\n\nPakka delete karna hai?`)) return;
-  _dbDeleteLinked(id);
-  renderAttSummary();
-  toast('🗑 Daybook entry delete ho gayi');
+  if(!confirm(`Yeh entry attendance se hata di jayegi:\n\n${_fmtDate(e.date)} — ₹${_fmtAmt(e.amount)}${e.note?'\n'+e.note:''}\n\nDaybook mein entry waisi hi rahegi (koi change nahi). Hatani hai?`)) return;
+  e.attHide=true;
+  _attDbSaveRefresh();
+  toast('Attendance se hata di — Daybook mein safe hai');
+}
+function _attDbRestore(id){
+  const e=DAYBOOK.find(x=>x.id===id); if(!e) return;
+  e.attHide=false;
+  _attDbSaveRefresh();
+  toast('✅ Entry wapas attendance mein aa gayi');
+}
+function _renderAttHidden(key){
+  const data=ATT_DATA[key]; if(!data) return '';
+  const list=_attDbHiddenEntries(key);
+  if(!list.length) return '';
+  return `<details class="card" style="margin-bottom:12px">
+    <summary style="cursor:pointer;font-size:12px;font-weight:900;color:var(--muted)">🗑 Attendance se hatai gayi entries (${list.length})</summary>
+    <div style="font-size:10px;color:var(--muted);margin:6px 0 4px">Yeh entries Daybook mein safe hain, bas attendance mein count nahi hoti. Wapas laane ke liye Restore dabao.</div>
+    ${list.map(e=>{const m=_attMatchWorker(e,data.workers);return `
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--border)">
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:800;color:var(--muted)">₹${_fmtAmt(e.amount)}${m?' · '+esc(m.name):''}</div>
+          <div style="font-size:10px;color:var(--muted)">${_fmtDate(e.date)}${e.supplier?' · '+esc(e.supplier):''}${e.note?' · '+esc(e.note):''}</div>
+        </div>
+        <button onclick="_attDbRestore('${e.id}')" style="padding:5px 10px;border-radius:var(--r3);border:1px solid var(--border);background:var(--card);color:var(--navy2);font-size:11px;font-weight:800;cursor:pointer">↩ Restore</button>
+      </div>`;}).join('')}
+  </details>`;
 }
 function _attDbEdit(id){
   if(!_attDbCanEdit()) return;
