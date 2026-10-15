@@ -1213,6 +1213,15 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
   gap:2px;
 }
 .att-day-hdr{background:transparent;color:var(--muted);font-size:9px;font-weight:800;text-transform:uppercase;min-height:auto;padding:4px;}
+.attd-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.attd-tbl th{font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;text-align:right;padding:8px;border-bottom:2px solid var(--border);white-space:nowrap;}
+.attd-tbl td{padding:9px 8px;text-align:right;border-bottom:1px solid var(--border);font-weight:700;white-space:nowrap;}
+.attd-tbl th:first-child,.attd-tbl td:first-child{text-align:left;}
+.attd-tbl tbody tr.attd-click{cursor:pointer;}
+.attd-tbl tbody tr.attd-click:hover{background:var(--orange-bg);}
+.attd-tbl tr.attd-cur td{background:var(--orange-bg);}
+.attd-tbl tfoot td{font-weight:900;border-top:2px solid var(--border);border-bottom:none;background:rgba(0,0,0,.03);}
+.attd-bar{height:4px;border-radius:3px;background:var(--orange);margin-top:4px;margin-left:auto;}
 .att-day.present{background:var(--green-bg);border:1px solid #bbf7d0;}
 .att-day.absent{background:var(--red-bg);border:1px solid #fca5a5;}
 .att-day.holiday{background:#f0f4ff;border:1px solid var(--border);opacity:.6;}
@@ -3310,14 +3319,23 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
       <div id="att-period-switcher" style="display:flex;gap:6px;flex-wrap:wrap"></div>
     </div>
 
-    <!-- Summary KPIs -->
-    <div id="att-kpis" style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap"></div>
+    <!-- View toggle: Dashboard / Labour Detail -->
+    <div id="att-view-toggle" style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap"></div>
 
-    <!-- Worker tabs -->
-    <div id="att-worker-tabs" style="display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap"></div>
+    <!-- Dashboard (default view) -->
+    <div id="att-dashboard"></div>
 
-    <!-- Worker detail -->
-    <div id="att-worker-detail"></div>
+    <!-- Labour detail view -->
+    <div id="att-detail-wrap" style="display:none">
+      <!-- Summary KPIs -->
+      <div id="att-kpis" style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap"></div>
+
+      <!-- Worker tabs -->
+      <div id="att-worker-tabs" style="display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap"></div>
+
+      <!-- Worker detail -->
+      <div id="att-worker-detail"></div>
+    </div>
   </div>
 </div>
 
@@ -5771,7 +5789,7 @@ function sw(name,btn){
   if(name==='meeting')  renderMeeting();
   if(name==='batch')    renderBatchTab();
   if(name==='invoice')  { renderInvoiceTab(); _updateInvPartyList(); }
-  if(name==='attendance') renderAttendanceTab();
+  if(name==='attendance') { _attView='dashboard'; renderAttendanceTab(); }
   if(name==='daily')    renderBatchSelectCard();
   if(name==='cfo')      renderCFO();
   if(name==='ceo-report') renderCEOReport();
@@ -14386,6 +14404,7 @@ function eodDownloadPDF(){
 let ATT_DATA = load('bf9_att') || {}; // {period: {workers: [{name,id,daily,summary}]}}
 let _attPeriod = null; // current period key
 let _attWorker = null; // current worker name
+let _attView = 'dashboard'; // 'dashboard' | 'detail'
 
 function renderAttendanceTab(){
   // Auto-select last imported period on first load
@@ -14415,16 +14434,184 @@ function renderAttendanceTab(){
         background:${_attPeriod===p?'var(--orange-bg)':'var(--card)'};
         color:${_attPeriod===p?'var(--orange)':'var(--muted)'};
         font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">
-        ${ATT_DATA[p].period||p}
+        ${_attPeriodLabel(p)}
       </button>`).join('');
   }
 
   renderAttSummary();
 }
 
+/* ── Period label: "2026-09-01 ~ 2026-09-30" → "Sep 2026" ── */
+const _ATT_MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function _attPeriodLabel(key){
+  const raw=String((ATT_DATA[key]&&ATT_DATA[key].period)||key||'');
+  const m=raw.match(/(\d{4})-(\d{1,2})(?:-(\d{1,2}))?(?:\s*[~–—]\s*(\d{4})-(\d{1,2})(?:-(\d{1,2}))?)?/);
+  if(!m) return raw;
+  const y1=+m[1], mo1=+m[2], d1=m[3]?+m[3]:null;
+  const y2=m[4]?+m[4]:y1, mo2=m[5]?+m[5]:mo1, d2=m[6]?+m[6]:null;
+  if(mo1<1||mo1>12||mo2<1||mo2>12) return raw;
+  if(y1===y2&&mo1===mo2){
+    const last=new Date(y1,mo1,0).getDate();
+    const full=(d1==null||d1===1)&&(d2==null||d2===last);
+    return full ? `${_ATT_MON[mo1-1]} ${y1}` : `${_ATT_MON[mo1-1]} ${y1} (${d1}–${d2})`;
+  }
+  return `${d1||1} ${_ATT_MON[mo1-1]}${y1!==y2?' '+y1:''} – ${d2||''} ${_ATT_MON[mo2-1]} ${y2}`.replace('–  ','– ');
+}
+
+function _attKeys(){ return Object.keys(ATT_DATA).sort(); }
+function _attSetView(v){ _attView=v; renderAttSummary(); }
+function _attOpenWorker(i){
+  const w=ATT_DATA[_attPeriod]?.workers[i]; if(!w) return;
+  _attWorker=w.name; _attView='detail'; renderAttSummary();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function _attPickMonth(i){ const k=_attKeys()[i]; if(k) _switchAttPeriod(k); }
+
+/* ── Month stats (labour-wise rows + totals) ── */
+function _attMonthStats(key){
+  const data=ATT_DATA[key];
+  if(!data||!data.workers) return null;
+  const prev=_attPeriod;
+  _attPeriod=key; // _calcSalary advances usi period se padhta hai
+  let rows;
+  try{
+    rows=data.workers.map(w=>{
+      const s=_calcSalary(w);
+      const tot=(w.onduty||0)+(w.absent||0);
+      return {
+        name:w.name, empId:w.empId,
+        present:w.onduty||0, absent:w.absent||0, late:w.lateTimes||0,
+        otHrs:s.totalOTHours||0,
+        pct:tot?Math.round((w.onduty||0)/tot*100):0,
+        rate:s.rate||0, type:s.type,
+        adv:(s.advanceAmt||0)+(s.extraDeduct||0),
+        net:s.netSalary||0,
+        gross:Math.max(0,(s.netSalary||0)+(s.advanceAmt||0)+(s.extraDeduct||0)-(s.pendingSalAmt||0)),
+      };
+    });
+  } finally { _attPeriod=prev; }
+  const t={workers:rows.length,present:0,absent:0,late:0,otHrs:0,adv:0,net:0,gross:0,noRate:0};
+  rows.forEach(r=>{
+    t.present+=r.present; t.absent+=r.absent; t.late+=r.late; t.otHrs+=r.otHrs;
+    t.adv+=r.adv; t.net+=r.net; t.gross+=r.gross; if(!r.rate) t.noRate++;
+  });
+  t.otHrs=+t.otHrs.toFixed(1);
+  t.pct=(t.present+t.absent)?Math.round(t.present/(t.present+t.absent)*100):0;
+  return {rows,total:t};
+}
+
+/* ── Attendance Dashboard ── */
+function renderAttDashboard(){
+  const el=document.getElementById('att-dashboard'); if(!el) return;
+  const keys=_attKeys();
+  const all=keys.map((k,i)=>({key:k,idx:i,label:_attPeriodLabel(k),st:_attMonthStats(k)})).filter(m=>m.st);
+  const curM=all.find(m=>m.key===_attPeriod);
+  if(!curM){ el.innerHTML=''; return; }
+  const cur=curM.st, t=cur.total;
+  const fm=n=>'₹'+Math.round(n||0).toLocaleString('en-IN');
+  const pcol=p=>p>=80?'var(--green-dark)':p>=60?'var(--yellow-dark)':'var(--red)';
+
+  // 1) Hero — total labour payment of selected month
+  let html=`
+    <div style="background:linear-gradient(135deg,var(--navy),#1b5d82);border-radius:var(--r2);padding:16px;margin-bottom:10px;color:#fff">
+      <div style="font-size:10px;font-weight:800;color:#7a9bcc;text-transform:uppercase;letter-spacing:.5px">${esc(curM.label)} — Total Labour Payment</div>
+      <div style="font-family:'Bebas Neue';font-size:40px;line-height:1.1;margin-top:2px">${fm(t.net)}</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:11px;color:#7a9bcc">
+        <span>Salary earned: <b style="color:#fff">${fm(t.gross)}</b></span>
+        <span>Advance / Deduction: <b style="color:#fff">− ${fm(t.adv)}</b></span>
+        <span>Workers: <b style="color:#fff">${t.workers}</b></span>
+      </div>
+    </div>`;
+  if(t.noRate>0){
+    html+=`<div style="background:var(--yellow-bg);border:1px solid var(--yellow);border-radius:var(--r2);padding:9px 12px;margin-bottom:10px;font-size:11px;font-weight:700;color:var(--yellow-dark)">
+      ⚠️ ${t.noRate} worker ka salary rate set nahi hai — unka payment ₹0 ginaa gaya hai. “Labour Detail” mein rate daalo.</div>`;
+  }
+
+  // 2) KPIs
+  html+=`
+    <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+      <div class="inv-kpi"><div class="inv-kval">${t.workers}</div><div class="inv-klbl">Workers</div></div>
+      <div class="inv-kpi k-grn"><div class="inv-kval" style="color:var(--green)">${t.present}</div><div class="inv-klbl">Present Days</div></div>
+      <div class="inv-kpi k-red"><div class="inv-kval" style="color:var(--red)">${t.absent}</div><div class="inv-klbl">Absent Days</div></div>
+      <div class="inv-kpi" style="border-color:var(--yellow)"><div class="inv-kval" style="color:var(--yellow-dark)">${t.late}</div><div class="inv-klbl">Late Times</div></div>
+      <div class="inv-kpi"><div class="inv-kval" style="color:${pcol(t.pct)}">${t.pct}%</div><div class="inv-klbl">Avg Attendance</div></div>
+      <div class="inv-kpi"><div class="inv-kval">${t.otHrs}</div><div class="inv-klbl">OT Hours</div></div>
+    </div>`;
+
+  // 3) Labour-wise table (selected month)
+  html+=`
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-hdr"><div class="card-title">👷 Labour-wise — ${esc(curM.label)}</div>
+        <div style="font-size:10px;color:var(--muted);font-weight:700">Row tap karo → detail</div></div>
+      <div style="overflow-x:auto"><table class="attd-tbl">
+        <thead><tr><th>Worker</th><th>Present</th><th>Absent</th><th>Late</th><th>OT hrs</th><th>Att %</th><th>Salary</th><th>Adv/Ded</th><th>Net Payable</th></tr></thead>
+        <tbody>${cur.rows.map((r,i)=>`
+          <tr class="attd-click" onclick="_attOpenWorker(${i})">
+            <td style="font-weight:900">${esc(r.name)}${r.rate?'':' <span title="Rate set nahi" style="color:var(--yellow-dark)">⚠️</span>'}</td>
+            <td style="color:var(--green-dark)">${r.present}</td>
+            <td style="color:var(--red)">${r.absent}</td>
+            <td style="color:var(--yellow-dark)">${r.late}</td>
+            <td>${+r.otHrs.toFixed(1)}</td>
+            <td style="color:${pcol(r.pct)}">${r.pct}%</td>
+            <td>${fm(r.gross)}</td>
+            <td>${r.adv?'− '+fm(r.adv):'—'}</td>
+            <td style="font-weight:900;color:var(--navy2)">${fm(r.net)}</td>
+          </tr>`).join('')}</tbody>
+        <tfoot><tr><td>TOTAL</td><td>${t.present}</td><td>${t.absent}</td><td>${t.late}</td><td>${t.otHrs}</td><td>${t.pct}%</td><td>${fm(t.gross)}</td><td>${t.adv?'− '+fm(t.adv):'—'}</td><td>${fm(t.net)}</td></tr></tfoot>
+      </table></div>
+    </div>`;
+
+  // 4) Month-wise table
+  const maxNet=Math.max(1,...all.map(m=>m.st.total.net));
+  const sumNet=all.reduce((s,m)=>s+m.st.total.net,0);
+  html+=`
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-hdr"><div class="card-title">📅 Month-wise</div>
+        <div style="font-size:10px;color:var(--muted);font-weight:700">Month tap karo → dashboard badlega</div></div>
+      <div style="overflow-x:auto"><table class="attd-tbl">
+        <thead><tr><th>Month</th><th>Workers</th><th>Present</th><th>Absent</th><th>Late</th><th>Att %</th><th style="min-width:120px">Labour Payment</th></tr></thead>
+        <tbody>${all.map(m=>{const x=m.st.total;return `
+          <tr class="attd-click ${m.key===_attPeriod?'attd-cur':''}" onclick="_attPickMonth(${m.idx})">
+            <td style="font-weight:900">${esc(m.label)}</td>
+            <td>${x.workers}</td>
+            <td style="color:var(--green-dark)">${x.present}</td>
+            <td style="color:var(--red)">${x.absent}</td>
+            <td style="color:var(--yellow-dark)">${x.late}</td>
+            <td style="color:${pcol(x.pct)}">${x.pct}%</td>
+            <td style="font-weight:900;color:var(--navy2)">${fm(x.net)}<div class="attd-bar" style="width:${Math.max(3,Math.round(x.net/maxNet*100))}%"></div></td>
+          </tr>`;}).join('')}</tbody>
+        <tfoot><tr><td>TOTAL</td><td colspan="5"></td><td>${fm(sumNet)}</td></tr></tfoot>
+      </table></div>
+    </div>`;
+
+  // 5) Labour × Month payment matrix
+  const wmap={};
+  all.forEach(m=>m.st.rows.forEach(r=>{
+    const id=String(r.empId||r.name);
+    if(!wmap[id]) wmap[id]={name:r.name,vals:{},total:0};
+    wmap[id].vals[m.key]=r.net; wmap[id].total+=r.net;
+  }));
+  const wlist=Object.values(wmap);
+  html+=`
+    <div class="card">
+      <div class="card-hdr"><div class="card-title">💰 Labour × Month — Net Payment</div></div>
+      <div style="overflow-x:auto"><table class="attd-tbl">
+        <thead><tr><th>Worker</th>${all.map(m=>`<th>${esc(m.label)}</th>`).join('')}<th>Total</th></tr></thead>
+        <tbody>${wlist.map(w=>`
+          <tr><td style="font-weight:900">${esc(w.name)}</td>
+          ${all.map(m=>`<td>${w.vals[m.key]!=null?fm(w.vals[m.key]):'—'}</td>`).join('')}
+          <td style="font-weight:900;color:var(--navy2)">${fm(w.total)}</td></tr>`).join('')}</tbody>
+        <tfoot><tr><td>TOTAL</td>${all.map(m=>`<td>${fm(m.st.total.net)}</td>`).join('')}<td>${fm(sumNet)}</td></tr></tfoot>
+      </table></div>
+      <div style="font-size:10px;color:var(--muted);margin-top:8px">Net Payment = salary + overtime − advance/deduction. Salary rate har worker ka ek hi rehta hai (sab mahino ke liye).</div>
+    </div>`;
+
+  el.innerHTML=html;
+}
+
 function deleteAttPeriod(){
   if(!_attPeriod) return;
-  const label=ATT_DATA[_attPeriod]?.period||_attPeriod;
+  const label=_attPeriodLabel(_attPeriod);
   if(!confirm(`"${label}" ka attendance data delete karo?\n\nYeh action undo nahi hoga.`)) return;
   delete ATT_DATA[_attPeriod];
   save('bf9_att',ATT_DATA);
@@ -14613,6 +14800,7 @@ function _parseWithXLSX(ab, filename){
 
   document.getElementById('att-empty').style.display='none';
   document.getElementById('att-content').style.display='block';
+  _attView='dashboard';
   renderAttendanceTab(); // full render with updated period switcher
   toast(`✅ ${workers.length} workers import ho gaye — ${period||key}!`);
 }
@@ -14624,9 +14812,24 @@ function renderAttSummary(){
   const workers=data.workers;
 
   // Update header
-  document.getElementById('att-period-label').textContent=data.period||_attPeriod;
+  document.getElementById('att-period-label').textContent=_attPeriodLabel(_attPeriod);
   const delBtn=document.getElementById('att-delete-btn');
   if(delBtn) delBtn.style.display='block';
+
+  // View toggle (Dashboard / Labour Detail)
+  const tg=document.getElementById('att-view-toggle');
+  if(tg) tg.innerHTML=`
+    <button class="att-worker-tab ${_attView==='dashboard'?'active':''}" onclick="_attSetView('dashboard')">📊 Dashboard</button>
+    <button class="att-worker-tab ${_attView==='detail'?'active':''}" onclick="_attSetView('detail')">👷 Labour Detail</button>`;
+  const dashEl=document.getElementById('att-dashboard');
+  const detEl=document.getElementById('att-detail-wrap');
+  if(_attView==='dashboard'){
+    if(dashEl){ dashEl.style.display='block'; renderAttDashboard(); }
+    if(detEl) detEl.style.display='none';
+    return;
+  }
+  if(dashEl) dashEl.style.display='none';
+  if(detEl) detEl.style.display='block';
 
   // KPIs
   const totalPresent=workers.reduce((s,w)=>s+w.onduty,0);
