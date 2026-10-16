@@ -1222,6 +1222,26 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 .attd-tbl tr.attd-cur td{background:var(--orange-bg);}
 .attd-tbl tfoot td{font-weight:900;border-top:2px solid var(--border);border-bottom:none;background:rgba(0,0,0,.03);}
 .attd-bar{height:4px;border-radius:3px;background:var(--orange);margin-top:4px;margin-left:auto;}
+.cr-sec{font-size:11px;font-weight:900;color:var(--navy2);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 6px;}
+.cr-row{border:1px solid var(--border);border-radius:var(--r3);padding:10px 12px;margin-bottom:8px;background:var(--card);}
+.cr-head{display:flex;align-items:center;gap:10px;}
+.cr-title{font-size:12px;font-weight:800;color:var(--navy2);}
+.cr-hint{font-size:10px;color:var(--muted);margin-top:2px;line-height:1.35;}
+.cr-params{margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);}
+.cr-sw{position:relative;width:42px;height:24px;flex-shrink:0;display:inline-block;}
+.cr-sw input{opacity:0;width:0;height:0;position:absolute;}
+.cr-sw span{position:absolute;inset:0;background:#cbd5e1;border-radius:24px;cursor:pointer;transition:.2s;}
+.cr-sw span:before{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;}
+.cr-sw input:checked + span{background:var(--green);}
+.cr-sw input:checked + span:before{transform:translateX(18px);}
+.cr-days{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;}
+.cr-day{cursor:pointer;}
+.cr-day input{display:none;}
+.cr-day span{display:inline-block;padding:5px 9px;border-radius:20px;border:1.5px solid var(--border);font-size:10px;font-weight:800;color:var(--muted);}
+.cr-day input:checked + span{background:var(--orange);border-color:var(--orange);color:#fff;}
+.cr-chk{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;color:var(--muted);margin-top:8px;cursor:pointer;}
+.cr-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:20px;background:#eaf4fa;font-size:10px;font-weight:800;color:var(--navy2);margin:3px 4px 0 0;}
+.cr-chip b{cursor:pointer;color:var(--red);}
 .att-day.present{background:var(--green-bg);border:1px solid #bbf7d0;}
 .att-day.absent{background:var(--red-bg);border:1px solid #fca5a5;}
 .att-day.holiday{background:#f0f4ff;border:1px solid var(--border);opacity:.6;}
@@ -3287,7 +3307,10 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
       <div style="font-size:20px;font-weight:900;color:var(--navy2)">🕐 Attendance</div>
       <div style="font-size:11px;color:var(--muted);margin-top:2px" id="att-period-label">—</div>
     </div>
-    <div style="display:flex;gap:7px">
+    <div style="display:flex;gap:7px;flex-wrap:wrap">
+      <button onclick="openSalarySettings()" style="padding:9px 14px;background:#fff;color:var(--navy2);border:1.5px solid var(--border);border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">
+        📋 Company Rules
+      </button>
       <button onclick="deleteAttPeriod()" id="att-delete-btn" style="display:none;padding:9px 14px;background:var(--red-bg);color:var(--red-dark);border:1px solid #fca5a5;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">
         🗑 Delete
       </button>
@@ -14477,12 +14500,12 @@ function _attMonthStats(key){
   try{
     rows=data.workers.map(w=>{
       const s=_calcSalary(w);
-      const tot=(w.onduty||0)+(w.absent||0);
+      const tot=(s.presentDays||0)+(s.absentDays||0);
       return {
         name:w.name, empId:w.empId,
-        present:w.onduty||0, absent:w.absent||0, late:w.lateTimes||0,
+        present:s.presentDays||0, absent:s.absentDays||0, late:w.lateTimes||0,
         otHrs:s.totalOTHours||0,
-        pct:tot?Math.round((w.onduty||0)/tot*100):0,
+        pct:tot?Math.round((s.presentDays||0)/tot*100):0,
         rate:s.rate||0, type:s.type,
         adv:(s.advanceAmt||0)+(s.extraDeduct||0),
         dbAdv:s.dbAdvanceAmt||0, paid:s.dbPaidAmt||0, balance:s.balanceDue||0,
@@ -14770,7 +14793,7 @@ function _parseWithXLSX(ab, filename){
         let isLate = false;
         if(timeIn){
           const [h,m] = timeIn.split(':').map(Number);
-          isLate = (h*60+m) > 9*60+10;
+          isLate = (h*60+m) > _crShiftStartMin()+(_salaryRules.lateBufferMin??15);
           onduty++;
         } else {
           absentCount++;
@@ -14841,8 +14864,8 @@ function renderAttSummary(){
   if(detEl) detEl.style.display='block';
 
   // KPIs
-  const totalPresent=workers.reduce((s,w)=>s+w.onduty,0);
-  const totalAbsent=workers.reduce((s,w)=>s+w.absent,0);
+  const totalPresent=workers.reduce((s,w)=>s+_attEffCounts(w).present,0);
+  const totalAbsent=workers.reduce((s,w)=>s+_attEffCounts(w).absent,0);
   const totalLate=workers.reduce((s,w)=>s+w.lateTimes,0);
   document.getElementById('att-kpis').innerHTML=`
     <div class="inv-kpi"><div class="inv-kval">${workers.length}</div><div class="inv-klbl">Workers</div></div>
@@ -14870,7 +14893,9 @@ function renderAttWorkerDetail(w){
 
   const data=ATT_DATA[_attPeriod];
   const wIdx=data.workers.findIndex(x=>x.name===w.name);
-  const pct=Math.round(w.onduty/(w.onduty+w.absent||1)*100);
+  const _ec=_attEffCounts(w);
+  const _effRows=_ec.eff;
+  const pct=Math.round(_ec.present/(_ec.present+_ec.absent||1)*100);
   const days=['SUN','MON','TUE','WED','THU','FRI','SAT'];
 
   // Salary calc
@@ -14893,11 +14918,11 @@ function renderAttWorkerDetail(w){
       <!-- KPI chips -->
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px">
         <div style="text-align:center;padding:8px;background:var(--green-bg);border-radius:var(--r3)">
-          <div style="font-family:'Bebas Neue';font-size:22px;color:var(--green-dark)">${w.onduty}</div>
+          <div style="font-family:'Bebas Neue';font-size:22px;color:var(--green-dark)">${sal.presentDays}</div>
           <div style="font-size:9px;color:var(--muted);font-weight:800">Present</div>
         </div>
         <div style="text-align:center;padding:8px;background:var(--red-bg);border-radius:var(--r3)">
-          <div style="font-family:'Bebas Neue';font-size:22px;color:var(--red-dark)">${w.absent}</div>
+          <div style="font-family:'Bebas Neue';font-size:22px;color:var(--red-dark)">${sal.absentDays}</div>
           <div style="font-size:9px;color:var(--muted);font-weight:800">Absent</div>
         </div>
         <div style="text-align:center;padding:8px;background:var(--yellow-bg);border-radius:var(--r3)">
@@ -14910,11 +14935,12 @@ function renderAttWorkerDetail(w){
         </div>
       </div>
 
+      ${sal.rulesActive&&(sal.offDays||sal.offWorkDays||sal.sandwichedDays)?`<div style="font-size:10px;color:var(--muted);margin:-4px 0 8px">📅 Off / Holiday: ${sal.offDays} din${sal.offWorkDays?' · Off-din pe kaam: '+sal.offWorkDays:''}${sal.sandwichedDays?' · Sandwich absent: '+sal.sandwichedDays:''}</div>`:''}
       <!-- Calendar -->
       <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Monthly Calendar</div>
       <div class="att-calendar">
         ${days.map(d=>`<div class="att-day att-day-hdr">${d}</div>`).join('')}
-        ${_buildAttCalendar(w.daily)}
+        ${_buildAttCalendar(w.daily,_effRows)}
       </div>
 
       <!-- Salary Card -->
@@ -14999,6 +15025,27 @@ function renderAttWorkerDetail(w){
             <span style="color:#4ade80">Overtime (${sal.totalOTHours.toFixed(1)}h × ₹${sal.otRate}/hr)</span>
             <span style="color:#4ade80;font-weight:700">+₹${_fmtAmt(sal.otEarned)}</span>
           </div>`:''}
+          ${sal.offPay?`<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0">
+            <span style="color:#4ade80">Paid off / holiday (${sal.offDays} din)</span>
+            <span style="color:#4ade80;font-weight:700">₹${_fmtAmt(sal.offPay)} (upar earned mein)</span>
+          </div>`:''}
+          ${sal.offWorkExtra?`<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0">
+            <span style="color:#4ade80">Off-din kaam (${sal.offWorkDays} din extra)</span>
+            <span style="color:#4ade80;font-weight:700">+₹${_fmtAmt(sal.offWorkExtra)}</span>
+          </div>`:''}
+          ${sal.bonus?`<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0">
+            <span style="color:#4ade80">Perfect attendance bonus</span>
+            <span style="color:#4ade80;font-weight:700">+₹${_fmtAmt(sal.bonus)}</span>
+          </div>`:''}
+          ${sal.lateCut?`<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0">
+            <span style="color:#f87171">Late rule (${w.lateTimes||0} late)</span>
+            <span style="color:#f87171;font-weight:700">-₹${_fmtAmt(sal.lateCut)}</span>
+          </div>`:''}
+          ${sal.earlyDeduct?`<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0">
+            <span style="color:#f87171">Jaldi jaane (${w.leaveEarlyMin||0} min)</span>
+            <span style="color:#f87171;font-weight:700">-₹${_fmtAmt(sal.earlyDeduct)}</span>
+          </div>`:''}
+          ${sal.advOverLimit?`<div style="font-size:10px;font-weight:800;padding:5px 8px;margin:3px 0;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.5);border-radius:6px;color:#fbbf24">⚠️ Advance limit paar: ₹${_fmtAmt(sal.advanceAmt)} (limit ₹${_fmtAmt(sal.advLimitAmt)})</div>`:''}
           ${sal.advanceAmt?`<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0">
             <span style="color:#f87171">Advance (${getAdvances(w.empId).filter(a=>a.type==='advance').length + _attAllocFor(w).adv.length} entries)</span>
             <span style="color:#f87171;font-weight:700">-₹${_fmtAmt(sal.advanceAmt)}</span>
@@ -15072,9 +15119,16 @@ function renderAttWorkerDetail(w){
               const isLate=d.late;
               const isHalf=d.halfDay&&!isAbsent;
               const isWknd=d.weekend;
-              const stColor=isAbsent?(isWknd?'#aaa':'var(--red)'):isHalf?'var(--navy2)':isLate?'var(--yellow-dark)':'var(--green-dark)';
-              const stBg=isAbsent?(isWknd?'#f5f5f5':'var(--red-bg)'):isHalf?'#f0f4ff':isLate?'var(--yellow-bg)':'var(--green-bg)';
-              const stLabel=isAbsent?(isWknd?'— Day Off':'❌ Absent'):isHalf?'½ Half':isLate?'⚠️ Late':'✅ Present';
+              let stColor=isAbsent?(isWknd?'#aaa':'var(--red)'):isHalf?'var(--navy2)':isLate?'var(--yellow-dark)':'var(--green-dark)';
+              let stBg=isAbsent?(isWknd?'#f5f5f5':'var(--red-bg)'):isHalf?'#f0f4ff':isLate?'var(--yellow-bg)':'var(--green-bg)';
+              let stLabel=isAbsent?(isWknd?'— Day Off':'❌ Absent'):isHalf?'½ Half':isLate?'⚠️ Late':'✅ Present';
+              const _e=_effRows?_effRows[i]:null;
+              if(_e){
+                if(_e.kind==='off'){ stColor='#6b7a99'; stBg='#f1f3f8'; stLabel=_e.isHoliday?'🎉 Holiday':'Weekly Off'; }
+                else if(_e.kind==='absent'){ stColor='var(--red)'; stBg='var(--red-bg)'; stLabel=_e.sandwiched?'Absent (sandwich)':'Absent'; }
+                else if(_e.kind==='offwork'){ stColor='#0e7490'; stBg='#ecfeff'; stLabel='Off-day Work'; }
+                else if(_e.kind==='half'){ stColor='var(--navy2)'; stBg='#f0f4ff'; stLabel='½ Half'; }
+              }
               const otMin=_calcDayOT(d,_salaryRules.shiftEnd||'18:00');
               const otDisplay=otMin>0?`<span style="color:var(--green-dark);font-weight:800;font-size:11px">+${Math.floor(otMin/60)}h${otMin%60?otMin%60+'m':''}</span>`:'<span style="color:var(--muted);font-size:11px">—</span>';
               return `<tr style="border-bottom:1px solid var(--border)" data-day="${d.day}">
@@ -15121,11 +15175,11 @@ function _attTimeEdit(workerName, dayNum, field, val){
   d[field]=val;
 
   // Recalculate status
-  const LATE_BUFFER=_getSalaryRules().lateBufferMin||15;
+  const LATE_BUFFER=_getSalaryRules().lateBufferMin??15;
   if(d.timeIn){
     d.absent=false;
     const [h,m]=d.timeIn.split(':').map(Number);
-    d.late=(h*60+m)>(9*60+LATE_BUFFER);
+    d.late=(h*60+m)>(_crShiftStartMin()+LATE_BUFFER);
   } else {
     d.absent=true;
     d.late=false;
@@ -15168,6 +15222,121 @@ let _salaryRules = load('bf9_sal_rules') || {
   lunchBreakMin:    20,
 };
 let _salaryRates = load('bf9_sal_rates') || {};
+
+/* ═══ Company Rules — sab workers pe common, har rule ON/OFF ═══
+   Saved: _salaryRules.cr   (naye rules default OFF → pehle jaisa hi calculation) */
+const _CR_DAYS=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+function _crDefaults(){ return {
+  shiftStart:'09:00',
+  lateCount:  {on:false, every:3, cutDays:0.5},
+  earlyLeave: {on:false, perMin:0},
+  weeklyOff:  {on:false, days:[0], paidPerday:false},
+  sandwich:   {on:false},
+  holidays:   {on:false, dates:[]},
+  offWork:    {on:false, mult:1.5},
+  autoHalf:   {on:false, hours:4},
+  autoAbsent: {on:false, hours:2},
+  missingOut: {on:false, mode:'full'},
+  ot:         {on:true,  minMin:0, roundMin:0, maxHrs:0},
+  fixBasis:   {on:false, days:30},
+  bonus:      {on:false, amount:0, allowLate:false},
+  roundNet:   {on:false, to:10, mode:'nearest'},
+  advLimit:   {on:false, pct:50},
+}; }
+function _crGet(src){
+  const base=_crDefaults(), sv=((src||_salaryRules)||{}).cr||{};
+  Object.keys(base).forEach(k=>{
+    if(base[k]&&typeof base[k]==='object'&&!Array.isArray(base[k])) base[k]={...base[k],...(sv[k]||{})};
+    else if(sv[k]!==undefined) base[k]=sv[k];
+  });
+  return base;
+}
+function _crShiftStartMin(){
+  const [h,m]=String(_crGet().shiftStart||'09:00').split(':').map(Number);
+  return (h||0)*60+(m||0);
+}
+function _crClassifying(cr){ return !!(cr.weeklyOff.on||cr.holidays.on||cr.sandwich.on||cr.autoHalf.on||cr.autoAbsent.on||cr.missingOut.on); }
+
+function _attPeriodOf(w){
+  for(const k of Object.keys(ATT_DATA)){ if((ATT_DATA[k].workers||[]).indexOf(w)>=0) return k; }
+  return _attPeriod;
+}
+// har din ka weekday + ISO date
+function _attDayMeta(w){
+  const r=_attPeriodRange(_attPeriodOf(w));
+  let y=null,m=null; if(r){ y=+r.from.slice(0,4); m=+r.from.slice(5,7); }
+  let prev=0;
+  return w.daily.map(d=>{
+    let wd=_CR_DAYS.indexOf(String((d.date||'').split(' ')[1]||'').toUpperCase());
+    let iso=null;
+    if(y!==null&&d.day){
+      if(d.day<prev){ m++; if(m>12){ m=1; y++; } }
+      prev=d.day;
+      iso=`${y}-${String(m).padStart(2,'0')}-${String(d.day).padStart(2,'0')}`;
+      if(wd<0) wd=new Date(y,m-1,d.day).getDay();
+    }
+    return {wd,iso};
+  });
+}
+// har din ka effective status: present | half | absent | off | offwork
+function _attDayEff(w){
+  const cr=_crGet(), lunch=(_salaryRules.lunchBreakMin||0);
+  const meta=_attDayMeta(w);
+  const hol=new Set(cr.holidays.on?(cr.holidays.dates||[]):[]);
+  const offDays=cr.weeklyOff.on?(cr.weeklyOff.days||[]):[];
+  const eff=w.daily.map((d,i)=>{
+    const {wd,iso}=meta[i];
+    const isHoliday=!!(iso&&hol.has(iso));
+    const isWeekly=offDays.indexOf(wd)>=0;
+    const isOff=isHoliday||isWeekly;
+    const punched=!!d.timeIn&&!d.absent;
+    let hours=null;
+    if(punched&&d.timeOut){
+      const [ih,im]=d.timeIn.split(':').map(Number),[oh,om]=d.timeOut.split(':').map(Number);
+      hours=Math.max(0,(oh*60+om-ih*60-im-lunch)/60);
+    }
+    let kind;
+    if(!punched) kind=isOff?'off':'absent';
+    else if(isOff) kind='offwork';
+    else {
+      kind='present';
+      if(!d.timeOut){ if(cr.missingOut.on) kind=cr.missingOut.mode==='half'?'half':cr.missingOut.mode==='absent'?'absent':'present'; }
+      else if(cr.autoAbsent.on&&hours<cr.autoAbsent.hours) kind='absent';
+      else if(cr.autoHalf.on&&hours<cr.autoHalf.hours) kind='half';
+      if(kind==='present'&&d.halfDay) kind='half';
+    }
+    return {d,wd,iso,isHoliday,isWeekly,isOff,punched,hours,kind,sandwiched:false};
+  });
+  if(cr.sandwich.on){
+    const n=eff.length;
+    for(let i=0;i<n;i++){
+      if(eff[i].kind!=='off') continue;
+      let a=i-1; while(a>=0&&eff[a].kind==='off') a--;
+      let b=i+1; while(b<n&&eff[b].kind==='off') b++;
+      if(a>=0&&b<n&&eff[a].kind==='absent'&&eff[b].kind==='absent') eff[i].sandwiched=true;
+    }
+    eff.forEach(e=>{ if(e.sandwiched) e.kind='absent'; });
+  }
+  return eff;
+}
+function _attEffCounts(w){
+  const cr=_crGet();
+  if(!_crClassifying(cr)){
+    return {active:false,present:w.onduty||0,absent:w.absent||0,
+      half:w.daily.filter(d=>d.halfDay&&!d.absent&&d.timeIn).length,
+      off:0,offWork:0,offPaid:0,sandwiched:0,eff:null};
+  }
+  const eff=_attDayEff(w);
+  const c={active:true,present:0,absent:0,half:0,off:0,offWork:0,offPaid:0,sandwiched:0,eff};
+  eff.forEach(e=>{
+    if(e.kind==='present') c.present++;
+    else if(e.kind==='half'){ c.present++; c.half++; }
+    else if(e.kind==='offwork'){ c.present++; c.offWork++; }
+    else if(e.kind==='absent'){ c.absent++; if(e.sandwiched) c.sandwiched++; }
+    else if(e.kind==='off'){ c.off++; if(e.isHoliday||cr.weeklyOff.paidPerday) c.offPaid++; }
+  });
+  return c;
+}
 
 function _getSalaryRules(){ return _salaryRules; }
 function _getWorkerSalConfig(empId){ return _salaryRates[empId]||{type:'perday',rate:0}; }
@@ -15214,7 +15383,13 @@ function _calcDayOT(d, shiftEndHHMM='17:30'){
   const [oh,om]=d.timeOut.split(':').map(Number);
   const shiftEndMin=eh*60+em;
   const outMin=oh*60+om;
-  return Math.max(0, outMin-shiftEndMin); // minutes of OT
+  let m=Math.max(0, outMin-shiftEndMin); // minutes of OT
+  const o=_crGet().ot;
+  if(!o.on) return 0;
+  if(o.minMin>0 && m<o.minMin) return 0;
+  if(o.roundMin>0) m=Math.floor(m/o.roundMin)*o.roundMin;
+  if(o.maxHrs>0) m=Math.min(m,o.maxHrs*60);
+  return m;
 }
 
 function _calcWorkerOT(w){
@@ -15564,29 +15739,33 @@ function _calcSalary(w){
   const stdHours = rules.stdHoursPerDay||8;
   const lunchMin = rules.lunchBreakMin||0; // minutes to deduct per day
 
-  const presentDays = w.onduty||0;
-  const halfDays    = w.daily.filter(d=>d.halfDay&&!d.absent&&d.timeIn).length;
+  const cr          = _crGet();
+  const ec          = _attEffCounts(w);
+  const presentDays = ec.present;
+  const halfDays    = ec.half;
   const fullDays    = presentDays - halfDays;
   const totalDays   = w.daily.length;
-  const absentDays  = w.absent||0;
+  const absentDays  = ec.absent;
 
   // Overtime
   let totalOTMin=0;
-  w.daily.forEach(d=>{ totalOTMin+=_calcDayOT(d,shiftEnd); });
+  if(ec.eff) ec.eff.forEach(e=>{ if(e.kind!=='absent'&&e.kind!=='off') totalOTMin+=_calcDayOT(e.d,shiftEnd); });
+  else w.daily.forEach(d=>{ totalOTMin+=_calcDayOT(d,shiftEnd); });
   const totalOTHours=+(totalOTMin/60).toFixed(2);
   const otEarned=Math.round(totalOTHours*otRate);
 
   let netSalary=0, perDay=0, perHour=0;
-  let earned=0, absentDeduct=0, halfDayDeduct=0;
+  let earned=0, absentDeduct=0, halfDayDeduct=0, offWorkExtra=0, offPay=0;
   let totalWorkedHours=0;
 
   if(type==='fix'){
     // Fix salary — deduct absent + half days proportionally
-    perDay        = totalDays>0 ? rate/totalDays : 0;
+    perDay        = totalDays>0 ? rate/(cr.fixBasis.on?(cr.fixBasis.days||30):totalDays) : 0;
     absentDeduct  = Math.round(absentDays*perDay);
     halfDayDeduct = Math.round(halfDays*(perDay/2));
     earned        = rate;
     netSalary     = Math.max(0, rate - absentDeduct - halfDayDeduct);
+    if(cr.offWork.on) offWorkExtra = Math.round(ec.offWork*perDay*(cr.offWork.mult||0));
 
     // Total hours just for display
     w.daily.forEach(d=>{
@@ -15603,8 +15782,12 @@ function _calcSalary(w){
     perHour = rate / stdHours;
     const otPerHour = otRate > 0 ? otRate : perHour; // same rate if 0
 
-    w.daily.forEach(d=>{
-      if(!d.timeIn||d.absent) return;
+    const _items = ec.eff
+      ? ec.eff.map(e=>({d:e.d, half:e.kind==='half', mult:(e.kind==='offwork'&&cr.offWork.on)?(cr.offWork.mult||1):1, skip:(e.kind==='absent'||e.kind==='off')}))
+      : w.daily.map(d=>({d, half:!!d.halfDay, mult:1, skip:(!d.timeIn||d.absent)}));
+    _items.forEach(it=>{
+      if(it.skip) return;
+      const d=it.d;
       let regularHrs=0, otHrs=0;
 
       if(d.timeIn&&d.timeOut){
@@ -15614,18 +15797,21 @@ function _calcSalary(w){
         const inMin=ih*60+im, outMin=oh*60+om, endMin=eh*60+em;
         // Regular: in → shift end minus break
         regularHrs=Math.max(0,(Math.min(outMin,endMin)-inMin-lunchMin)/60);
-        // OT: shift end → time out (no break deduction)
-        otHrs=Math.max(0,(outMin-endMin)/60);
+        // OT: shift end → time out (OT rules ke saath)
+        otHrs=_calcDayOT(d,shiftEnd)/60;
       } else {
         regularHrs=stdHours; // only punch in — full day assumed
       }
 
-      if(d.halfDay){ regularHrs=Math.min(regularHrs,stdHours/2); otHrs=0; }
+      if(it.half){ regularHrs=Math.min(regularHrs,stdHours/2); otHrs=0; }
 
       totalWorkedHours+=regularHrs+otHrs;
       totalOTMin+=Math.round(otHrs*60);
-      earned+=regularHrs*perHour + otHrs*otPerHour;
+      earned+=(regularHrs*perHour + otHrs*otPerHour)*it.mult;
     });
+    // Paid weekly off / holiday (per-day workers)
+    if(ec.active) offPay = ec.offPaid*rate;
+    earned += offPay;
 
     earned    = Math.round(earned);
     netSalary = earned;
@@ -15642,7 +15828,14 @@ function _calcSalary(w){
     lateDeduct=Math.round((w.lateMin||0)*rules.lateDeductPerMin);
 
   // For per-day: OT already in earned. For fix: add OT separately
-  netSalary=Math.max(0,netSalary-lateDeduct) + (otAlreadyInEarned ? 0 : otEarned);
+  // Naye company rules
+  const lateCut = (cr.lateCount.on&&cr.lateCount.every>0)
+    ? Math.round(Math.floor((w.lateTimes||0)/cr.lateCount.every)*(cr.lateCount.cutDays||0)*perDay) : 0;
+  const earlyDeduct = (cr.earlyLeave.on&&type==='fix') ? Math.round((w.leaveEarlyMin||0)*(cr.earlyLeave.perMin||0)) : 0;
+  const bonus = (cr.bonus.on&&presentDays>0&&absentDays===0&&(cr.bonus.allowLate||(w.lateTimes||0)===0)) ? (cr.bonus.amount||0) : 0;
+
+  // For per-day: OT already in earned. For fix: add OT separately
+  netSalary=Math.max(0,netSalary-lateDeduct-lateCut-earlyDeduct) + (otAlreadyInEarned ? 0 : otEarned) + offWorkExtra + bonus;
 
   // Advance / extra deductions
   const advanceManual = _totalAdvances(w.empId);
@@ -15654,6 +15847,12 @@ function _calcSalary(w){
   const pendingSalAmt = _totalPendingSalary(w.empId);
   const _netBase      = netSalary + pendingSalAmt - extraDeduct;
   netSalary = Math.max(0, _netBase - advanceAmt);
+  if(cr.roundNet.on&&cr.roundNet.to>0){
+    const t=cr.roundNet.to;
+    netSalary = cr.roundNet.mode==='down' ? Math.floor(netSalary/t)*t : Math.round(netSalary/t)*t;
+  }
+  const advLimitAmt  = cr.advLimit.on ? Math.round(_netBase*(cr.advLimit.pct||0)/100) : 0;
+  const advOverLimit = cr.advLimit.on && advanceAmt>advLimitAmt;
   const netExDaybook  = Math.max(0, _netBase - advanceManual); // CFO ke liye (pehle jaisa)
   const balanceDue    = Math.max(0, netSalary - dbPaidAmt);
   const overpaid      = Math.max(0, dbPaidAmt - netSalary);
@@ -15663,7 +15862,9 @@ function _calcSalary(w){
     perDay:Math.round(perDay), perHour:+perHour.toFixed(2), stdHours,
     presentDays, fullDays, halfDays, totalDays, absentDays,
     totalWorkedHours, earned,
-    absentDeduct, halfDayDeduct, lateDeduct,
+    absentDeduct, halfDayDeduct, lateDeduct, lateCut, earlyDeduct, bonus, offWorkExtra, offPay,
+    offDays:ec.off, offWorkDays:ec.offWork, sandwichedDays:ec.sandwiched, rulesActive:ec.active,
+    advOverLimit, advLimitAmt,
     totalOTMin, totalOTHours, otRate, otEarned,
     advanceAmt, dbAdvanceAmt, dbPaidAmt, balanceDue, overpaid, extraDeduct, pendingSalAmt, netSalary, netExDaybook,
   };
@@ -15973,6 +16174,11 @@ function generateSalarySlip(workerName){
           `}
           ${sal.otEarned?`<tr><td>Overtime (${sal.totalOTHours.toFixed(1)}h × ₹${sal.otRate}/hr)</td><td style="text-align:right" class="earn">+₹${_fmtAmt(sal.otEarned)}</td></tr>`:''}
           ${sal.lateDeduct?`<tr><td>Late Deduction (${w.lateTimes}× / ${w.lateMin||0} min)</td><td style="text-align:right" class="deduct">-₹${_fmtAmt(sal.lateDeduct)}</td></tr>`:''}
+          ${sal.offPay?`<tr><td>Paid off / holiday (${sal.offDays} din) — earned mein shamil</td><td style="text-align:right">₹${_fmtAmt(sal.offPay)}</td></tr>`:''}
+          ${sal.offWorkExtra?`<tr><td>Off-din kaam (${sal.offWorkDays} din)</td><td style="text-align:right" class="earn">+₹${_fmtAmt(sal.offWorkExtra)}</td></tr>`:''}
+          ${sal.bonus?`<tr><td>Perfect Attendance Bonus</td><td style="text-align:right" class="earn">+₹${_fmtAmt(sal.bonus)}</td></tr>`:''}
+          ${sal.lateCut?`<tr><td>Late Rule Deduction (${w.lateTimes||0} late)</td><td style="text-align:right" class="deduct">-₹${_fmtAmt(sal.lateCut)}</td></tr>`:''}
+          ${sal.earlyDeduct?`<tr><td>Early Leave Deduction (${w.leaveEarlyMin||0} min)</td><td style="text-align:right" class="deduct">-₹${_fmtAmt(sal.earlyDeduct)}</td></tr>`:''}
           ${sal.advanceAmt?`<tr><td>Advance Adjustment</td><td style="text-align:right" class="deduct">-₹${_fmtAmt(sal.advanceAmt)}</td></tr>`:''}
           ${sal.extraDeduct?`<tr><td>Other Deductions</td><td style="text-align:right" class="deduct">-₹${_fmtAmt(sal.extraDeduct)}</td></tr>`:''}
           ${sal.pendingSalAmt?`<tr style="background:#f0fdf4"><td style="color:#166534;font-weight:700">💚 Pending Salary (pichle mahine ka baaki)</td><td style="text-align:right;color:#166534;font-weight:800">+₹${_fmtAmt(sal.pendingSalAmt)}</td></tr>`:''}        </tbody>
@@ -16006,99 +16212,197 @@ function generateSalarySlip(workerName){
   toast(`🖨️ ${workerName} ka salary slip ready!`);
 }
 
-function openSalarySettings(){
-  const rules=_salaryRules;
+/* ── Company Rules panel ── */
+let _crHolDraft=[];
+function _crToggle(el){ const p=el.closest('.cr-row').querySelector('.cr-params'); if(p) p.style.display=el.checked?'block':'none'; }
+function _crRow(id,title,hint,on,params){
+  return `<div class="cr-row">
+    <div class="cr-head">
+      <div style="flex:1"><div class="cr-title">${title}</div>${hint?`<div class="cr-hint">${hint}</div>`:''}</div>
+      <label class="cr-sw"><input type="checkbox" id="cr-${id}-on" ${on?'checked':''} onchange="_crToggle(this)"><span></span></label>
+    </div>
+    ${params?`<div class="cr-params" style="display:${on?'block':'none'}">${params}</div>`:''}
+  </div>`;
+}
+function _crInp(id,label,val,type,extra){
+  return `<div class="fg" style="margin:8px 0 0"><label>${label}</label><input class="finp" type="${type||'number'}" id="cr-${id}" value="${val}" ${extra||''}></div>`;
+}
+function _crHolRender(){
+  const el=document.getElementById('cr-hol-list'); if(!el) return;
+  el.innerHTML=_crHolDraft.length
+    ? _crHolDraft.slice().sort().map(d=>`<span class="cr-chip">${esc(d)} <b onclick="_crHolDel('${d}')">✕</b></span>`).join('')
+    : '<span style="font-size:10px;color:var(--muted)">Abhi koi holiday nahi</span>';
+}
+function _crHolAdd(){
+  const inp=document.getElementById('cr-hol-date'); const v=inp?.value; if(!v) return;
+  if(!_crHolDraft.includes(v)) _crHolDraft.push(v);
+  inp.value=''; _crHolRender();
+}
+function _crHolDel(d){ _crHolDraft=_crHolDraft.filter(x=>x!==d); _crHolRender(); }
+
+// Standard (recommended) rules — panel mein bharte hain, Save dabane par hi lagu hote hain
+function _crStandardPreset(){
+  return {
+    lateBufferMin:15, deductLate:false, lateDeductPerMin:0, shiftEnd:'17:30', otRatePerHour:0, stdHoursPerDay:8, lunchBreakMin:20,
+    cr:{ shiftStart:'09:00',
+      lateCount:{on:true,every:3,cutDays:0.5}, earlyLeave:{on:false,perMin:0},
+      weeklyOff:{on:true,days:[0],paidPerday:true}, sandwich:{on:false}, holidays:{on:false,dates:[]},
+      offWork:{on:true,mult:1.5}, autoHalf:{on:true,hours:4}, autoAbsent:{on:false,hours:2}, missingOut:{on:false,mode:'full'},
+      ot:{on:true,minMin:15,roundMin:15,maxHrs:0}, fixBasis:{on:false,days:30}, bonus:{on:false,amount:0,allowLate:false},
+      roundNet:{on:false,to:10,mode:'nearest'}, advLimit:{on:true,pct:50} }
+  };
+}
+function _crLoadStandard(){
+  if(!confirm('Standard rules panel mein bhar diye jayenge.\n(Save dabane tak lagu nahi honge, tum dekh ke badal sakte ho.)\n\nBharun?')) return;
+  openSalarySettings(_crStandardPreset());
+  toast('⭐ Standard rules bhar diye — dekh lo, phir Save dabao');
+}
+
+function openSalarySettings(ovr){
+  const rules=ovr||_salaryRules, cr=_crGet(rules);
+  _crHolDraft=[...(cr.holidays.dates||[])];
   document.getElementById('sal-rules-panel')?.remove();
   const panel=document.createElement('div');
   panel.id='sal-rules-panel';
-  panel.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;display:flex;align-items:center;justify-content:center;padding:16px';
+  panel.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;display:flex;align-items:center;justify-content:center;padding:12px';
+  const dayChk=[0,1,2,3,4,5,6].map(i=>`<label class="cr-day"><input type="checkbox" id="cr-wo-${i}" ${(cr.weeklyOff.days||[]).includes(i)?'checked':''}><span>${_CR_DAYS[i]}</span></label>`).join('');
+  const sel=(id,val,opts)=>`<div class="fg" style="margin:8px 0 0"><select class="finp" id="cr-${id}">${opts.map(o=>`<option value="${o[0]}" ${o[0]===val?'selected':''}>${o[1]}</option>`).join('')}</select></div>`;
   panel.innerHTML=`
-    <div style="background:#fff;border-radius:var(--r);max-width:400px;width:100%;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:90vh;overflow-y:auto">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <div style="font-size:16px;font-weight:900;color:var(--navy2)">⚙️ Salary Rules</div>
-        <button onclick="document.getElementById('sal-rules-panel').remove()" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:#f0f4ff;cursor:pointer;font-size:16px">✕</button>
+  <div style="background:#fff;border-radius:var(--r);max-width:460px;width:100%;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 8px">
+      <div>
+        <div style="font-size:16px;font-weight:900;color:var(--navy2)">📋 Company Rules</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">Sab workers pe common — har rule ko ON/OFF karo</div>
       </div>
+      <button onclick="document.getElementById('sal-rules-panel').remove()" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:#f0f4ff;cursor:pointer;font-size:16px">✕</button>
+    </div>
+    <div style="overflow-y:auto;padding:0 18px 10px">
 
-      <div class="fg"><label>Standard Hours Per Day</label>
-        <input class="finp" type="number" id="sr-stdhours" value="${rules.stdHoursPerDay||8}" min="1" max="24">
-        <div style="font-size:10px;color:var(--muted);margin-top:3px">Per day workers ke liye — rate ÷ yeh = hourly rate</div>
+      <div class="cr-sec">⏰ Timing</div>
+      <div class="g2">
+        <div class="fg" style="margin:0"><label>Shift start</label><input class="finp" type="time" id="cr-shiftStart" value="${cr.shiftStart||'09:00'}"></div>
+        <div class="fg" style="margin:0"><label>Late grace (min)</label><input class="finp" type="number" id="cr-lateBuf" value="${rules.lateBufferMin??15}"></div>
       </div>
-      <div class="fg"><label>Break Time (minutes per day)</label>
-        <input class="finp" type="number" id="sr-lunch" value="${rules.lunchBreakMin||20}" min="0" max="120">
-        <div style="font-size:10px;color:var(--muted);margin-top:3px">Machine ke hisaab se har din se yeh minutes minus honge (default: 20 min)</div>
+      <div class="g2" style="margin-top:8px">
+        <div class="fg" style="margin:0"><label>Shift end (OT iske baad)</label><input class="finp" type="time" id="cr-shiftEnd" value="${rules.shiftEnd||'17:30'}"></div>
+        <div class="fg" style="margin:0"><label>Break (min / din)</label><input class="finp" type="number" id="cr-lunch" value="${rules.lunchBreakMin??20}"></div>
       </div>
-      <div class="fg"><label>Late Grace Period (minutes)</label>
-        <input class="finp" type="number" id="sr-buffer" value="${rules.lateBufferMin||15}">
-        <div style="font-size:10px;color:var(--muted);margin-top:3px">Iss time tak aaya toh late mark nahi hoga</div>
-      </div>
-      <div class="fg"><label>Shift End Time (Overtime ke liye)</label>
-        <input class="finp" type="time" id="sr-shiftend" value="${rules.shiftEnd||'17:30'}">
-        <div style="font-size:10px;color:var(--muted);margin-top:3px">Iske baad ka time = Overtime</div>
-      </div>
-      <div class="fg"><label>Overtime Rate (₹ per hour)</label>
-        <input class="finp" type="number" id="sr-otrate" value="${rules.otRatePerHour||0}" placeholder="0">
-        <div style="font-size:10px;color:var(--muted);margin-top:3px">0 rakho agar OT calculate nahi karna</div>
-      </div>
-      <div class="fg">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-          <input type="checkbox" id="sr-deductlate" ${rules.deductLate?'checked':''} style="width:16px;height:16px">
-          Late pe salary deduction karo
-        </label>
-      </div>
-      <div class="fg" id="sr-deduct-amt-wrap" style="${rules.deductLate?'':'display:none'}">
-        <label>Deduction per minute late (₹)</label>
-        <input class="finp" type="number" id="sr-deductamt" value="${rules.lateDeductPerMin||0}" placeholder="0" step="0.5">
-      </div>
+      <div class="fg" style="margin:8px 0 0"><label>Standard hours per day</label><input class="finp" type="number" id="cr-stdh" value="${rules.stdHoursPerDay||8}">
+        <div class="cr-hint">Per-day workers: rate ÷ yeh = hourly rate</div></div>
 
-      <button onclick="saveSalaryRules()" style="width:100%;padding:12px;background:var(--green);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;margin-top:8px">💾 Save Rules</button>
-    </div>`;
+      <div class="cr-sec">🕘 Late / Jaldi jaana</div>
+      ${_crRow('lateDed','Late pe per-minute deduction','Jitne minute late, utna paisa kategaa',!!rules.deductLate,
+        _crInp('lateDedAmt','Deduction per minute late (₹)',rules.lateDeductPerMin||0,'number','step="0.5"'))}
+      ${_crRow('lateCount','Late count rule','Mahine mein itni late hone par salary ka din kategaa',cr.lateCount.on,
+        _crInp('lcEvery','Har kitni late pe',cr.lateCount.every)+_crInp('lcDays','Kitne din ki salary kaato (0.5 = aadha din)',cr.lateCount.cutDays,'number','step="0.5"'))}
+      ${_crRow('earlyLeave','Jaldi jaane pe deduction','Sirf Fix salary walon ke liye (per-day walon ka time se hi kat jata hai)',cr.earlyLeave.on,
+        _crInp('elPerMin','Deduction per minute (₹)',cr.earlyLeave.perMin,'number','step="0.5"'))}
 
+      <div class="cr-sec">📅 Off aur Holiday</div>
+      ${_crRow('weeklyOff','Weekly off','In din punch na ho toh absent nahi ginega',cr.weeklyOff.on,
+        `<div class="cr-days">${dayChk}</div><label class="cr-chk"><input type="checkbox" id="cr-wo-paid" ${cr.weeklyOff.paidPerday?'checked':''}> Per-day workers ko off din ka paisa bhi do</label>`)}
+      ${_crRow('sandwich','Sandwich rule','Off/holiday ke pehle aur baad dono din absent ho toh off din bhi absent ginega',cr.sandwich.on,'')}
+      ${_crRow('holidays','Company holidays (paid)','Holiday pe absent nahi ginega, per-day walon ko paisa milega',cr.holidays.on,
+        `<div style="display:flex;gap:6px;margin-top:6px"><input class="finp" type="date" id="cr-hol-date" style="flex:1"><button onclick="_crHolAdd()" style="padding:0 14px;background:var(--orange);color:#fff;border:none;border-radius:var(--r3);font-weight:800;cursor:pointer">+ Add</button></div><div id="cr-hol-list" style="margin-top:4px"></div>`)}
+      ${_crRow('offWork','Off din / holiday pe kaam','Off din ya holiday pe aaye toh extra paisa',cr.offWork.on,
+        _crInp('owMult','Multiplier (1.5 = ek din ka 1.5 guna)',cr.offWork.mult,'number','step="0.25"')+'<div class="cr-hint" style="margin-top:4px">Per-day: us din ka paisa × multiplier. Fix: ek din ki salary × multiplier extra.</div>')}
+
+      <div class="cr-sec">½ Half-day / Absent</div>
+      ${_crRow('autoHalf','Auto half-day','Itne ghante se kam kaam kiya toh aadha din',cr.autoHalf.on,
+        _crInp('ahHours','Kaam kam hai (ghante)',cr.autoHalf.hours,'number','step="0.5"'))}
+      ${_crRow('autoAbsent','Auto absent','Itne ghante se kam kaam kiya toh poora din absent',cr.autoAbsent.on,
+        _crInp('aaHours','Kaam kam hai (ghante)',cr.autoAbsent.hours,'number','step="0.5"'))}
+      ${_crRow('missingOut','Punch-out miss ho jaye','Aane ka time hai par jaane ka nahi',cr.missingOut.on,
+        sel('moMode',cr.missingOut.mode,[['full','Full day maano'],['half','Half day maano'],['absent','Absent maano']]))}
+
+      <div class="cr-sec">⏱ Overtime</div>
+      ${_crRow('ot','Overtime ginna','OFF karoge toh shift end ke baad ka time ginega hi nahi',cr.ot.on,
+        _crInp('otRate','OT rate (₹ per hour) — 0 = regular rate jitna',rules.otRatePerHour||0)+
+        _crInp('otMin','Kam se kam OT (minute) — isse kam ho toh nahi ginega',cr.ot.minMin)+
+        _crInp('otRound','OT neeche round karo (minute) — 0 = round nahi',cr.ot.roundMin)+
+        _crInp('otMax','Ek din mein max OT (ghante) — 0 = limit nahi',cr.ot.maxHrs,'number','step="0.5"'))}
+
+      <div class="cr-sec">💰 Salary</div>
+      ${_crRow('fixBasis','Fix salary: ek din ki value','Calendar din ki jagah fixed din se bhaag (jaise 26 ya 30)',cr.fixBasis.on,
+        _crInp('fbDays','Salary ÷ kitne din',cr.fixBasis.days))}
+      ${_crRow('bonus','Perfect attendance bonus','Poore mahine absent nahi (aur late nahi) toh bonus',cr.bonus.on,
+        _crInp('bnAmt','Bonus (₹)',cr.bonus.amount)+`<label class="cr-chk"><input type="checkbox" id="cr-bn-late" ${cr.bonus.allowLate?'checked':''}> Late hone par bhi bonus do</label>`)}
+      ${_crRow('roundNet','Net salary round off','Final payable amount round karo',cr.roundNet.on,
+        _crInp('rnTo','Round to (₹)',cr.roundNet.to)+sel('rnMode',cr.roundNet.mode,[['nearest','Nearest'],['down','Neeche (down)']]))}
+      ${_crRow('advLimit','Advance limit warning','Advance itne % se zyada ho toh chetavani dikhao',cr.advLimit.on,
+        _crInp('alPct','Salary ka max % advance',cr.advLimit.pct))}
+
+    </div>
+    <div style="display:flex;gap:8px;padding:12px 18px;border-top:1px solid var(--border)">
+      <button onclick="_crLoadStandard()" style="flex:1;padding:12px;background:#fff7e6;color:#9a6700;border:1.5px solid #f5c76a;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">⭐ Standard rules</button>
+      <button onclick="saveSalaryRules()" style="flex:1.3;padding:12px;background:var(--green);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">💾 Save</button>
+    </div>
+  </div>`;
   document.body.appendChild(panel);
-  document.getElementById('sr-deductlate').onchange=function(){
-    document.getElementById('sr-deduct-amt-wrap').style.display=this.checked?'block':'none';
-  };
+  _crHolRender();
 }
 
 function saveSalaryRules(){
+  const g=id=>document.getElementById(id);
+  const on=id=>!!g('cr-'+id+'-on')?.checked;
+  const num=(id,def)=>{ const v=parseFloat(g('cr-'+id)?.value); return isNaN(v)?def:v; };
+  const oldRules=_salaryRules, oldCr=_crGet();
+  const cr={
+    shiftStart: g('cr-shiftStart')?.value||'09:00',
+    lateCount:  {on:on('lateCount'), every:Math.max(1,num('lcEvery',3)), cutDays:num('lcDays',0.5)},
+    earlyLeave: {on:on('earlyLeave'), perMin:num('elPerMin',0)},
+    weeklyOff:  {on:on('weeklyOff'), days:[0,1,2,3,4,5,6].filter(i=>g('cr-wo-'+i)?.checked), paidPerday:!!g('cr-wo-paid')?.checked},
+    sandwich:   {on:on('sandwich')},
+    holidays:   {on:on('holidays'), dates:[..._crHolDraft].sort()},
+    offWork:    {on:on('offWork'), mult:num('owMult',1.5)},
+    autoHalf:   {on:on('autoHalf'), hours:num('ahHours',4)},
+    autoAbsent: {on:on('autoAbsent'), hours:num('aaHours',2)},
+    missingOut: {on:on('missingOut'), mode:g('cr-moMode')?.value||'full'},
+    ot:         {on:on('ot'), minMin:num('otMin',0), roundMin:num('otRound',0), maxHrs:num('otMax',0)},
+    fixBasis:   {on:on('fixBasis'), days:Math.max(1,num('fbDays',30))},
+    bonus:      {on:on('bonus'), amount:num('bnAmt',0), allowLate:!!g('cr-bn-late')?.checked},
+    roundNet:   {on:on('roundNet'), to:Math.max(1,num('rnTo',10)), mode:g('cr-rnMode')?.value||'nearest'},
+    advLimit:   {on:on('advLimit'), pct:num('alPct',50)},
+  };
   _salaryRules={
-    stdHoursPerDay:      parseInt(document.getElementById('sr-stdhours')?.value)||8,
-    lunchBreakMin:       parseInt(document.getElementById('sr-lunch')?.value)||0,
-    lateBufferMin:       parseInt(document.getElementById('sr-buffer')?.value)||15,
-    shiftEnd:            document.getElementById('sr-shiftend')?.value||'18:00',
-    otRatePerHour:       parseFloat(document.getElementById('sr-otrate')?.value)||0,
-    deductLate:          document.getElementById('sr-deductlate')?.checked||false,
-    lateDeductPerMin:    parseFloat(document.getElementById('sr-deductamt')?.value)||0,
+    stdHoursPerDay:   num('stdh',8)||8,
+    lunchBreakMin:    num('lunch',0),
+    lateBufferMin:    num('lateBuf',15),
+    shiftEnd:         g('cr-shiftEnd')?.value||'17:30',
+    otRatePerHour:    num('otRate',0),
+    deductLate:       on('lateDed'),
+    lateDeductPerMin: num('lateDedAmt',0),
+    cr,
   };
   save('bf9_sal_rules',_salaryRules);
   document.getElementById('sal-rules-panel')?.remove();
-  _reapplyLateBuffer();
+  // Shift start / grace badle hain toh late dobara nikalo (sab mahino mein)
+  if(oldRules.lateBufferMin!==_salaryRules.lateBufferMin || oldCr.shiftStart!==cr.shiftStart) _reapplyLateBuffer();
   renderAttSummary();
-  toast('✅ Salary rules save ho gaye!');
+  toast('✅ Company rules save ho gaye!');
 }
 
 
 
 function _reapplyLateBuffer(){
-  if(!ATT_DATA[_attPeriod]) return;
-  const buffer=_salaryRules.lateBufferMin||15;
-  ATT_DATA[_attPeriod].workers.forEach(w=>{
+  const limit=_crShiftStartMin()+(_salaryRules.lateBufferMin??15);
+  Object.values(ATT_DATA).forEach(data=>(data.workers||[]).forEach(w=>{
     w.daily.forEach(d=>{
       if(d.timeIn){
         const [h,m]=d.timeIn.split(':').map(Number);
-        d.late=(h*60+m)>(9*60+buffer);
+        d.late=(h*60+m)>limit;
       }
     });
     w.lateTimes=w.daily.filter(x=>x.late).length;
-    w.lateMin=w.daily.filter(x=>x.late).reduce((s,d)=>{
-      if(!d.timeIn) return s;
+    w.lateMin=w.daily.filter(x=>x.late&&x.timeIn).reduce((s,d)=>{
       const [h,m]=d.timeIn.split(':').map(Number);
-      return s+Math.max(0,(h*60+m)-(9*60+buffer));
+      return s+Math.max(0,(h*60+m)-limit);
     },0);
-  });
+  }));
   save('bf9_att',ATT_DATA);
 }
 
-function _buildAttCalendar(daily){
+function _buildAttCalendar(daily, eff){
   if(!daily.length) return '';
   const firstEntry=daily.find(d=>d.date&&d.day);
   if(!firstEntry) return '';
@@ -16113,9 +16417,27 @@ function _buildAttCalendar(daily){
   let cells='';
   for(let i=0;i<safeOffset;i++) cells+=`<div class="att-day"></div>`;
 
-  daily.forEach(d=>{
+  daily.forEach((d,i)=>{
     const num=String(d.day||'').padStart(2,'0');
     const isWknd=d.weekend;
+    const e=eff?eff[i]:null;
+    if(e){
+      // Company rules ke hisaab se
+      const k=e.kind;
+      const cls=k==='off'?'holiday':k==='absent'?'absent':d.late?'late':'present';
+      let body='';
+      if(k==='off') body=`<div style="font-size:8px;color:#aaa">${e.isHoliday?'holiday':'off'}</div>`;
+      else if(k==='absent') body=e.sandwiched?`<div style="font-size:8px;color:var(--red)">sandwich</div>`:'';
+      else body=`
+        <div class="att-time">${d.timeIn}</div>
+        <div class="att-time">${d.timeOut||''}</div>
+        ${d.late?'<div class="att-late-badge">LATE</div>':''}
+        ${k==='half'?'<div class="att-late-badge" style="background:#7c3aed">½</div>':''}
+        ${k==='offwork'?'<div class="att-late-badge" style="background:#0891b2">OFF-DAY</div>':''}`;
+      cells+=`<div class="att-day ${cls}" style="${k==='off'?'opacity:.5':''}">
+        <div class="att-day-num" style="${isWknd?'color:#6b7a99':''}">${num}</div>${body}</div>`;
+      return;
+    }
     // weekend + absent = grey (day off), weekend + present = show normally
     const cls=d.absent&&isWknd?'holiday':d.absent?'absent':d.late?'late':'present';
     cells+=`<div class="att-day ${cls}" style="${isWknd&&d.absent?'opacity:.5':''}">
