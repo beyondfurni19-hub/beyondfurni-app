@@ -4980,6 +4980,11 @@ let _authRole = null;
 let _authUserId = null;
 let _authPerms = null; // {tabId: 'none'|'read'|'write'} — null = full access
 
+/* Cloud sync (bf_sync) ab logged-in user ke token se hota hai (RLS: sirf authenticated) */
+function _sbBearer(){
+  try{ const s=authGetSession(); if(s && s.access_token) return 'Bearer '+s.access_token; }catch(e){}
+  return 'Bearer '+SB_KEY;
+}
 function authGetSession(){
   try{ return JSON.parse(localStorage.getItem(AUTH_SESSION_KEY)||'null'); }
   catch(e){ return null; }
@@ -5607,17 +5612,20 @@ async function gdPush(){
   gdSetDot('syncing');
   try {
     const payload = gdCollect();
-    const res = await fetch(SB_URL+'/rest/v1/bf_sync?id=eq.main', {
+    const res = await fetch(SB_URL+'/rest/v1/bf_sync?id=eq.main&select=id', {
       method: 'PATCH',
       headers: {
         'apikey': SB_KEY,
-        'Authorization': 'Bearer '+SB_KEY,
+        'Authorization': _sbBearer(),
         'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
+        'Prefer': 'return=representation'
       },
       body: JSON.stringify({ data: payload, updated_at: new Date().toISOString() })
     });
     if(!res.ok) throw new Error('HTTP '+res.status);
+    // RLS/policy block hone par Supabase error nahi deta, 0 rows update hoti hain — use pakdo
+    const _updated = await res.json().catch(()=>null);
+    if(!Array.isArray(_updated) || _updated.length===0) throw new Error('Cloud ne write block kiya (0 rows) — Supabase policy / login check karo');
     _gdSyncing = false;
     _gdFirstPending = 0;
     gdSetDot('ok');
@@ -5663,7 +5671,7 @@ async function _gdSmartSync(){
   gdSetDot('syncing');
   try {
     const res = await fetch(SB_URL+'/rest/v1/bf_sync?id=eq.main&select=data,updated_at', {
-      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer '+SB_KEY }
+      headers: { 'apikey': SB_KEY, 'Authorization': _sbBearer() }
     });
     if(!res.ok) throw new Error('HTTP '+res.status);
     const rows = await res.json();
@@ -5803,7 +5811,7 @@ function _gdFlushNow(){
       method: 'PATCH',
       headers: {
         'apikey': SB_KEY,
-        'Authorization': 'Bearer '+SB_KEY,
+        'Authorization': _sbBearer(),
         'Content-Type': 'application/json',
         'Prefer': 'return=minimal'
       },
@@ -5838,7 +5846,7 @@ function gdForcePull(){
 async function _gdSilentPull(){
   try {
     const res = await fetch(SB_URL+'/rest/v1/bf_sync?id=eq.main&select=data,updated_at', {
-      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer '+SB_KEY }
+      headers: { 'apikey': SB_KEY, 'Authorization': _sbBearer() }
     });
     if(!res.ok) return;
     const rows = await res.json();
@@ -5891,7 +5899,7 @@ async function _gdFetch(force){
     const res = await fetch(SB_URL+'/rest/v1/bf_sync?id=eq.main&select=data,updated_at', {
       headers: {
         'apikey': SB_KEY,
-        'Authorization': 'Bearer '+SB_KEY
+        'Authorization': _sbBearer()
       }
     });
     if(ov) ov.style.display='none';
@@ -9095,7 +9103,7 @@ function init(){
     if(!navigator.onLine) return; // offline hai toh skip
     try {
       const res = await fetch(SB_URL+'/rest/v1/bf_sync?id=eq.main&select=updated_at', {
-        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer '+SB_KEY }
+        headers: { 'apikey': SB_KEY, 'Authorization': _sbBearer() }
       });
       if(!res.ok) return;
       const rows = await res.json();
