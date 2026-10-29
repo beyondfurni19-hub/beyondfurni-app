@@ -3319,6 +3319,34 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
       <button onclick="downloadCEOReportPDF()" style="padding:7px 14px;background:#16a34a;color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">📄 PDF</button>
     </div>
   </div>
+  <div id="ceo-ai-wrap" style="background:#fff;border:2px solid #7c3aed;border-radius:var(--r);padding:14px;margin-bottom:14px">
+    <style>
+      .ceo-md h1{font-size:19px;font-weight:900;color:#0e3a56;margin:14px 0 6px}
+      .ceo-md h2{font-size:15px;font-weight:900;color:#5b21b6;margin:16px 0 6px;padding-bottom:4px;border-bottom:2px solid #ede9fe}
+      .ceo-md h3{font-size:13px;font-weight:900;color:#0e3a56;margin:12px 0 4px}
+      .ceo-md p{font-size:13px;line-height:1.6;margin:6px 0;color:#1f2937}
+      .ceo-md ul,.ceo-md ol{margin:6px 0 6px 20px;padding:0}
+      .ceo-md li{font-size:13px;line-height:1.6;margin:3px 0;color:#1f2937}
+      .ceo-md table{border-collapse:collapse;width:100%;margin:8px 0;font-size:12px}
+      .ceo-md th{background:#ede9fe;color:#4c1d95;text-align:left;padding:6px 8px;border:1px solid #ddd6fe}
+      .ceo-md td{padding:6px 8px;border:1px solid #e5e7eb}
+      .ceo-md code{background:#f3f4f6;padding:1px 5px;border-radius:4px;font-size:12px}
+    </style>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+      <div>
+        <div style="font-size:15px;font-weight:900;color:#5b21b6">🤖 Grok AI — CEO Report</div>
+        <div style="font-size:10px;color:var(--muted)">ERP ke poore data ka analysis, Grok ke shabdon mein</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <select id="ceo-ai-lang" onchange="_ceoAiSetPrefs({lang:this.value})" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:var(--navy2);background:#fff">
+          <option value="hinglish">Hinglish</option><option value="english">English</option><option value="hindi">हिन्दी</option>
+        </select>
+        <button id="ceo-ai-gen-btn" onclick="ceoAiGenerate()" style="padding:8px 14px;background:#7c3aed;color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🤖 Report Banao</button>
+        <button id="ceo-ai-print-btn" onclick="ceoAiPrint()" style="display:none;padding:8px 14px;background:#16a34a;color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🖨️ Print / PDF</button>
+      </div>
+    </div>
+    <div id="ceo-ai-out"></div>
+  </div>
   <div id="ceo-report-body"></div>
 </div>
 
@@ -3387,6 +3415,31 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 
 <!-- ════ SETTINGS ════ -->
 <div class="sc" id="s-settings">
+
+  <!-- GROK AI (owner only) -->
+  <div class="card" id="ceo-ai-settings" style="display:none;border:2px solid #7c3aed;background:linear-gradient(135deg,#faf5ff,#fff)">
+    <div class="card-hdr">
+      <div class="card-title">🤖 Grok AI — CEO Report</div>
+      <div style="font-size:10px;color:#7c3aed;font-weight:800">Sirf Owner</div>
+    </div>
+    <div id="ceo-ai-status" style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:10px">Check ho raha hai...</div>
+    <div class="fg"><label>Grok (xAI) API Key <span style="color:var(--muted);font-size:9px">(Supabase mein private save hoti hai, is page ya GitHub mein nahi)</span></label>
+      <input class="finp" type="password" id="ceo-ai-key" placeholder="xai-..." autocomplete="off">
+    </div>
+    <div class="fg"><label>Model <span style="color:var(--muted);font-size:9px">(key save hone ke baad list aati hai; console.x.ai pe bhi dekh sakte ho)</span></label>
+      <input class="finp" id="ceo-ai-model" list="ceo-ai-models" placeholder="model ka naam" onchange="_ceoAiSaveModel()">
+      <datalist id="ceo-ai-models"></datalist>
+    </div>
+    <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:12px;cursor:pointer">
+      <input type="checkbox" id="ceo-ai-anon" onchange="_ceoAiSetPrefs({anon:this.checked})" style="margin-top:2px;width:16px;height:16px">
+      <span style="font-size:12px;font-weight:700;color:var(--navy2);line-height:1.4">Party / supplier ke naam anonymize karo<br><span style="font-size:10px;color:var(--muted);font-weight:600">Grok ko "Party 1, Party 2" jaise naam jayenge. Phone, GSTIN, address, bank details kabhi nahi jate.</span></span>
+    </label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button onclick="_ceoAiSaveKey()" style="flex:1;min-width:150px;padding:11px;background:#7c3aed;color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">💾 Key Save + Test</button>
+      <button onclick="_ceoAiLoadModels()" style="padding:11px 14px;background:#f0f4ff;color:var(--navy2);border:1px solid var(--border);border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">🔄 Models Laao</button>
+      <button onclick="_ceoAiClearKey()" style="padding:11px 14px;background:var(--red-bg);color:var(--red-dark);border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">🗑 Key Hatao</button>
+    </div>
+  </div>
 
   <!-- DATA BACKUP / RESTORE -->
   <div class="card" style="border:2px solid var(--orange);background:linear-gradient(135deg,#fff9f5,#fff)">
@@ -10260,7 +10313,7 @@ function setInvTab(name){
   });
   if(name==='list')     renderInvList();
   if(name==='new')      initNewInvoice();
-  if(name==='settings') { loadInvSettings(); loadSrSettings(); }
+  if(name==='settings') { loadInvSettings(); loadSrSettings(); if(typeof _ceoAiLoadSettings==='function') _ceoAiLoadSettings(); }
   // whats-new is static HTML
   if(name==='analytics') renderAnalytics();
 }
@@ -10307,7 +10360,7 @@ function renderInvList(){
   const fTotal = filtered.reduce((s,i)=>s+i.grandTotal,0);
   const fPretax= filtered.reduce((s,i)=>s+i.subtotal,0);
   const fPaid  = filtered.filter(i=>i.status==='paid').reduce((s,i)=>s+i.grandTotal,0);
-  const fPending=filtered.filter(i=>i.status!=='paid').reduce((s,i)=>s+i.grandTotal,0);
+  const fPending=filtered.filter(i=>i.status!=='paid').reduce((s,i)=>s+Math.max(0,i.grandTotal-(i.recoveryAmt||0)),0);
 
   if(kpi) kpi.innerHTML=`
     <div class="inv-kpi"><div class="inv-kval">${filtered.length}</div><div class="inv-klbl">Count</div></div>
@@ -10325,7 +10378,7 @@ function renderInvList(){
   if(empty) empty.style.display='none';
 
   tbody.innerHTML=filtered.map(inv=>{
-    const pending=inv.status==='paid'?0:inv.grandTotal;
+    const pending=inv.status==='paid'?0:Math.max(0,inv.grandTotal-(inv.recoveryAmt||0));
     const stColor=inv.status==='paid'?'var(--green)':inv.status==='partial'?'var(--yellow-dark)':'var(--red)';
     const stBg   =inv.status==='paid'?'var(--green-bg)':inv.status==='partial'?'var(--yellow-bg)':'var(--red-bg)';
     const isSr    =(inv.firm||'bf')==='sr';
@@ -10699,7 +10752,7 @@ function createInvoice(saveAndNew=false){
 function openInvDetail(invId){
   const inv=INVOICES.find(i=>i.id===invId);
   if(!inv) return;
-  const pending=inv.status==='paid'?0:inv.grandTotal;
+  const pending=inv.status==='paid'?0:Math.max(0,inv.grandTotal-(inv.recoveryAmt||0));
   const stColor=inv.status==='paid'?'var(--green)':inv.status==='partial'?'var(--yellow-dark)':'var(--red)';
 
   // Remove existing panel
@@ -11124,12 +11177,12 @@ function _openPrintWindow(html){
 }
 
 /* ── Mark Paid ── */
-function markInvPaid(id){
+function markInvPaid(id, noDaybook){
   const inv=INVOICES.find(i=>i.id===id);
   if(!inv) return;
   const remaining=_invRemaining(inv);
   if(remaining<=0){ toast('Already paid hai!'); return; }
-  _addInvPayment(id, remaining, 'Cash', new Date().toISOString().split('T')[0], 'Full payment');
+  _addInvPayment(id, remaining, 'Cash', new Date().toISOString().split('T')[0], noDaybook?'Paid (Daybook ke bina)':'Full payment', !!noDaybook);
 }
 function deleteInv(id){
   if(!confirm('Invoice delete karo?')) return;
@@ -11142,9 +11195,26 @@ function _invRemaining(inv){
   const paid=(inv.payments||[]).reduce((s,p)=>s+p.amt,0);
   return Math.max(0, inv.grandTotal - paid);
 }
-function _addInvPayment(invId, amt, mode, date, note){
+function _addInvPayment(invId, amt, mode, date, note, noDaybook){
   const inv=INVOICES.find(i=>i.id===invId);
   if(!inv) return;
+  if(noDaybook){
+    // Sirf Invoice + Ledger update hota hai — Daybook mein koi entry NAHI banti
+    const pid='pmt_'+Date.now().toString(36);
+    const pdate=date||new Date().toISOString().split('T')[0];
+    if(!inv.payments) inv.payments=[];
+    inv.payments.push({id:pid, amt:Number(amt), mode:String(mode||'Cash'), date:pdate, note:note||'', ts:Date.now(), noDaybook:true});
+    _invRecalc(inv);
+    save('bf9_invoices',INVOICES);
+    const c=_ensureCustomer(inv.party,inv.phone,inv.address,inv.gstin);
+    if(!LEDGER[c.id]) LEDGER[c.id]=[];
+    LEDGER[c.id].push({id:'le_'+Date.now().toString(36), date:pdate, type:'cr', amt:Number(amt), note:'Invoice '+inv.num+' payment'+(note?' · '+note:''), mode:String(mode||'Cash').toLowerCase(), ref:'invpmt:'+pid});
+    save('bf9_ledger',LEDGER);
+    renderInvList();
+    if(typeof renderCustomerList==='function') renderCustomerList();
+    toast('✅ ₹'+_fmtAmt(Number(amt))+' paid mark ho gaya (Invoice + Ledger) — Daybook mein koi entry nahi');
+    return;
+  }
   // Payment ab Daybook se aati hai: yahan Daybook entry banti hai, aur usse Invoice + Ledger update hote hain
   const m=String(mode||'Cash').toLowerCase();
   const dbMode = m.includes('cash')?'cash' : m.includes('upi')?'upi' : (m.includes('cheq')||m.includes('check'))?'cheque' : 'bank';
@@ -11190,6 +11260,9 @@ function _invMenu(invId, e){
     <button class="iam-item grn" onclick="_iamClose();markInvPaid('${invId}')" ${paid?'disabled':''}>
       <span>✅</span> Full Paid Mark Karo
     </button>
+    <button class="iam-item grn" onclick="_iamClose();if(confirm('Invoice paid mark hoga, par Daybook mein koi entry nahi banegi.\n\nAage badhna hai?'))markInvPaid('${invId}',true)" ${paid?'disabled':''}>
+      <span>📕</span> Paid Mark (Daybook ke bina)
+    </button>
     <div class="iam-sep"></div>
     <button class="iam-item red" onclick="_iamClose();if(confirm('Delete karo?'))deleteInv('${invId}')"><span>🗑️</span> Delete Invoice</button>`;
 
@@ -11225,7 +11298,7 @@ function openPartialPayModal(invId){
       ${(inv.payments||[]).map(p=>`
         <div style="display:flex;align-items:center;gap:8px;padding:8px 11px;background:var(--green-bg);border-radius:var(--r3);margin-bottom:5px;border:1px solid #bbf7d0">
           <span style="font-size:13px">💚</span>
-          <div style="flex:1;font-size:11px;font-weight:700;color:var(--green-dark)">${_fmtDate(p.date)} · ${p.mode||'Cash'}${p.note?' · '+esc(p.note):''}</div>
+          <div style="flex:1;font-size:11px;font-weight:700;color:var(--green-dark)">${_fmtDate(p.date)} · ${p.mode||'Cash'}${p.note?' · '+esc(p.note):''}${p.noDaybook?' <span style="padding:1px 6px;border-radius:10px;background:#fff7ed;color:#b45309;font-size:9px">Daybook ke bina</span>':''}</div>
           <div style="font-size:13px;font-weight:900;color:var(--green-dark)">₹${_fmtAmt(p.amt)}</div>
           <button onclick="deleteInvPayment('${invId}','${p.id}')" style="width:22px;height:22px;border-radius:6px;background:var(--red-bg);border:none;color:var(--red);font-size:10px;cursor:pointer">✕</button>
         </div>`).join('')}
@@ -11281,6 +11354,10 @@ function openPartialPayModal(invId){
           <label style="font-size:10px;font-weight:800;color:var(--muted)">Note (Optional)</label>
           <input class="finp" id="ppm-note" placeholder="Cheque no., UTR no., etc." style="margin-top:4px;padding:10px 12px">
         </div>
+        <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:14px;padding:10px 12px;background:#f8faff;border:1px solid var(--border);border-radius:var(--r2);cursor:pointer">
+          <input type="checkbox" id="ppm-nodb" style="margin-top:2px;width:16px;height:16px">
+          <span style="font-size:12px;font-weight:700;color:var(--navy2);line-height:1.4">Daybook mein entry mat banao<br><span style="font-size:10px;color:var(--muted);font-weight:600">Sirf Invoice aur Ledger update honge</span></span>
+        </label>
         <div style="display:flex;gap:8px">
           <button onclick="_ppmSubmit('${invId}')" style="flex:1;padding:13px;background:var(--green);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">💰 Payment Save Karo</button>
           <button onclick="_ppmSubmit('${invId}',true)" style="flex:1;padding:13px;background:var(--navy2);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">✅ Full Pay (₹${_fmtAmt(remaining)})</button>
@@ -11302,8 +11379,9 @@ function _ppmSubmit(invId, fullPay=false){
   const note=document.getElementById('ppm-note')?.value.trim()||'';
   if(amt<=0){ toast('⚠️ Amount dalo!'); return; }
   if(amt>remaining+0.01){ toast('⚠️ Amount baki se zyada hai! Baki: ₹'+_fmtAmt(remaining)); return; }
+  const noDb=!!document.getElementById('ppm-nodb')?.checked;
   document.getElementById('ppm-modal')?.remove();
-  _addInvPayment(invId, amt, mode, date, note);
+  _addInvPayment(invId, amt, mode, date, note, noDb);
 }
 
 function deleteInvPayment(invId, pmtId){
@@ -11312,7 +11390,15 @@ function deleteInvPayment(invId, pmtId){
   if(!inv||!inv.payments) return;
   const _pm=inv.payments.find(p=>p.id===pmtId);
   if(_pm && _pm.dbId){ _dbDeleteLinked(_pm.dbId); }   // Daybook se bani payment: Daybook + Ledger se bhi hatao
-  else { inv.payments=inv.payments.filter(p=>p.id!==pmtId); }
+  else {
+    inv.payments=inv.payments.filter(p=>p.id!==pmtId);
+    if(_pm && _pm.noDaybook){   // Daybook ke bina bani payment: sirf uski Ledger entry hatao
+      let ch=false;
+      Object.keys(LEDGER).forEach(k=>{ const n=LEDGER[k].length; LEDGER[k]=LEDGER[k].filter(e=>e.ref!=='invpmt:'+pmtId); if(LEDGER[k].length!==n) ch=true; });
+      if(ch) save('bf9_ledger',LEDGER);
+      if(typeof renderCustomerList==='function') renderCustomerList();
+    }
+  }
   const paid=inv.payments.reduce((s,p)=>s+p.amt,0);
   inv.status=paid>=inv.grandTotal-0.01?'paid':paid>0?'partial':'unpaid';
   inv.recoveryAmt=paid;
@@ -12758,6 +12844,7 @@ function _renderAgeing(partyType){
 
   const el=document.getElementById('led-ageing-content');
   if(!el) return;
+  if(partyType==='customer'){ _renderAgeingCust(el); return; }
 
   const parties = partyType==='supplier'
     ? CUSTOMERS.filter(c=>c.type==='supplier')
@@ -12775,7 +12862,7 @@ function _renderAgeing(partyType){
     let bucket, bucketColor, bucketBg;
     if(daysDue<=30){ bucket='0–30 din'; bucketColor='var(--green-dark)'; bucketBg='var(--green-bg)'; }
     else if(daysDue<=60){ bucket='31–60 din'; bucketColor='var(--yellow-dark)'; bucketBg='var(--yellow-bg)'; }
-    else if(daysDue<=90){ bucket='61–90 din'; bucketColor='#b45309'; bucketBg:'#fff7ed'; }
+    else if(daysDue<=90){ bucket='61–90 din'; bucketColor='#b45309'; bucketBg='#fff7ed'; }
     else { bucket='90+ din'; bucketColor='var(--red-dark)'; bucketBg='var(--red-bg)'; }
 
     return {c, bal, daysDue, bucket, bucketColor, bucketBg, lastDrDate};
@@ -12829,6 +12916,152 @@ function _renderAgeing(partyType){
         </tbody>
       </table>
     </div>`;
+}
+
+/* ── Customer open items (FIFO): payments sabse purane bill se adjust hote hain ── */
+function _custOpenItems(custId){
+  const entries=[...(LEDGER[custId]||[])].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  let credit=entries.filter(e=>e.type!=='dr').reduce((s,e)=>s+(+e.amt||0),0);
+  const items=[];
+  entries.filter(e=>e.type==='dr').forEach(e=>{
+    let amt=+e.amt||0;
+    const use=Math.min(credit,amt); credit-=use; amt-=use;
+    if(amt>0.5){
+      const inv=e.ref?INVOICES.find(i=>i.id===e.ref):null;
+      items.push({date:e.date,amt:+amt.toFixed(2),ref:e.ref,inv,note:e.note||''});
+    }
+  });
+  return items;
+}
+function _ageBucket(days){
+  return days<=30?'0–30 din':days<=60?'31–60 din':days<=90?'61–90 din':'90+ din';
+}
+function _ageToggle(id){
+  const r=document.getElementById('age-det-'+id);
+  if(r) r.style.display=(r.style.display==='none'||!r.style.display)?'table-row':'none';
+}
+function _renderAgeingCust(el){
+  const today=new Date(); today.setHours(0,0,0,0);
+  const DAY=86400000;
+  const BC={'0–30 din':['var(--green-dark)','var(--green-bg)'],'31–60 din':['var(--yellow-dark)','var(--yellow-bg)'],'61–90 din':['#b45309','#fff7ed'],'90+ din':['var(--red-dark)','var(--red-bg)']};
+  const bucketTotals={'0–30 din':0,'31–60 din':0,'61–90 din':0,'90+ din':0};
+  const parties=CUSTOMERS.filter(c=>!c.type||c.type==='customer'||c.type==='dealer');
+  const rows=parties.map(c=>{
+    const items=_custOpenItems(c.id);
+    if(!items.length) return null;
+    items.forEach(it=>{
+      it.days=Math.max(0,Math.floor((today-new Date(it.date))/DAY));
+      it.overdue=it.inv&&it.inv.due&&new Date(it.inv.due)<today?Math.floor((today-new Date(it.inv.due))/DAY):0;
+      bucketTotals[_ageBucket(it.days)]+=it.amt;
+    });
+    const total=items.reduce((s,i)=>s+i.amt,0);
+    const oldest=Math.max(...items.map(i=>i.days));
+    const anyOverdue=items.some(i=>i.overdue>0);
+    return {c,items,total,oldest,bucket:_ageBucket(oldest),anyOverdue};
+  }).filter(Boolean).sort((a,b)=>b.oldest-a.oldest||b.total-a.total);
+
+  if(!rows.length){
+    el.innerHTML=`<div class="empty"><div class="empty-ico">✅</div><div style="font-weight:800">Koi outstanding nahi!</div><div style="font-size:13px;color:var(--muted)">Sab payments clear hain</div></div>`;
+    return;
+  }
+  const grand=rows.reduce((s,r)=>s+r.total,0);
+  const bucketColors={'0–30 din':'var(--green)','31–60 din':'var(--yellow)','61–90 din':'#f97316','90+ din':'var(--red)'};
+  const th='padding:9px 12px;font-size:10px;font-weight:800;color:var(--muted)';
+  const remLabel=c=>{
+    if(!c.lastReminder) return '';
+    const d=Math.floor((today-new Date(c.lastReminder))/DAY);
+    return `<div style="font-size:10px;color:var(--muted)">🔔 Reminder: ${d<=0?'aaj':d+' din pehle'}</div>`;
+  };
+  el.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+      <div style="font-size:13px;font-weight:900;color:var(--navy2)">Total baaki: <span style="color:var(--red)">₹${_fmtAmt(grand)}</span> <span style="font-size:11px;color:var(--muted);font-weight:700">· ${rows.length} parties</span></div>
+      <div style="font-size:10px;color:var(--muted)">Payment sabse purane bill se adjust hoti hai (bill ki date se gina gaya)</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px">
+      ${Object.entries(bucketTotals).map(([label,amt])=>`
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:10px;text-align:center">
+          <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase">${label}</div>
+          <div style="font-size:15px;font-weight:900;color:${bucketColors[label]};margin-top:4px">₹${_fmtAmt(amt)}</div>
+        </div>`).join('')}
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:560px">
+        <thead><tr style="background:#eaf4fa;border-bottom:2px solid var(--border2)">
+          <th style="${th};text-align:left">Party</th>
+          <th style="${th};text-align:center">Bills</th>
+          <th style="${th};text-align:center">Sabse Purana</th>
+          <th style="${th};text-align:right">Outstanding</th>
+          <th style="${th};text-align:center">Action</th>
+        </tr></thead>
+        <tbody>
+          ${rows.map(r=>{
+            const [bc,bg]=BC[r.bucket];
+            return `
+            <tr style="border-bottom:1px solid var(--border);cursor:pointer" onclick="_ageToggle('${r.c.id}')" title="Bill-wise list dekhne ke liye tap karo">
+              <td style="padding:9px 12px">
+                <div style="font-weight:800">${esc(r.c.name)} ${r.anyOverdue?'<span style="padding:1px 7px;border-radius:20px;font-size:9px;font-weight:800;background:var(--red-bg);color:var(--red-dark)">⚠️ Due nikal gayi</span>':''}</div>
+                ${r.c.phone?`<div style="font-size:10px;color:var(--muted)">📞 ${esc(r.c.phone)}</div>`:''}
+                ${remLabel(r.c)}
+              </td>
+              <td style="padding:9px 12px;text-align:center;font-weight:800">${r.items.length}</td>
+              <td style="padding:9px 12px;text-align:center"><span style="padding:3px 8px;border-radius:20px;font-size:10px;font-weight:800;background:${bg};color:${bc}">${r.oldest} din · ${r.bucket}</span></td>
+              <td style="padding:9px 12px;text-align:right;font-size:13px;font-weight:900;color:var(--red)">₹${_fmtAmt(r.total)}</td>
+              <td style="padding:9px 12px;text-align:center;white-space:nowrap" onclick="event.stopPropagation()">
+                <button onclick="_sendPayReminder('${r.c.id}')" title="WhatsApp pe payment reminder" style="padding:4px 8px;background:#25d366;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:800;cursor:pointer">💬 Reminder</button>
+                <button onclick="openCustLedger('${r.c.id}','customers')" title="Ledger kholo" style="padding:4px 8px;background:#f0f4ff;color:var(--navy2);border:1px solid var(--border);border-radius:6px;font-size:11px;font-weight:800;cursor:pointer">📒</button>
+              </td>
+            </tr>
+            <tr id="age-det-${r.c.id}" style="display:none;background:#f8faff">
+              <td colspan="5" style="padding:8px 14px 12px">
+                ${r.items.map(it=>`
+                  <div style="display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px dashed var(--border);font-size:12px">
+                    <span><b>${esc(it.inv?it.inv.num:(it.note||'Entry'))}</b> · ${_fmtDate(it.date)} · ${it.days} din${it.overdue>0?` · <span style="color:var(--red-dark);font-weight:800">due se ${it.overdue} din upar</span>`:''}</span>
+                    <b style="color:var(--red)">₹${_fmtAmt(it.amt)}</b>
+                  </div>`).join('')}
+              </td>
+            </tr>`;}).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+/* ── Payment Reminder (WhatsApp): bill-wise pending list ── */
+function _waPhone(raw){
+  let d=String(raw||'').replace(/\D/g,'');
+  if(d.length===11&&d.startsWith('0')) d=d.slice(1);
+  if(d.length===10) d='91'+d;
+  return d;
+}
+function _buildPayReminder(c){
+  const items=_custOpenItems(c.id);
+  if(!items.length) return '';
+  const today=new Date(); today.setHours(0,0,0,0);
+  const firm=(items.find(i=>i.inv&&i.inv.firm)||{}).inv?.firm||'bf';
+  const s=_firmSettings(firm)||{};
+  const total=items.reduce((a,i)=>a+i.amt,0);
+  let msg=`*${s.name||'BeyondFurni'}*\n🔔 *Payment Reminder*\n\nNamaste ${c.name} ji,\nAapke neeche diye bills ka payment abhi baaki hai:\n\n`;
+  items.forEach((it,i)=>{
+    const days=Math.max(0,Math.floor((today-new Date(it.date))/86400000));
+    msg+=`${i+1}. ${it.inv?it.inv.num:(it.note||'Entry')} | ${_fmtDate(it.date)} | ₹${_fmtAmt(it.amt)} (${days} din)\n`;
+  });
+  msg+=`\n*Total baaki: ₹${_fmtAmt(total)}*\n\nKripya jald payment kar dein.`;
+  const pay=[];
+  if(s.upi) pay.push(`UPI: ${s.upi}`);
+  if(s.bank&&s.acc) pay.push(`Bank: ${s.bank} | A/c: ${s.acc}${s.ifsc?' | IFSC: '+s.ifsc:''}`);
+  if(pay.length) msg+=`\n\n*Payment details:*\n${pay.join('\n')}`;
+  msg+=`\n\nPayment ho chuka ho to batayein, dhanyawad 🙏`;
+  return msg;
+}
+function _sendPayReminder(custId){
+  const c=CUSTOMERS.find(x=>x.id===custId);
+  if(!c){ toast('Party nahi mili!'); return; }
+  const msg=_buildPayReminder(c);
+  if(!msg){ toast('✅ Is party ka koi bill baaki nahi'); return; }
+  if(!c.phone) toast('⚠️ Party ka phone number nahi hai — WhatsApp mein number khud chunna padega');
+  c.lastReminder=new Date().toISOString().split('T')[0];
+  save('bf9_customers',CUSTOMERS);
+  window.open('https://wa.me/'+_waPhone(c.phone)+'?text='+encodeURIComponent(msg),'_blank');
+  if(document.getElementById('led-ageing-content')) _renderAgeing('customer');
 }
 
 /* ── WhatsApp Summary ── */
@@ -19336,7 +19569,319 @@ div[style*="font-size:60px"]{font-size:40px !important;}
 /* ═══════════════════════════════════════════════════
    CEO REPORT MODULE — BeyondFurni
 ═══════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   GROK AI — CEO REPORT
+   Key Supabase ke 'ceo-ai' Edge Function mein private rehti hai (yahan browser mein nahi).
+   ERP sirf data ka digest bhejta hai (phone/GSTIN/address/bank kabhi nahi).
+═══════════════════════════════════════════════════════════════ */
+const CEO_AI_FN = SB_URL+'/functions/v1/ceo-ai';
+let _ceoAiBusy=false, _ceoAiLastErr='';
+
+function _ceoAiPrefs(){ try{ return JSON.parse(localStorage.getItem('bf9_ceo_ai_prefs'))||{}; }catch(e){ return {}; } }
+function _ceoAiSetPrefs(p){ try{ localStorage.setItem('bf9_ceo_ai_prefs',JSON.stringify({..._ceoAiPrefs(),...p})); }catch(e){} }
+function _ceoAiStore(){ try{ return JSON.parse(localStorage.getItem('bf9_ceo_ai_reports'))||{}; }catch(e){ return {}; } }
+function _ceoAiSaveReport(month,obj){
+  const st=_ceoAiStore(); st[month]=obj;
+  try{ localStorage.setItem('bf9_ceo_ai_reports',JSON.stringify(st)); }catch(e){ toast('⚠️ Report browser mein save nahi ho payi (jagah kam?)'); }
+}
+
+async function _ceoAiCall(action,payload){
+  let sess=authGetSession();
+  if(!sess) throw new Error('Login session nahi mili — dobara login karo');
+  if(Date.now()>sess.expires_at-60000){ const n=await authTryRefresh(sess); if(n) sess=n; }
+  let res;
+  try{
+    res=await fetch(CEO_AI_FN,{
+      method:'POST',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+sess.access_token,'Content-Type':'application/json'},
+      body:JSON.stringify({action,...(payload||{})})
+    });
+  }catch(e){ throw new Error('Connection error — internet check karo, ya ceo-ai function deploy nahi hua'); }
+  let data={}; try{ data=await res.json(); }catch(e){}
+  if(!res.ok||data.ok===false){
+    throw new Error(data.error||(res.status===404?'ceo-ai function deploy nahi hua (Supabase Edge Functions mein check karo)':'HTTP '+res.status));
+  }
+  return data;
+}
+
+/* ── Settings card (owner only) ── */
+function _ceoAiSetModels(list){
+  const dl=document.getElementById('ceo-ai-models'); if(!dl) return;
+  dl.innerHTML=(list||[]).map(m=>`<option value="${esc(m)}">`).join('');
+}
+async function _ceoAiLoadSettings(){
+  const card=document.getElementById('ceo-ai-settings'); if(!card) return;
+  const owner=(typeof _authRole!=='undefined')&&_authRole==='owner';
+  card.style.display=owner?'':'none';
+  if(!owner) return;
+  const st=document.getElementById('ceo-ai-status');
+  const anon=document.getElementById('ceo-ai-anon'); if(anon) anon.checked=!!_ceoAiPrefs().anon;
+  try{
+    const d=await _ceoAiCall('status');
+    st.style.color=d.hasKey?'var(--green-dark)':'var(--red-dark)';
+    st.textContent=d.hasKey?`✅ Key saved (…${d.last4})${d.model?' · Model: '+d.model:' · ⚠️ Model abhi chuna nahi'}`:'⚠️ Key abhi set nahi hai';
+    const mi=document.getElementById('ceo-ai-model'); if(mi&&d.model) mi.value=d.model;
+    if(d.hasKey) _ceoAiLoadModels(true);
+  }catch(e){ st.style.color='var(--red-dark)'; st.textContent='⚠️ '+e.message; }
+}
+async function _ceoAiSaveKey(){
+  const keyEl=document.getElementById('ceo-ai-key');
+  const key=(keyEl.value||'').trim();
+  const model=(document.getElementById('ceo-ai-model').value||'').trim();
+  if(!key){ toast('⚠️ Pehle API key paste karo'); return; }
+  toast('⏳ Key check ho rahi hai...');
+  try{
+    const d=await _ceoAiCall('save_key',{key,model});
+    keyEl.value='';
+    _ceoAiSetModels(d.models);
+    toast('✅ Key save ho gayi'+(d.warn?' — '+d.warn:'')+((d.models||[]).length?' · Ab model chuno':''));
+    _ceoAiLoadSettings();
+  }catch(e){ toast('❌ '+e.message); }
+}
+async function _ceoAiLoadModels(silent){
+  try{
+    const d=await _ceoAiCall('list_models');
+    _ceoAiSetModels(d.models);
+    if(!silent) toast('✅ '+(d.models||[]).length+' models mile — model box se chuno');
+  }catch(e){ if(!silent) toast('❌ '+e.message); }
+}
+async function _ceoAiSaveModel(){
+  const model=(document.getElementById('ceo-ai-model').value||'').trim();
+  if(!model) return;
+  try{ await _ceoAiCall('save_model',{model}); toast('✅ Model save ho gaya: '+model); _ceoAiLoadSettings(); }
+  catch(e){ toast('❌ '+e.message); }
+}
+async function _ceoAiClearKey(){
+  if(!confirm('Grok API key hata dein? CEO AI report tab tak band rahegi jab tak nayi key na daalo.')) return;
+  try{ await _ceoAiCall('clear_key'); toast('🗑 Key hat gayi'); _ceoAiLoadSettings(); }
+  catch(e){ toast('❌ '+e.message); }
+}
+
+/* ── Data digest: poore ERP ka compact saar (Grok ko yahi jata hai) ── */
+function _ceoAiDigest(month, anon){
+  const [yr,mo]=month.split('-').map(Number);
+  const r0=n=>Math.round(+n||0);
+  const sum=(a,f)=>a.reduce((t,x)=>t+(+f(x)||0),0);
+  const mk=d=>{ const dt=new Date(d); return isNaN(dt)?'':dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0'); };
+  const lbl=k=>{ const [y,m]=k.split('-').map(Number); return new Date(y,m-1,1).toLocaleDateString('en-IN',{month:'long',year:'numeric'}); };
+  const aMap={}; let aN=0;
+  const nm=(n,kind)=>{ n=String(n||'—').trim()||'—'; if(!anon) return n; const k=(kind||'p')+'|'+n.toLowerCase(); if(!aMap[k]) aMap[k]=(kind==='s'?'Supplier ':'Party ')+(++aN); return aMap[k]; };
+  const catLabel={}; [...(DB_CATS.expense||[]),...(DB_CATS.income||[])].forEach(c=>{ catLabel[c.id]=c.label; });
+  const cl=id=>catLabel[id]||id||'Other';
+  const SKIP=['inter_account_transfer','inter_account_in'];          // internal transfer — totals mein nahi
+  const COGS=['raw_material','labour','powder_coating','packaging','inter_account'];
+  const INT=['interest_emi'];
+  const OPEX=['transport','rent','electricity','admin_misc','repair_maint','marketing','other_prod','business_other_expense','tax_govt'];
+
+  const months=[]; for(let i=5;i>=0;i--){ const d=new Date(yr,mo-1-i,1); months.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')); }
+  const prevKey=months[months.length-2];
+  const invs=(INVOICES||[]).filter(i=>!i.deleted);
+  const dbAll=(DAYBOOK||[]).filter(e=>!SKIP.includes(e.category));
+  const units=iv=>sum(iv,i=>sum(i.items||[],it=>it.qty));
+
+  const trend=months.map(k=>{
+    const iv=invs.filter(i=>mk(i.date)===k), db=dbAll.filter(e=>mk(e.date)===k);
+    const exp=db.filter(e=>e.type==='expense'), inc=db.filter(e=>e.type==='income');
+    const by=(arr,cats)=>sum(arr.filter(e=>cats.includes(e.category)),e=>e.amount);
+    const rev=sum(iv,i=>i.subtotal||i.grandTotal);
+    const cogs=by(exp,COGS), opex=by(exp,OPEX), intr=by(exp,INT);
+    const np=rev-cogs-opex-intr;
+    const plans=(H||[]).filter(h=>mk(h.date)===k);
+    return {month:lbl(k),key:k,invoices:iv.length,units_sold:r0(units(iv)),revenue_pretax:r0(rev),billed_total_incl_gst:r0(sum(iv,i=>i.grandTotal)),
+      cogs:r0(cogs),opex:r0(opex),interest_emi:r0(intr),net_profit_estimate:r0(np),
+      gross_margin_pct:rev>0?+((rev-cogs)/rev*100).toFixed(1):null,net_margin_pct:rev>0?+(np/rev*100).toFixed(1):null,
+      cash_in_total:r0(sum(inc,e=>e.amount)),cash_out_total:r0(sum(exp,e=>e.amount)),
+      pieces_planned:r0(sum(plans,h=>h.tot)),working_days:plans.length};
+  });
+
+  // ── selected month detail ──
+  const iv=invs.filter(i=>mk(i.date)===month), pv=invs.filter(i=>mk(i.date)===prevKey);
+  const dbM=dbAll.filter(e=>mk(e.date)===month), dbP=dbAll.filter(e=>mk(e.date)===prevKey);
+  const catTot=(arr,type)=>{ const o={}; arr.filter(e=>e.type===type).forEach(e=>{ const k=cl(e.category); o[k]=(o[k]||0)+(+e.amount||0); }); return o; };
+  const roundObj=o=>Object.fromEntries(Object.entries(o).map(([k,v])=>[k,r0(v)]).sort((a,b)=>b[1]-a[1]));
+  const partyRev={}; iv.forEach(i=>{ const k=nm(i.party,'p'); (partyRev[k]=partyRev[k]||{revenue:0,bills:0}); partyRev[k].revenue+=(+i.subtotal||+i.grandTotal||0); partyRev[k].bills++; });
+  const topParties=Object.entries(partyRev).sort((a,b)=>b[1].revenue-a[1].revenue).slice(0,10).map(([party,v])=>({party,revenue:r0(v.revenue),bills:v.bills}));
+  const prod={}; iv.forEach(i=>(i.items||[]).forEach(it=>{ const k=it.name||'Item'; (prod[k]=prod[k]||{qty:0,revenue:0}); prod[k].qty+=(+it.qty||0); prod[k].revenue+=Math.max(0,(+it.qty||0)*(+it.rate||0)-(+it.disc||0)); }));
+  const products=Object.entries(prod).sort((a,b)=>b[1].revenue-a[1].revenue).slice(0,10).map(([name,v])=>({product:name,qty:r0(v.qty),revenue:r0(v.revenue),avg_rate:v.qty>0?r0(v.revenue/v.qty):0}));
+  const supp={}; dbM.filter(e=>e.type==='expense'&&e.supplier).forEach(e=>{ const k=nm(e.supplier,'s'); supp[k]=(supp[k]||0)+(+e.amount||0); });
+  const topSupp=Object.entries(supp).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([supplier,amount])=>({supplier,amount:r0(amount)}));
+  const pendingOf=i=>Math.max(0,(+i.grandTotal||0)-(+i.recoveryAmt||0));
+  const sales={invoices:iv.length,revenue_pretax:r0(sum(iv,i=>i.subtotal||i.grandTotal)),billed_total_incl_gst:r0(sum(iv,i=>i.grandTotal)),gst_amount:r0(sum(iv,i=>i.gstAmt)),
+    prev_month_revenue_pretax:r0(sum(pv,i=>i.subtotal||i.grandTotal)),prev_month_invoices:pv.length,
+    paid_invoices:iv.filter(i=>i.status==='paid').length,partial_invoices:iv.filter(i=>i.status==='partial').length,unpaid_invoices:iv.filter(i=>i.status!=='paid'&&i.status!=='partial').length,
+    pending_amount_on_this_months_invoices:r0(sum(iv,pendingOf)),top_parties:topParties,top_products:products,
+    unique_parties:Object.keys(partyRev).length};
+
+  // ── outstanding / payables (aaj ki date tak) ──
+  const today=new Date(); today.setHours(0,0,0,0);
+  let outstanding={};
+  try{
+    const buckets={'0-30 din':0,'31-60 din':0,'61-90 din':0,'90+ din':0}; const debtors=[]; let tot=0;
+    (CUSTOMERS||[]).filter(c=>!c.type||c.type==='customer'||c.type==='dealer').forEach(c=>{
+      const items=_custOpenItems(c.id); if(!items.length) return;
+      let t=0,oldest=0;
+      items.forEach(it=>{ const d=Math.max(0,Math.floor((today-new Date(it.date))/86400000)); t+=it.amt; oldest=Math.max(oldest,d); buckets[d<=30?'0-30 din':d<=60?'31-60 din':d<=90?'61-90 din':'90+ din']+=it.amt; });
+      tot+=t; debtors.push({party:nm(c.name,'p'),outstanding:r0(t),oldest_bill_days:oldest,open_bills:items.length});
+    });
+    debtors.sort((a,b)=>b.outstanding-a.outstanding);
+    outstanding={total_receivable:r0(tot),parties_with_balance:debtors.length,aging_buckets:roundObj(buckets),top_debtors:debtors.slice(0,10)};
+  }catch(e){ outstanding={note:'data nahi nikla'}; }
+  let payables={};
+  try{
+    const sp=(CUSTOMERS||[]).filter(c=>c.type==='supplier').map(c=>({supplier:nm(c.name,'s'),payable:r0(_custBalance(c.id))})).filter(x=>x.payable>0).sort((a,b)=>b.payable-a.payable);
+    payables={total_payable:sp.reduce((t,x)=>t+x.payable,0),suppliers_with_balance:sp.length,top_suppliers:sp.slice(0,6)};
+  }catch(e){ payables={note:'data nahi nikla'}; }
+  let cash={}; try{ const c=_cashPosition(); cash={cash_in_hand:r0(c.cash),bank_and_upi:r0(c.bank),total:r0(c.total),note:'Daybook ke all-time net flow se'}; }catch(e){}
+
+  // ── orders / batches / stock / production ──
+  let orders={}; try{
+    const open=(ORDERS||[]).filter(o=>((+o.qty||0)-(+o.delivered||0))>0);
+    const overdue=open.filter(o=>o.deliveryDate&&new Date(o.deliveryDate)<today);
+    orders={open_orders:open.length,pending_qty:r0(sum(open,o=>(+o.qty||0)-(+o.delivered||0))),overdue_orders:overdue.length,
+      overdue_list:overdue.slice(0,6).map(o=>{ const c=(CUSTOMERS||[]).find(x=>x.id===o.custId); return {party:nm(c?c.name:'—','p'),product:o.product,pending_qty:r0((+o.qty||0)-(+o.delivered||0)),due:o.deliveryDate}; })};
+  }catch(e){}
+  let batches={}; try{
+    const act=(BATCHES||[]).filter(b=>((+b.qty||0)-(+b.dispatched||0))>0);
+    batches={active_batches:act.length,pending_dispatch_qty:r0(sum(act,b=>(+b.qty||0)-(+b.dispatched||0)))};
+  }catch(e){}
+  let stock={}; try{
+    const low=(STK||[]).filter(x=>(+x.current||0)<=(+x.reorder||0)).sort((a,b)=>(a.current/(a.reorder||1))-(b.current/(b.reorder||1)));
+    stock={items_tracked:(STK||[]).length,items_at_or_below_reorder:low.length,low_stock_items:low.slice(0,15).map(x=>({item:x.name,current:+(+x.current||0).toFixed(1),reorder_level:+x.reorder||0,unit:x.unit||''}))};
+  }catch(e){}
+  let production={}; try{
+    const plans=(H||[]).filter(h=>mk(h.date)===month);
+    const eodKeys=Object.keys(EOD||{}).filter(d=>mk(d)===month);
+    const closed=eodKeys.filter(d=>EOD[d]&&EOD[d].closed).length;
+    const total=sum(plans,h=>h.tot);
+    production={working_days:plans.length,pieces_planned:r0(total),avg_pieces_per_day:plans.length?r0(total/plans.length):0,eod_days_closed:closed,eod_days_total:plans.length,
+      eod_discipline_pct:plans.length?+Math.min(closed/plans.length*100,100).toFixed(0):null,workers_on_roll:Array.isArray(W)?W.length:null};
+  }catch(e){}
+  let cfo=null; try{
+    const k=Object.keys(CFO_DATA||{}).find(x=>String(x).includes(month)||String(x).toLowerCase().includes(lbl(month).split(' ')[0].toLowerCase()+' '+yr));
+    if(k){ const j=JSON.stringify((CFO_DATA[k]||{}).results||{}); if(j.length>10&&j.length<4000) cfo=JSON.parse(j); }
+  }catch(e){}
+
+  return {
+    company:'BeyondFurni (S.R. Enterprises) — washing machine stands & furniture components, Nashik',
+    report_month:lbl(month),generated_on:new Date().toLocaleDateString('en-IN'),names_anonymized:!!anon,currency:'INR',
+    notes:['Revenue = invoice subtotal (pre-GST). Net profit is an estimate = revenue - COGS (raw material, labour, powder coating, packaging, consumption) - opex - interest/EMI, from Daybook categories.',
+           'Internal transfers between accounts are excluded from cash totals. Personal expenses appear only under expense categories.'],
+    six_month_trend:trend.map(({key,...r})=>r),
+    selected_month:{sales,
+      expenses_by_category:roundObj(catTot(dbM,'expense')),prev_month_expenses_by_category:roundObj(catTot(dbP,'expense')),
+      income_by_category:roundObj(catTot(dbM,'income')),prev_month_income_by_category:roundObj(catTot(dbP,'income')),
+      top_suppliers_by_spend:topSupp,production},
+    receivables_as_of_today:outstanding,payables_as_of_today:payables,cash_position:cash,
+    open_orders:orders,production_batches:batches,stock_alerts:stock,
+    cfo_module_results:cfo,fixed_assets_count:(ASSETS||[]).length
+  };
+}
+
+/* ── tiny Markdown → HTML ── */
+function _ceoAiMd(txt){
+  const e=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const inl=s=>e(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/`([^`]+)`/g,'<code>$1</code>');
+  const lines=String(txt||'').replace(/\r/g,'').split('\n');
+  let out='', list=null, i=0;
+  const close=()=>{ if(list){ out+='</'+list+'>'; list=null; } };
+  while(i<lines.length){
+    const L=lines[i].trim();
+    if(!L||/^[-*_]{3,}$/.test(L)){ close(); i++; continue; }
+    if(/^\|.*\|$/.test(L)){
+      close(); const rows=[];
+      while(i<lines.length&&/^\|.*\|$/.test(lines[i].trim())){ rows.push(lines[i].trim()); i++; }
+      const cells=r=>r.replace(/^\||\|$/g,'').split('|').map(c=>c.trim());
+      const data=rows.filter(r=>!/^\|[\s:\-|]+\|$/.test(r)).map(cells);
+      out+='<table>'+data.map((r,ri)=>'<tr>'+r.map(c=>ri===0?'<th>'+inl(c)+'</th>':'<td>'+inl(c)+'</td>').join('')+'</tr>').join('')+'</table>';
+      continue;
+    }
+    let m;
+    if((m=L.match(/^(#{1,4})\s+(.*)$/))){ close(); const lv=m[1].length; out+=`<h${lv}>${inl(m[2])}</h${lv}>`; }
+    else if((m=L.match(/^[-*•]\s+(.*)$/))){ if(list!=='ul'){ close(); out+='<ul>'; list='ul'; } out+='<li>'+inl(m[1])+'</li>'; }
+    else if((m=L.match(/^\d+[.)]\s+(.*)$/))){ if(list!=='ol'){ close(); out+='<ol>'; list='ol'; } out+='<li>'+inl(m[1])+'</li>'; }
+    else { close(); out+='<p>'+inl(L)+'</p>'; }
+    i++;
+  }
+  close(); return out;
+}
+
+/* ── CEO Report screen: dikhana / banana / print ── */
+function _ceoAiShow(){
+  const out=document.getElementById('ceo-ai-out'); if(!out) return;
+  const lang=document.getElementById('ceo-ai-lang'); if(lang&&!lang._init){ lang.value=_ceoAiPrefs().lang||'hinglish'; lang._init=true; }
+  const m=document.getElementById('ceo-month-sel')?.value;
+  const rep=m?_ceoAiStore()[m]:null;
+  const pb=document.getElementById('ceo-ai-print-btn'); if(pb) pb.style.display=rep?'':'none';
+  const gb=document.getElementById('ceo-ai-gen-btn'); if(gb&&!_ceoAiBusy) gb.textContent=rep?'🔄 Dobara Banao':'🤖 Report Banao';
+  let html='';
+  if(_ceoAiBusy) html+=`<div style="padding:18px;text-align:center;font-size:13px;font-weight:800;color:#5b21b6">⏳ Grok poora data padh ke report likh raha hai... (1-2 minute lag sakte hain)</div>`;
+  if(_ceoAiLastErr&&!_ceoAiBusy) html+=`<div style="background:var(--red-bg);color:var(--red-dark);border-radius:var(--r2);padding:10px 12px;font-size:12px;font-weight:700;margin-bottom:8px">❌ ${esc(_ceoAiLastErr)}</div>`;
+  if(rep&&!_ceoAiBusy){
+    const at=new Date(rep.at).toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    html+=`<div style="font-size:10px;color:var(--muted);margin-bottom:6px">🤖 ${esc(rep.model||'Grok')} · ${at} ${rep.anon?'· naam anonymized':''}</div><div class="ceo-md">${_ceoAiMd(rep.text)}</div>
+    <div style="margin-top:10px;padding:8px 10px;background:#faf5ff;border-radius:6px;font-size:10px;color:#6b7280">AI ne ERP ke diye gaye numbers se likha hai. Koi bhi bada faisla lene se pehle important figures ek baar ERP mein verify kar lo.</div>`;
+  } else if(!_ceoAiBusy&&!_ceoAiLastErr){
+    html+=`<div style="padding:14px;text-align:center;font-size:12px;color:var(--muted)">Upar se month chuno aur <b>🤖 Report Banao</b> dabao. Grok is mahine ke poore ERP data se apni CEO report likhega, jise tum print bhi kar sakte ho.</div>`;
+  }
+  out.innerHTML=html;
+}
+async function ceoAiGenerate(){
+  if(_ceoAiBusy) return;
+  const m=document.getElementById('ceo-month-sel')?.value;
+  if(!m){ toast('⚠️ Pehle month chuno (koi data nahi mila)'); return; }
+  const lang=document.getElementById('ceo-ai-lang')?.value||'hinglish';
+  const anon=!!_ceoAiPrefs().anon;
+  _ceoAiBusy=true; _ceoAiLastErr='';
+  const gb=document.getElementById('ceo-ai-gen-btn'); if(gb){ gb.disabled=true; gb.textContent='⏳ Grok likh raha hai...'; }
+  _ceoAiShow();
+  try{
+    const digest=_ceoAiDigest(m,anon);
+    const d=await _ceoAiCall('analyze',{digest,month:digest.report_month,lang});
+    _ceoAiSaveReport(m,{text:d.report,model:d.model,lang,anon,at:new Date().toISOString()});
+    toast('✅ Grok ki CEO report ready');
+  }catch(e){ _ceoAiLastErr=e.message||String(e); }
+  finally{
+    _ceoAiBusy=false;
+    if(gb){ gb.disabled=false; }
+    _ceoAiShow();
+  }
+}
+function ceoAiPrint(){
+  const m=document.getElementById('ceo-month-sel')?.value;
+  const rep=m?_ceoAiStore()[m]:null;
+  if(!rep){ toast('⚠️ Pehle report banao'); return; }
+  const [y,mo]=m.split('-').map(Number);
+  const label=new Date(y,mo-1,1).toLocaleDateString('en-IN',{month:'long',year:'numeric'});
+  const firm=(_invSettings&&_invSettings.name)||'BeyondFurni';
+  const at=new Date(rep.at).toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>CEO Report — ${esc(label)}</title>
+  <style>
+    *{box-sizing:border-box}
+    body{font-family:Arial,Helvetica,sans-serif;color:#1f2937;margin:0;padding:14mm 14mm 16mm;font-size:12.5px;line-height:1.55}
+    .hd{border-bottom:3px solid #0e3a56;padding-bottom:10px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:flex-end}
+    .hd h1{margin:0;font-size:22px;color:#0e3a56}
+    .hd .sub{font-size:11px;color:#6b7280;margin-top:3px}
+    .hd .r{text-align:right;font-size:11px;color:#6b7280}
+    h1{font-size:18px;color:#0e3a56} h2{font-size:14.5px;color:#0e3a56;margin:16px 0 6px;padding-bottom:3px;border-bottom:1.5px solid #cbd5e1;page-break-after:avoid}
+    h3{font-size:13px;color:#0e3a56;margin:10px 0 4px}
+    p{margin:5px 0} ul,ol{margin:5px 0 5px 20px;padding:0} li{margin:3px 0}
+    table{border-collapse:collapse;width:100%;margin:8px 0;font-size:12px;page-break-inside:avoid}
+    th{background:#e8eef5;text-align:left;padding:6px 8px;border:1px solid #cbd5e1} td{padding:6px 8px;border:1px solid #d1d5db}
+    code{background:#f3f4f6;padding:1px 4px;border-radius:3px}
+    .ft{margin-top:18px;padding-top:8px;border-top:1px solid #d1d5db;font-size:10px;color:#6b7280}
+    @page{size:A4 portrait;margin:0}
+    @media print{body{padding:12mm 13mm 14mm}}
+  </style></head><body>
+  <div class="hd"><div><h1>CEO Report — ${esc(label)}</h1><div class="sub">${esc(firm)} · Nashik</div></div>
+  <div class="r">Prepared by Grok AI<br>${at}</div></div>
+  ${_ceoAiMd(rep.text)}
+  <div class="ft">Ye report AI (${esc(rep.model||'Grok')}) ne ERP ke data se banayi hai${rep.anon?' (party ke naam anonymized the)':''}. Important figures ERP mein verify karke hi faisle lein.</div>
+  <script>window.onload=function(){window.print();}<\/script></body></html>`;
+  _openPrintWindow(html);
+}
+
 function renderCEOReport(){
+  setTimeout(()=>{ if(typeof _ceoAiShow==='function') _ceoAiShow(); },0);
   const sel=document.getElementById('ceo-month-sel');
   if(!sel) return;
 
