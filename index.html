@@ -6076,6 +6076,7 @@ function sw(name,btn){
   if(name==='cfo')      renderCFO();
   if(name==='ceo-report') renderCEOReport();
   if(name==='daybook')  renderDaybook();
+  if(name==='settings' && typeof _ceoAiLoadSettings==='function') _ceoAiLoadSettings();
   // Close sidebar on mobile
   if(window.innerWidth<=768) closeSidebar();
   if(name==='inv-materials') { invRenderMaterials(); invCheckLowBadge(); }
@@ -10313,7 +10314,7 @@ function setInvTab(name){
   });
   if(name==='list')     renderInvList();
   if(name==='new')      initNewInvoice();
-  if(name==='settings') { loadInvSettings(); loadSrSettings(); if(typeof _ceoAiLoadSettings==='function') _ceoAiLoadSettings(); }
+  if(name==='settings') { loadInvSettings(); loadSrSettings(); }
   // whats-new is static HTML
   if(name==='analytics') renderAnalytics();
 }
