@@ -3423,8 +3423,8 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
       <div style="font-size:10px;color:#7c3aed;font-weight:800">Sirf Owner</div>
     </div>
     <div id="ceo-ai-status" style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:10px">Check ho raha hai...</div>
-    <div class="fg"><label>Grok (xAI) API Key <span style="color:var(--muted);font-size:9px">(Supabase mein private save hoti hai, is page ya GitHub mein nahi)</span></label>
-      <input class="finp" type="password" id="ceo-ai-key" placeholder="xai-..." autocomplete="off">
+    <div class="fg"><label>AI API Key <span style="color:var(--muted);font-size:9px">(xAI Grok: xai-... ya Groq: gsk_... — Supabase mein private save hoti hai, GitHub mein nahi)</span></label>
+      <input class="finp" type="password" id="ceo-ai-key" placeholder="xai-...  ya  gsk_..." autocomplete="off">
     </div>
     <div class="fg"><label>Model <span style="color:var(--muted);font-size:9px">(key save hone ke baad list aati hai; console.x.ai pe bhi dekh sakte ho)</span></label>
       <input class="finp" id="ceo-ai-model" list="ceo-ai-models" placeholder="model ka naam" onchange="_ceoAiSaveModel()">
@@ -19620,7 +19620,7 @@ async function _ceoAiLoadSettings(){
   try{
     const d=await _ceoAiCall('status');
     st.style.color=d.hasKey?'var(--green-dark)':'var(--red-dark)';
-    st.textContent=d.hasKey?`✅ Key saved (…${d.last4})${d.model?' · Model: '+d.model:' · ⚠️ Model abhi chuna nahi'}`:'⚠️ Key abhi set nahi hai';
+    st.textContent=d.hasKey?`✅ ${d.providerName||'AI'} key saved (…${d.last4})${d.model?' · Model: '+d.model:' · ⚠️ Model abhi chuna nahi'}`:'⚠️ Key abhi set nahi hai';
     const mi=document.getElementById('ceo-ai-model'); if(mi&&d.model) mi.value=d.model;
     if(d.hasKey) _ceoAiLoadModels(true);
   }catch(e){ st.style.color='var(--red-dark)'; st.textContent='⚠️ '+e.message; }
