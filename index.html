@@ -1661,7 +1661,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
   <!-- Quick Actions -->
   <div class="card-title" style="margin-bottom:8px;padding:0 2px">🚀 Quick Actions</div>
   <div class="action-grid">
-    <div class="action-card orange" onclick="sw('daily',document.querySelector('.bnav[data-tab=daily]'))">
+    <div class="action-card orange feat-plan-only" onclick="sw('daily',document.querySelector('.bnav[data-tab=daily]'))">
       <div class="ac-ico">📋</div>
       <div class="ac-title">Aaj Ka Plan</div>
       <div class="ac-sub">Daily entry shuru karo</div>
@@ -3420,6 +3420,14 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
 
 <!-- ════ SETTINGS ════ -->
 <div class="sc" id="s-settings">
+
+  <!-- Modules On/Off -->
+  <div class="card" id="feat-toggle-card">
+    <div class="card-hdr"><div class="card-title">🧩 Modules On/Off</div></div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Band karne par sirf menu se hide hota hai — data delete nahi hota. Wapas ON karoge to sab purana data milega.</div>
+    <label style="display:flex;align-items:center;gap:10px;padding:8px 0;font-size:13px;font-weight:800;cursor:pointer"><input type="checkbox" id="feat-plan" onchange="_featSet('plan',this.checked)" style="width:18px;height:18px"> 🏭 Floor Plan</label>
+    <label style="display:flex;align-items:center;gap:10px;padding:8px 0;font-size:13px;font-weight:800;cursor:pointer"><input type="checkbox" id="feat-tracking" onchange="_featSet('tracking',this.checked)" style="width:18px;height:18px"> 📊 EOD Track</label>
+  </div>
 
   <!-- GROK AI (owner only) -->
   <div class="card" id="ceo-ai-settings" style="display:none;border:2px solid #7c3aed;background:linear-gradient(135deg,#faf5ff,#fff)">
@@ -6056,7 +6064,28 @@ function esc(s){ return String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 function _az(arr,key){ return [...arr].sort((a,b)=>{ const av=key?key(a):a; const bv=key?key(b):b; return String(av==null?'':av).localeCompare(String(bv==null?'':bv),'en',{numeric:true,sensitivity:'base'}); }); }
 
 /* ═══════════════ NAV ═══════════════ */
+
+/* ── Modules On/Off (Floor Plan, EOD Track) — sirf hide/disable, data safe ── */
+const FEAT_KEY='bf9_feat_off';
+function _featOffMap(){ try{ const m=JSON.parse(localStorage.getItem(FEAT_KEY)); if(m&&typeof m==='object') return m; }catch(e){} return {plan:1,tracking:1}; }
+function _featOff(tab){ return !!_featOffMap()[tab]; }
+function _featSet(tab,on){
+  const m=_featOffMap(); if(on) delete m[tab]; else m[tab]=1;
+  try{ localStorage.setItem(FEAT_KEY,JSON.stringify(m)); }catch(e){}
+  _applyFeatFlags(); toast(on?'✅ Module ON':'⏸ Module band (data safe hai)');
+}
+function _applyFeatFlags(){
+  ['plan','tracking'].forEach(t=>{
+    const off=_featOff(t);
+    document.querySelectorAll('.sbnav[data-tab="'+t+'"],.bnav[data-tab="'+t+'"]').forEach(b=>{ b.style.display=off?'none':''; });
+    const cb=document.getElementById('feat-'+t); if(cb) cb.checked=!off;
+  });
+  document.querySelectorAll('.feat-plan-only').forEach(e=>{ e.style.display=_featOff('plan')?'none':''; });
+}
+document.addEventListener('DOMContentLoaded',()=>{ try{ _applyFeatFlags(); }catch(e){} });
+
 function sw(name,btn){
+  if((name==='plan'||name==='tracking')&&_featOff(name)){ toast('⏸ Ye module band hai — Settings > Modules On/Off se chalu karo'); return; }
   if(_tabLevel(name)==='none'){
     toast('🔒 Ye section aapke liye available nahi hai');
     return;
@@ -6081,6 +6110,7 @@ function sw(name,btn){
   if(name==='cfo')      renderCFO();
   if(name==='ceo-report') renderCEOReport();
   if(name==='daybook')  renderDaybook();
+  if(name==='settings') _applyFeatFlags();
   if(name==='settings' && typeof _ceoAiLoadSettings==='function') _ceoAiLoadSettings();
   // Close sidebar on mobile
   if(window.innerWidth<=768) closeSidebar();
@@ -13983,7 +14013,7 @@ function renderDashboard(){
 
   // ── Alerts ──
   const alerts=[];
-  if(!hasPlan) alerts.push({ico:'📋',msg:'Aaj ka plan nahi bana!',color:'var(--orange)',tab:'daily'});
+  if(!hasPlan && !_featOff('plan')) alerts.push({ico:'📋',msg:'Aaj ka plan nahi bana!',color:'var(--orange)',tab:'daily'});
   if(delayedBatches.length) alerts.push({ico:'📦',msg:`${delayedBatches.length} batch delayed hain!`,color:'var(--red)',tab:'batch'});
   if(lowStock.length) alerts.push({ico:'🧱',msg:`${lowStock.length} items low/khatam stock mein`,color:'var(--red)',tab:'stock'});
   if(unpaidInv.length) alerts.push({ico:'🧾',msg:`${unpaidInv.length} invoices unpaid — ₹${_fmtAmt(totalOutstanding)}`,color:'var(--yellow-dark)',tab:'invoice'});
@@ -19259,12 +19289,10 @@ function _ceoAiDigest(month, anon){
     const rev=sum(iv,i=>i.subtotal||i.grandTotal);
     const cogs=by(exp,COGS), opex=by(exp,OPEX), intr=by(exp,INT);
     const np=rev-cogs-opex-intr;
-    const plans=(H||[]).filter(h=>mk(h.date)===k);
     return {month:lbl(k),key:k,invoices:iv.length,units_sold:r0(units(iv)),revenue_pretax:r0(rev),billed_total_incl_gst:r0(sum(iv,i=>i.grandTotal)),
       cogs:r0(cogs),opex:r0(opex),interest_emi:r0(intr),net_profit_estimate:r0(np),
       gross_margin_pct:rev>0?+((rev-cogs)/rev*100).toFixed(1):null,net_margin_pct:rev>0?+(np/rev*100).toFixed(1):null,
-      cash_in_total:r0(sum(inc,e=>e.amount)),cash_out_total:r0(sum(exp,e=>e.amount)),
-      pieces_planned:r0(sum(plans,h=>h.tot)),working_days:plans.length};
+      cash_in_total:r0(sum(inc,e=>e.amount)),cash_out_total:r0(sum(exp,e=>e.amount))};
   });
 
   // ── selected month detail ──
@@ -19321,20 +19349,12 @@ function _ceoAiDigest(month, anon){
     const low=(STK||[]).filter(x=>(+x.current||0)<=(+x.reorder||0)).sort((a,b)=>(a.current/(a.reorder||1))-(b.current/(b.reorder||1)));
     stock={items_tracked:(STK||[]).length,items_at_or_below_reorder:low.length,low_stock_items:low.slice(0,15).map(x=>({item:x.name,current:+(+x.current||0).toFixed(1),reorder_level:+x.reorder||0,unit:x.unit||''}))};
   }catch(e){}
-  let production={}; try{
-    const plans=(H||[]).filter(h=>mk(h.date)===month);
-    const eodKeys=Object.keys(EOD||{}).filter(d=>mk(d)===month);
-    const closed=eodKeys.filter(d=>EOD[d]&&EOD[d].closed).length;
-    const total=sum(plans,h=>h.tot);
-    production={working_days:plans.length,pieces_planned:r0(total),avg_pieces_per_day:plans.length?r0(total/plans.length):0,eod_days_closed:closed,eod_days_total:plans.length,
-      eod_discipline_pct:plans.length?+Math.min(closed/plans.length*100,100).toFixed(0):null,workers_on_roll:Array.isArray(W)?W.length:null};
-  }catch(e){}
   let cfo=null; try{
     const k=Object.keys(CFO_DATA||{}).find(x=>String(x).includes(month)||String(x).toLowerCase().includes(lbl(month).split(' ')[0].toLowerCase()+' '+yr));
     if(k){ const j=JSON.stringify((CFO_DATA[k]||{}).results||{}); if(j.length>10&&j.length<4000) cfo=JSON.parse(j); }
   }catch(e){}
 
-  // ── live snapshot: Dashboard AI ke liye (overdue, delayed batch, aaj ka plan/EOD, absence, quiet customers) ──
+  // ── live snapshot: Dashboard AI ke liye (overdue, delayed batch, quiet customers) ──
   let live={};
   try{
     const todayD=new Date(); todayD.setHours(0,0,0,0);
@@ -19351,8 +19371,6 @@ function _ceoAiDigest(month, anon){
       .map(([k,v])=>({party:nm(k,'p'),invoices_so_far:v.n,total_revenue:r0(v.rev),days_since_last_order:daysAgo(v.last)}));
     const best=Object.entries(byParty).sort((a,b)=>b[1].rev-a[1].rev)[0];
     let delayed=[]; try{ delayed=(BATCHES||[]).filter(b=>!b.deleted&&!btIsDone(b)&&btStatus(b)==='delayed').slice(0,8).map(b=>({batch:b.id,party:nm(b.party,'p'),qty:r0(b.qty)})); }catch(e){}
-    const plan=(H||[]).find(h=>h.date===todayStr);
-    const absent={}; (H||[]).filter(h=>mk(h.date)===month).forEach(h=>(h.absent||[]).forEach(n=>{ absent[n]=(absent[n]||0)+1; }));
     let uninv=0,uninvAmt=0; (ORDERS||[]).forEach(o=>(o.deliveries||[]).forEach(d=>{ if(!d.invoiceId){ uninv++; uninvAmt+=(+d.qty||0)*(+o.rate||0); } }));
     live={
       as_of_date:todayStr,
@@ -19361,8 +19379,6 @@ function _ceoAiDigest(month, anon){
       customers_who_went_quiet:quiet,
       best_customer_all_time:best?{party:nm(best[0],'p'),revenue:r0(best[1].rev),invoices:best[1].n}:null,
       delayed_batches:delayed,
-      todays_floor_plan_made:!!plan, todays_eod_closed:plan?!!(EOD&&EOD[todayStr]&&EOD[todayStr].closed):null,
-      absences_this_month:Object.entries(absent).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([name,days])=>({worker:name,days_absent:days})),
       deliveries_without_invoice:{count:uninv,amount:r0(uninvAmt)}
     };
   }catch(e){ live={note:'live snapshot nahi bana'}; }
@@ -19377,7 +19393,7 @@ function _ceoAiDigest(month, anon){
     selected_month:{sales,
       expenses_by_category:roundObj(catTot(dbM,'expense')),prev_month_expenses_by_category:roundObj(catTot(dbP,'expense')),
       income_by_category:roundObj(catTot(dbM,'income')),prev_month_income_by_category:roundObj(catTot(dbP,'income')),
-      top_suppliers_by_spend:topSupp,production},
+      top_suppliers_by_spend:topSupp},
     receivables_as_of_today:outstanding,payables_as_of_today:payables,cash_position:cash,
     open_orders:orders,production_batches:batches,stock_alerts:stock,
     cfo_module_results:cfo,fixed_assets_count:(ASSETS||[]).length
