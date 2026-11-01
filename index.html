@@ -1661,7 +1661,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
   <!-- Quick Actions -->
   <div class="card-title" style="margin-bottom:8px;padding:0 2px">🚀 Quick Actions</div>
   <div class="action-grid">
-    <div class="action-card orange feat-plan-only" onclick="sw('daily',document.querySelector('.bnav[data-tab=daily]'))">
+    <div class="action-card orange " onclick="sw('daily',document.querySelector('.bnav[data-tab=daily]'))">
       <div class="ac-ico">📋</div>
       <div class="ac-title">Aaj Ka Plan</div>
       <div class="ac-sub">Daily entry shuru karo</div>
@@ -3425,8 +3425,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
   <div class="card" id="feat-toggle-card">
     <div class="card-hdr"><div class="card-title">🧩 Modules On/Off</div></div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Band karne par sirf menu se hide hota hai — data delete nahi hota. Wapas ON karoge to sab purana data milega.</div>
-    <label style="display:flex;align-items:center;gap:10px;padding:8px 0;font-size:13px;font-weight:800;cursor:pointer"><input type="checkbox" id="feat-plan" onchange="_featSet('plan',this.checked)" style="width:18px;height:18px"> 🏭 Floor Plan</label>
-    <label style="display:flex;align-items:center;gap:10px;padding:8px 0;font-size:13px;font-weight:800;cursor:pointer"><input type="checkbox" id="feat-tracking" onchange="_featSet('tracking',this.checked)" style="width:18px;height:18px"> 📊 EOD Track</label>
+    <div id="feat-list"></div>
   </div>
 
   <!-- GROK AI (owner only) -->
@@ -6065,27 +6064,41 @@ function _az(arr,key){ return [...arr].sort((a,b)=>{ const av=key?key(a):a; cons
 
 /* ═══════════════ NAV ═══════════════ */
 
-/* ── Modules On/Off (Floor Plan, EOD Track) — sirf hide/disable, data safe ── */
+/* ── Modules On/Off — har module ke liye; sirf hide/disable, data safe ── */
 const FEAT_KEY='bf9_feat_off';
+const FEAT_FIXED=['home','settings','whats-new'];
 function _featOffMap(){ try{ const m=JSON.parse(localStorage.getItem(FEAT_KEY)); if(m&&typeof m==='object') return m; }catch(e){} return {plan:1,tracking:1}; }
-function _featOff(tab){ return !!_featOffMap()[tab]; }
+function _featOff(tab){ return !FEAT_FIXED.includes(tab) && !!_featOffMap()[tab]; }
 function _featSet(tab,on){
   const m=_featOffMap(); if(on) delete m[tab]; else m[tab]=1;
   try{ localStorage.setItem(FEAT_KEY,JSON.stringify(m)); }catch(e){}
   _applyFeatFlags(); toast(on?'✅ Module ON':'⏸ Module band (data safe hai)');
 }
 function _applyFeatFlags(){
-  ['plan','tracking'].forEach(t=>{
-    const off=_featOff(t);
-    document.querySelectorAll('.sbnav[data-tab="'+t+'"],.bnav[data-tab="'+t+'"]').forEach(b=>{ b.style.display=off?'none':''; });
-    const cb=document.getElementById('feat-'+t); if(cb) cb.checked=!off;
+  const btns=[...document.querySelectorAll('.sbnav[data-tab]')].filter(b=>!FEAT_FIXED.includes(b.dataset.tab));
+  btns.forEach(b=>{ b.style.display=_featOff(b.dataset.tab)?'none':''; });
+  // khali section labels hide
+  document.querySelectorAll('.sb-section').forEach(sec=>{
+    const bs=[...sec.querySelectorAll('.sbnav')]; const lab=sec.querySelector('.sb-section-label');
+    if(lab&&bs.length) lab.style.display=bs.some(b=>b.style.display!=='none')?'':'none';
   });
-  document.querySelectorAll('.feat-plan-only').forEach(e=>{ e.style.display=_featOff('plan')?'none':''; });
+  // dashboard quick-action cards jo band module kholte hain
+  document.querySelectorAll('.action-card[onclick]').forEach(c=>{
+    const m=(c.getAttribute('onclick')||'').match(/sw\('([^']+)'/);
+    if(m) c.style.display=_featOff(m[1])?'none':'';
+  });
+  const list=document.getElementById('feat-list');
+  if(list){
+    list.innerHTML=btns.map(b=>{
+      const lbl=(b.querySelector('.sb-lbl')||{}).textContent||b.dataset.tab, ico=(b.querySelector('.sb-ico')||{}).textContent||'';
+      return `<label style="display:flex;align-items:center;gap:10px;padding:8px 0;font-size:13px;font-weight:800;cursor:pointer;border-bottom:1px solid #eef1f6"><input type="checkbox" ${_featOff(b.dataset.tab)?'':'checked'} onchange="_featSet('${b.dataset.tab}',this.checked)" style="width:18px;height:18px"> ${ico} ${esc(lbl)}</label>`;
+    }).join('');
+  }
 }
 document.addEventListener('DOMContentLoaded',()=>{ try{ _applyFeatFlags(); }catch(e){} });
 
 function sw(name,btn){
-  if((name==='plan'||name==='tracking')&&_featOff(name)){ toast('⏸ Ye module band hai — Settings > Modules On/Off se chalu karo'); return; }
+  if(_featOff(name)){ toast('⏸ Ye module band hai — Settings > Modules On/Off se chalu karo'); return; }
   if(_tabLevel(name)==='none'){
     toast('🔒 Ye section aapke liye available nahi hai');
     return;
@@ -14018,6 +14031,7 @@ function renderDashboard(){
   if(lowStock.length) alerts.push({ico:'🧱',msg:`${lowStock.length} items low/khatam stock mein`,color:'var(--red)',tab:'stock'});
   if(unpaidInv.length) alerts.push({ico:'🧾',msg:`${unpaidInv.length} invoices unpaid — ₹${_fmtAmt(totalOutstanding)}`,color:'var(--yellow-dark)',tab:'invoice'});
 
+  for(let i=alerts.length-1;i>=0;i--) if(_featOff(alerts[i].tab)) alerts.splice(i,1);
   const alertWrap=document.getElementById('dash-alerts-wrap');
   if(alertWrap){
     if(!alerts.length){ alertWrap.innerHTML=''; }
