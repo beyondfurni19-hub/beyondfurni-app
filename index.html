@@ -1686,19 +1686,25 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
   <!-- Alerts section -->
   <div id="dash-alerts-wrap"></div>
 
-  <!-- Business Health Check -->
-  <div style="margin-top:10px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:0 2px">
-      <div class="card-title">🩺 Business Health Check</div>
-      <button onclick="renderDashboard()" style="padding:5px 12px;background:#f0f4ff;border:1px solid var(--border);border-radius:20px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;color:var(--muted);cursor:pointer">🔄 Refresh</button>
+  <!-- Grok AI Insights (Health Check / Financial Alerts / Operations / Smart Insights / Suggestions ki jagah) -->
+  <div id="dash-ai-card" style="margin-top:10px">
+    <style>
+      .dash-ai-md ul,.dash-ai-md ol{list-style:none;margin:0;padding:0}
+      .dash-ai-md li{font-size:13px;line-height:1.5;padding:7px 4px;border-bottom:1px solid #eef1f6;color:#1f2937}
+      .dash-ai-md li:last-child{border-bottom:none}
+      .dash-ai-md p{font-size:13px;line-height:1.5;margin:4px 0;color:#1f2937}
+      .dash-ai-md b{color:#0e3a56}
+      .dash-ai-sec{background:#fff;border:1px solid var(--border);border-left:4px solid #7c3aed;border-radius:var(--r);padding:10px 12px;margin-bottom:8px}
+      .dash-ai-sec h4{margin:0 0 4px;font-size:13px;font-weight:900;color:#0e3a56}
+    </style>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;padding:0 2px">
+      <div>
+        <div class="card-title">🤖 Grok AI Insights</div>
+        <div id="dash-ai-meta" style="font-size:10px;color:var(--muted);margin-top:2px"></div>
+      </div>
+      <button id="dash-ai-btn" onclick="dashAiRun()" style="padding:7px 14px;background:#7c3aed;color:#fff;border:none;border-radius:20px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">🤖 Analyze Karo</button>
     </div>
-    <div id="dash-health-wrap"></div>
-  </div>
-
-  <!-- Smart Insights -->
-  <div style="margin-top:10px">
-    <div class="card-title" style="margin-bottom:8px;padding:0 2px">🧠 Smart Insights</div>
-    <div id="dash-insights-wrap"></div>
+    <div id="dash-ai-out"></div>
   </div>
 </div>
 
@@ -2761,7 +2767,6 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
       <button onclick="_whatsappLedger(document.getElementById('led-party-sel').value)" style="padding:8px 14px;background:#25d366;color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">💬 WhatsApp</button>
     </div>
     <div id="led-detail-wrap"></div>
-    <div id="led-payment-advice"></div>
 
     <!-- Manual Entry -->
     <div class="card" style="margin-top:8px">
@@ -13432,7 +13437,7 @@ function _custBalance(custId){
   return +entries.reduce((s,e)=>s+(e.type==='dr'?e.amt:-e.amt),0).toFixed(2);
 }
 
-/* ── Smart Payment Advisor helpers ── */
+/* ── Cash position (Daybook se) — CEO AI report bhi use karta hai ── */
 function _cashPosition(){
   // All-time net cash flow from Daybook = actual current cash+bank position
   let cash=0, bank=0;
@@ -13442,113 +13447,6 @@ function _cashPosition(){
   });
   return {cash, bank, total:cash+bank};
 }
-function _totalPayables(excludeId){
-  let t=0;
-  CUSTOMERS.filter(c=>c.type==='supplier'&&c.id!==excludeId).forEach(c=>{
-    const b=_custBalance(c.id); if(b>0) t+=b;
-  });
-  return t;
-}
-function _totalReceivables(){
-  let t=0;
-  CUSTOMERS.filter(c=>c.type!=='supplier').forEach(c=>{
-    const b=_custBalance(c.id); if(b>0) t+=b;
-  });
-  return t;
-}
-// Average monthly Daybook expense amount (optionally filtered to specific categories), over last N months with data
-function _avgMonthlyAmount(catIds,months=3){
-  const byMonth={};
-  DAYBOOK.forEach(e=>{
-    if(e.type!=='expense') return;
-    if(catIds && !catIds.includes(e.category)) return;
-    const m=(e.date||'').slice(0,7); if(!m) return;
-    byMonth[m]=(byMonth[m]||0)+(+e.amount||0);
-  });
-  const monthsList=Object.keys(byMonth).sort().reverse().slice(0,months);
-  if(!monthsList.length) return 0;
-  return monthsList.reduce((s,m)=>s+byMonth[m],0)/monthsList.length;
-}
-// All recurring, cash-based operational expense categories — labour, rent, electricity, material, EMI, etc.
-// Excludes: personal draws, savings, and internal transfers (not real business cashflow commitments)
-const OPEX_GROUPS=[
-  {label:'Labour / Majdoori', cats:['labour']},
-  {label:'Rent / Kiraya', cats:['rent']},
-  {label:'Bijli / Electricity', cats:['electricity']},
-  {label:'Material (Cash) + Packaging', cats:['raw_material','packaging']},
-  {label:'Loan EMI / Bank Charges', cats:['interest_emi']},
-  {label:'Powder Coating (Outsource)', cats:['powder_coating']},
-  {label:'Transport / Marketing / Tax / Admin / Repair / Other', cats:['transport','marketing','tax_govt','admin_misc','repair_maint','other_prod','business_other_expense']},
-];
-const OPEX_CATS=OPEX_GROUPS.flatMap(g=>g.cats);
-function _daysRemainingInMonth(){
-  const now=new Date();
-  const daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
-  return {daysInMonth, daysRemaining: daysInMonth-now.getDate()+1};
-}
-function _renderPaymentAdvice(custId){
-  const wrap=document.getElementById('led-payment-advice');
-  if(!wrap) return;
-  const c=CUSTOMERS.find(x=>x.id===custId);
-  wrap.innerHTML='';
-  if(!c||c.type!=='supplier') return;
-  const vendorDue=_custBalance(custId);
-  if(vendorDue<=0) return;
-
-  const reservePct=+(localStorage.getItem('bf9_cash_reserve_pct')||20);
-  const cashPos=_cashPosition();
-  const avgMonthlyOpex=_avgMonthlyAmount(OPEX_CATS,3);
-  const reserve=Math.max(0,avgMonthlyOpex*reservePct/100);
-  const availAfterReserve=Math.max(0,cashPos.total-reserve);
-  const {daysInMonth,daysRemaining}=_daysRemainingInMonth();
-  const proratedRemainingOpex=avgMonthlyOpex*(daysRemaining/daysInMonth);
-  const otherPayables=_totalPayables(custId);
-  const receivables=_totalReceivables();
-  const committedElsewhere=otherPayables+proratedRemainingOpex;
-  const availAfterCommitted=Math.max(0,availAfterReserve-committedElsewhere);
-
-  const opexRows=OPEX_GROUPS.map(g=>({label:g.label,amt:_avgMonthlyAmount(g.cats,3)})).filter(g=>g.amt>0);
-
-  let recommended, reason;
-  if(cashPos.total<=0){
-    recommended=0;
-    reason=`⚠️ Abhi cash position negative/zero hai (₹${_fmtAmt(cashPos.total)}). Pehle collections karo, phir payment plan karo.`;
-  } else if(availAfterCommitted>=vendorDue){
-    recommended=vendorDue;
-    reason=`✅ Reserve (avg monthly opex ka ${reservePct}%), baaki vendors ka due, aur is mahine ke bache hue ${daysRemaining} din ke Labour/Rent/Bijli/Material/EMI (est. ₹${_fmtAmt(proratedRemainingOpex)}) nikaalne ke baad bhi poora due chukane laayak cash hai.`;
-  } else if(availAfterReserve>0){
-    recommended=Math.min(vendorDue,Math.max(availAfterReserve*0.5,availAfterReserve-committedElsewhere*0.5));
-    recommended=Math.max(0,Math.round(recommended));
-    reason=`⚠️ Cash tight hai — baaki vendors ka ₹${_fmtAmt(otherPayables)} due hai, aur is mahine bache hue Labour/Rent/Bijli/Material/EMI ke liye est. ₹${_fmtAmt(proratedRemainingOpex)} aur chahiye. Abhi partial payment karo, cashflow disturb nahi hoga.`;
-  } else {
-    recommended=0;
-    reason=`🛑 Reserve (avg monthly opex ka ${reservePct}%) rakhne ke baad koi cash bacha nahi hai payment ke liye. Ruk jao ya reserve % kam karo.`;
-  }
-  recommended=Math.min(recommended,vendorDue);
-
-  wrap.innerHTML=`
-    <div class="card" style="margin-top:8px;border:1.5px solid #7c3aed30;background:linear-gradient(135deg,#f5f3ff,#fff)">
-      <div class="card-title" style="margin-bottom:8px;color:#5b21b6">🧠 Smart Payment Advisor</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;font-size:11px">
-        <div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #ede9fe"><div style="color:var(--muted);font-size:9px;font-weight:800;text-transform:uppercase">Current Cash Position</div><div style="font-family:'Bebas Neue';font-size:19px;color:${cashPos.total>=0?'#16a34a':'#dc2626'}">₹${_fmtAmt(cashPos.total)}</div></div>
-        <div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #ede9fe"><div style="color:var(--muted);font-size:9px;font-weight:800;text-transform:uppercase">Reserve Floor (<input type="number" value="${reservePct}" min="0" max="100" onchange="localStorage.setItem('bf9_cash_reserve_pct',this.value);_renderPaymentAdvice('${custId}')" style="width:34px;border:none;background:transparent;font-weight:800;color:#5b21b6;font-size:9px">% of avg opex)</div><div style="font-family:'Bebas Neue';font-size:19px;color:#7c3aed">₹${_fmtAmt(reserve)}</div></div>
-        <div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #ede9fe"><div style="color:var(--muted);font-size:9px;font-weight:800;text-transform:uppercase">Baaki Vendors ka Due</div><div style="font-family:'Bebas Neue';font-size:19px;color:#dc2626">₹${_fmtAmt(otherPayables)}</div></div>
-        <div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #ede9fe"><div style="color:var(--muted);font-size:9px;font-weight:800;text-transform:uppercase">Is Mahine Bacha Kharcha (${daysRemaining} din)</div><div style="font-family:'Bebas Neue';font-size:19px;color:#ea580c">₹${_fmtAmt(proratedRemainingOpex)}</div></div>
-        <div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #ede9fe;grid-column:1/3"><div style="color:var(--muted);font-size:9px;font-weight:800;text-transform:uppercase">Customers se Aana Baaki (info only)</div><div style="font-family:'Bebas Neue';font-size:19px;color:#16a34a">₹${_fmtAmt(receivables)}</div></div>
-      </div>
-      ${opexRows.length?`<div style="background:#fff;border:1px solid #ede9fe;border-radius:8px;padding:8px 10px;margin-bottom:10px">
-        <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:5px">Avg Monthly Opex Breakdown (last 3 months)</div>
-        ${opexRows.map(g=>`<div style="display:flex;justify-content:space-between;font-size:10.5px;padding:2px 0;color:var(--muted)"><span>${esc(g.label)}</span><b style="color:#333">₹${_fmtAmt(g.amt)}</b></div>`).join('')}
-      </div>`:''}
-      <div style="background:#5b21b6;border-radius:10px;padding:12px 14px;color:#fff;margin-bottom:8px">
-        <div style="font-size:9px;font-weight:800;color:#ddd6fe;text-transform:uppercase">${esc(c.name)} ko Recommended Payment</div>
-        <div style="font-family:'Bebas Neue';font-size:32px;line-height:1.2">₹${_fmtAmt(recommended)} <span style="font-size:13px;color:#c4b5fd">/ ₹${_fmtAmt(vendorDue)} due</span></div>
-      </div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5">${reason}</div>
-      ${recommended>0?`<button onclick="document.getElementById('led-entry-type').value='cr';document.getElementById('led-entry-amt').value=${recommended};toast('✅ Amount fill ho gaya — neeche confirm karo')" style="width:100%;padding:10px;background:#16a34a;color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">✅ ₹${_fmtAmt(recommended)} Payment Form mein Bharo</button>`:''}
-    </div>`;
-}
-
 function initLedgerView(){
   const sel=document.getElementById('led-party-sel');
   if(!sel) return;
@@ -13559,9 +13457,9 @@ function initLedgerView(){
 
 function renderLedgerDetail(custId){
   const wrap=document.getElementById('led-detail-wrap');
-  if(!wrap||!custId){ const adv=document.getElementById('led-payment-advice'); if(adv) adv.innerHTML=''; return; }
+  if(!wrap||!custId){ return; }
   const c=CUSTOMERS.find(x=>x.id===custId);
-  if(!c){ wrap.innerHTML=''; const adv=document.getElementById('led-payment-advice'); if(adv) adv.innerHTML=''; return; }
+  if(!c){ wrap.innerHTML=''; return; }
 
   const isSupplier=c.type==='supplier';
   const entries=(LEDGER[custId]||[]).sort((a,b)=>new Date(a.date)-new Date(b.date));
@@ -13617,7 +13515,6 @@ function renderLedgerDetail(custId){
         <tbody>${rows||'<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--muted)">Koi entry nahi</td></tr>'}</tbody>
       </table>
     </div>`;
-  _renderPaymentAdvice(custId);
 }
 
 function addLedEntry(){
@@ -14104,10 +14001,76 @@ function renderDashboard(){
     }
   }
 
-  // Health Check
-  _renderHealthCheck();
-  // Smart Insights
-  _renderSmartInsights();
+  // Grok AI Insights
+  if(typeof _dashAiShow==='function') _dashAiShow();
+}
+
+/* ═══════════════════════════════════════════════════
+   DASHBOARD — GROK AI INSIGHTS
+   (Business Health Check / Financial Alerts / Operations & Bottlenecks /
+    Smart Insights / Suggestions & Predictions ki jagah)
+═══════════════════════════════════════════════════ */
+let _dashAiBusy=false, _dashAiErr='';
+const DASH_AI_SECS=[
+  {k:'health',     ico:'🩺', t:'Business Health Check',    c:'#16a34a'},
+  {k:'financial',  ico:'💰', t:'Financial Alerts',         c:'#d97706'},
+  {k:'operation',  ico:'⚙️', t:'Operations & Bottlenecks', c:'#1a5f9a'},
+  {k:'smart',      ico:'🧠', t:'Smart Insights',           c:'#7c3aed'},
+  {k:'suggest',    ico:'💡', t:'Suggestions & Predictions',c:'#0e7490'},
+];
+function _dashAiStore(){ try{ return JSON.parse(localStorage.getItem('bf9_dash_ai'))||null; }catch(e){ return null; } }
+function _dashAiSplit(md){
+  const parts=String(md||'').replace(/\r/g,'').split(/^##\s+/m);
+  const out=[];
+  parts.forEach((p,i)=>{
+    if(!p.trim()) return;
+    if(i===0 && !/^##/.test(md.trim())){ out.push({title:'',body:p}); return; }
+    const nl=p.indexOf('\n'); const title=(nl<0?p:p.slice(0,nl)).trim(); const body=nl<0?'':p.slice(nl+1);
+    out.push({title,body});
+  });
+  return out;
+}
+function _dashAiShow(){
+  const out=document.getElementById('dash-ai-out'); if(!out) return;
+  const meta=document.getElementById('dash-ai-meta'), btn=document.getElementById('dash-ai-btn');
+  const rep=_dashAiStore();
+  if(btn){ btn.disabled=_dashAiBusy; btn.textContent=_dashAiBusy?'⏳ Grok soch raha hai...':(rep?'🔄 Dobara Analyze Karo':'🤖 Analyze Karo'); }
+  if(meta){
+    if(rep){
+      const hrs=Math.floor((Date.now()-new Date(rep.at).getTime())/3600000);
+      const at=new Date(rep.at).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+      meta.innerHTML=`${esc(rep.model||'AI')} · ${at}${hrs>=20?' · <b style="color:#b45309">⚠️ purani hai, dobara analyze karo</b>':''}`;
+    } else meta.textContent='ERP ke poore data ka live analysis';
+  }
+  let html='';
+  if(_dashAiBusy) html+=`<div style="padding:16px;text-align:center;font-size:13px;font-weight:800;color:#5b21b6;background:#faf5ff;border-radius:var(--r)">⏳ Grok poora ERP data padh raha hai... (30-60 second lag sakte hain)</div>`;
+  if(_dashAiErr&&!_dashAiBusy) html+=`<div style="background:var(--red-bg);color:var(--red-dark);border-radius:var(--r2);padding:10px 12px;font-size:12px;font-weight:700;margin-bottom:8px">❌ ${esc(_dashAiErr)}</div>`;
+  if(rep&&!_dashAiBusy){
+    _dashAiSplit(rep.text).forEach(sec=>{
+      const low=sec.title.toLowerCase();
+      const def=DASH_AI_SECS.find(d=>low.includes(d.k));
+      const ico=def?def.ico:'📌', title=def?def.t:(sec.title||'Analysis'), col=def?def.c:'#7c3aed';
+      html+=`<div class="dash-ai-sec" style="border-left-color:${col}"><h4>${ico} ${esc(title)}</h4><div class="dash-ai-md">${_ceoAiMd(sec.body)}</div></div>`;
+    });
+    html+=`<div style="font-size:10px;color:var(--muted);padding:0 2px 4px">AI ne ERP ke numbers se likha hai — bade faisle se pehle important figure verify kar lo.</div>`;
+  } else if(!_dashAiBusy&&!_dashAiErr){
+    html+=`<div style="padding:14px;text-align:center;font-size:12px;color:var(--muted);background:#fff;border:1px dashed var(--border);border-radius:var(--r)">Upar <b>🤖 Analyze Karo</b> dabao — Grok health check, financial alerts, bottlenecks, insights aur suggestions ek saath likhega.</div>`;
+  }
+  out.innerHTML=html;
+}
+async function dashAiRun(){
+  if(_dashAiBusy) return;
+  _dashAiBusy=true; _dashAiErr=''; _dashAiShow();
+  try{
+    const prefs=_ceoAiPrefs();
+    const now=new Date();
+    const month=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+    const digest=_ceoAiDigest(month,!!prefs.anon);
+    const d=await _ceoAiCall('insights',{digest,month:now.toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'}),lang:prefs.lang||'hinglish'});
+    try{ localStorage.setItem('bf9_dash_ai',JSON.stringify({text:d.report,model:d.model,at:new Date().toISOString()})); }catch(e){}
+    toast('✅ Grok ka analysis ready');
+  }catch(e){ _dashAiErr=e.message||String(e); }
+  finally{ _dashAiBusy=false; _dashAiShow(); }
 }
 
 function _renderCustUnitsChart(party){
@@ -14131,400 +14094,9 @@ function _renderCustUnitsChart(party){
   });
 }
 
-/* ═══════════════════════════════════════════════════
-   BUSINESS HEALTH CHECK
-═══════════════════════════════════════════════════ */
-function _renderHealthCheck(){
-  const el=document.getElementById('dash-health-wrap'); if(!el) return;
-  const today=new Date();
-  const todayStr=today.toISOString().split('T')[0];
-  const todayPlan=(H||[]).find(h=>h.date===todayStr);
-  const issues=[];
-  // Helper: kya date1 aur date2 same mahine mein hain?
-  const inM_today=(d1,d2)=>{
-    const a=new Date(d1), b=new Date(d2);
-    return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth();
-  };
-
-  /* ─── 1. ENTRY ERRORS ─── */
-
-  // Invoice hai par Ledger mein entry nahi — sirf unpaid invoices check karo
-  INVOICES.filter(inv=>inv.status!=='paid'&&!inv.deleted).forEach(inv=>{
-    const c=CUSTOMERS.find(x=>x.name===inv.party||x.id===inv.customerId);
-    if(!c) return;
-    const entries=(LEDGER[c.id]||[]);
-    const hasDr=entries.some(e=>e.ref===inv.id&&e.type==='dr');
-    const hasCr=entries.some(e=>e.type==='cr'&&inM_today(e.date,inv.date));
-    if(!hasDr&&!hasCr){
-      issues.push({
-        cat:'entry', sev:'yellow',
-        ico:'🧾',
-        title:`Invoice ${inv.num} — Ledger mein entry nahi`,
-        desc:`${inv.party} ko ₹${_fmtAmt(inv.grandTotal)} ka invoice hai par ledger mein koi entry nahi dikh rahi.`,
-        tag:'Entry Check',
-        action:()=>{ sw('invoice',document.querySelector('.bnav[data-tab=invoice]')); openInvDetail(inv.id); }
-      });
-    }
-  });
-
-  // EOD nahi kiya aaj (agar plan hai)
-  if(todayPlan){
-    const eod=EOD[todayStr];
-    if(!eod?.closed){
-      issues.push({
-        cat:'entry', sev:'yellow',
-        ico:'📊',
-        title:'Aaj ka EOD abhi tak close nahi hua!',
-        desc:`${todayPlan.shift} shift ka plan hai — din khatam hone ke baad EOD record karo.`,
-        tag:'EOD Pending',
-        action:()=>{ sw('tracking',document.querySelector('.bnav[data-tab=tracking]')); }
-      });
-    }
-  }
-
-  /* ─── 2. FINANCIAL ALERTS ─── */
-
-  // Unpaid invoices 15+ din purani
-  INVOICES.filter(i=>i.status==='unpaid').forEach(inv=>{
-    const invDate=new Date(inv.date);
-    const daysDiff=Math.floor((today-invDate)/(1000*60*60*24));
-    if(daysDiff>=15){
-      issues.push({
-        cat:'financial', sev:'red',
-        ico:'💸',
-        title:`Payment overdue — ${inv.party} (${daysDiff} din)`,
-        desc:`Invoice ${inv.num} — ₹${_fmtAmt(inv.grandTotal)} — ${new Date(inv.date).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} ko banaya tha. Payment nahi aaya!`,
-        tag:'Overdue',
-        action:()=>{ sw('invoice',document.querySelector('.bnav[data-tab=invoice]')); openInvDetail(inv.id); }
-      });
-    } else if(daysDiff>=7){
-      issues.push({
-        cat:'financial', sev:'yellow',
-        ico:'⏰',
-        title:`Payment pending — ${inv.party} (${daysDiff} din)`,
-        desc:`Invoice ${inv.num} — ₹${_fmtAmt(inv.grandTotal)} — ${daysDiff} din se unpaid hai.`,
-        tag:'Payment Pending',
-        action:()=>{ sw('invoice',document.querySelector('.bnav[data-tab=invoice]')); openInvDetail(inv.id); }
-      });
-    }
-  });
-
-  // Customer ka balance bahut zyada (1 lakh+)
-  CUSTOMERS.filter(c=>c.type!=='supplier').forEach(c=>{
-    const bal=_custBalance(c.id);
-    if(bal>=100000){
-      issues.push({
-        cat:'financial', sev:'red',
-        ico:'🔴',
-        title:`${c.name} — ₹${_fmtAmt(bal)} baaki hai!`,
-        desc:`Is customer ka outstanding balance ₹1 lakh se zyada ho gaya hai. Follow up karo.`,
-        tag:'High Balance',
-        action:()=>{ sw('ledger',document.querySelector('.bnav[data-tab=ledger]')); setLedTab('ledger'); setTimeout(()=>renderLedgerDetail(c.id),200); }
-      });
-    }
-  });
-
-  /* ─── 3. OPERATIONS / BOTTLENECKS ─── */
-
-  // Stock khatam ya low
-  STK.forEach(s=>{
-    const status=getStockStatus(s);
-    if(status==='crit'){
-      issues.push({
-        cat:'ops', sev:'red',
-        ico:'🚨',
-        title:`${s.name} — STOCK KHATAM!`,
-        desc:`Current stock: ${s.current} ${s.unit}. Turant order karo.`,
-        tag:'Out of Stock',
-        action:()=>{ sw('stock',document.querySelector('.bnav[data-tab=stock]')); }
-      });
-    } else if(status==='low'){
-      issues.push({
-        cat:'ops', sev:'yellow',
-        ico:'⚠️',
-        title:`${s.name} — Stock low hai`,
-        desc:`Current: ${s.current} ${s.unit} — Reorder level: ${s.reorder} ${s.unit}.`,
-        tag:'Low Stock',
-        action:()=>{ sw('stock',document.querySelector('.bnav[data-tab=stock]')); }
-      });
-    }
-  });
-
-  // Batch delayed
-  BATCHES.filter(b=>!b.deleted&&!btIsDone(b)&&btStatus(b)==='delayed').forEach(b=>{
-    issues.push({
-      cat:'ops', sev:'yellow',
-      ico:'📦',
-      title:`Batch ${b.id} — ${b.party} delayed hai`,
-      desc:`${b.qty} pcs ka batch expected date se peeche chal raha hai.`,
-      tag:'Delayed',
-      action:()=>{ sw('batch',document.querySelector('.bnav[data-tab=batch]')); }
-    });
-  });
-
-  // Aaj ka plan nahi bana
-  if(!todayPlan){
-    issues.push({
-      cat:'ops', sev:'blue',
-      ico:'📋',
-      title:'Aaj ka Floor Plan nahi bana!',
-      desc:'Workers ko kaam assign karne ke liye daily plan banao.',
-      tag:'Today',
-      action:()=>{ sw('daily',document.querySelector('.bnav[data-tab=daily]')); }
-    });
-  }
-
-  /* ─── Render ─── */
-  if(!issues.length){
-    el.innerHTML=`<div class="hc-all-ok">✅ Sab theek hai! Koi issue nahi mila.</div>`;
-    return;
-  }
-
-  // Group by category
-  const cats=[
-    {id:'entry',     label:'📝 Entry Errors & Missing Data', color:'var(--red)'},
-    {id:'financial', label:'💰 Financial Alerts',            color:'var(--orange)'},
-    {id:'ops',       label:'⚙️ Operations & Bottlenecks',    color:'#1a5f9a'},
-  ];
-
-  const redCount=issues.filter(x=>x.sev==='red').length;
-  const yellowCount=issues.filter(x=>x.sev==='yellow').length;
-
-  let html=`<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-    <div style="padding:5px 12px;border-radius:20px;background:var(--red-bg);color:var(--red-dark);font-size:11px;font-weight:800">🔴 ${redCount} Critical</div>
-    <div style="padding:5px 12px;border-radius:20px;background:var(--yellow-bg);color:var(--yellow-dark);font-size:11px;font-weight:800">🟡 ${yellowCount} Warning</div>
-    <div style="padding:5px 12px;border-radius:20px;background:#e8f4ff;color:#1a5f9a;font-size:11px;font-weight:800">🔵 ${issues.length-redCount-yellowCount} Info</div>
-  </div>`;
-
-  cats.forEach(cat=>{
-    const catIssues=issues.filter(x=>x.cat===cat.id);
-    if(!catIssues.length) return;
-    html+=`<div class="hc-section">
-      <div class="hc-sec-title" style="border-color:${cat.color}">${cat.label} <span style="background:#f0f4ff;color:var(--muted);padding:1px 7px;border-radius:20px;font-size:9px">${catIssues.length}</span></div>
-      ${catIssues.map(issue=>`
-        <div class="hc-item ${issue.sev}" onclick="(${issue.action.toString()})()">
-          <div class="hc-ico">${issue.ico}</div>
-          <div class="hc-body">
-            <div class="hc-title">${issue.title}</div>
-            <div class="hc-desc">${issue.desc}</div>
-          </div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
-            <span class="hc-tag ${issue.sev}">${issue.tag}</span>
-            <span style="font-size:14px;color:var(--muted)">›</span>
-          </div>
-        </div>`).join('')}
-    </div>`;
-  });
-
-  el.innerHTML=html;
-}
-
 function _custBalance(custId){
   const entries=LEDGER[custId]||[];
   return +entries.reduce((s,e)=>s+(e.type==='dr'?e.amt:-e.amt),0).toFixed(2);
-}
-
-/* ═══════════════════════════════════════════════════
-   SMART INSIGHTS
-═══════════════════════════════════════════════════ */
-function _renderSmartInsights(){
-  const el=document.getElementById('dash-insights-wrap'); if(!el) return;
-  const today=new Date();
-  const todayStr=today.toISOString().split('T')[0];
-
-  /* ─── SALES TREND ─── */
-  const thisWeekStart=new Date(today); thisWeekStart.setDate(today.getDate()-today.getDay());
-  const lastWeekStart=new Date(thisWeekStart); lastWeekStart.setDate(thisWeekStart.getDate()-7);
-  const lastWeekEnd=new Date(thisWeekStart); lastWeekEnd.setDate(thisWeekStart.getDate()-1);
-
-  const thisWeekSales=INVOICES.filter(i=>new Date(i.date)>=thisWeekStart).reduce((s,i)=>s+i.grandTotal,0);
-  const lastWeekSales=INVOICES.filter(i=>new Date(i.date)>=lastWeekStart&&new Date(i.date)<=lastWeekEnd).reduce((s,i)=>s+i.grandTotal,0);
-  const weekDiff=lastWeekSales>0?Math.round((thisWeekSales-lastWeekSales)/lastWeekSales*100):0;
-  const weekTrend=weekDiff>5?'up':weekDiff<-5?'down':'flat';
-
-  const thisMonthStart=new Date(today.getFullYear(),today.getMonth(),1);
-  const lastMonthStart=new Date(today.getFullYear(),today.getMonth()-1,1);
-  const lastMonthEnd=new Date(today.getFullYear(),today.getMonth(),0);
-  const thisMonthSales=INVOICES.filter(i=>new Date(i.date)>=thisMonthStart).reduce((s,i)=>s+i.grandTotal,0);
-  const lastMonthSales=INVOICES.filter(i=>new Date(i.date)>=lastMonthStart&&new Date(i.date)<=lastMonthEnd).reduce((s,i)=>s+i.grandTotal,0);
-  const monthDiff=lastMonthSales>0?Math.round((thisMonthSales-lastMonthSales)/lastMonthSales*100):0;
-
-  /* ─── BEST CUSTOMER ─── */
-  const custSales={};
-  INVOICES.forEach(inv=>{
-    const c=CUSTOMERS.find(x=>x.name===inv.party);
-    if(c){ custSales[c.id]=(custSales[c.id]||0)+inv.grandTotal; }
-  });
-  const bestCustId=Object.keys(custSales).sort((a,b)=>custSales[b]-custSales[a])[0];
-  const bestCust=bestCustId?CUSTOMERS.find(x=>x.id===bestCustId):null;
-
-  /* ─── WORKER INTELLIGENCE ─── */
-  const absentCount={};
-  H.filter(h=>{
-    const d=new Date(h.date);
-    return d.getFullYear()===today.getFullYear()&&d.getMonth()===today.getMonth();
-  }).forEach(h=>{
-    (h.absent||[]).forEach(name=>{ absentCount[name]=(absentCount[name]||0)+1; });
-  });
-  const mostAbsentName=Object.keys(absentCount).sort((a,b)=>absentCount[b]-absentCount[a])[0];
-
-  const dayCount={0:0,1:0,2:0,3:0,4:0,5:0,6:0};
-  const planCount={0:0,1:0,2:0,3:0,4:0,5:0,6:0};
-  H.forEach(h=>{
-    const d=new Date(h.date).getDay();
-    dayCount[d]+=(h.present?.length||0);
-    planCount[d]++;
-  });
-  const dayNamesHi=['Ravivar','Somvar','Mangalvar','Budhvar','Guruvar','Shukravar','Shanivar'];
-  let bestDay=-1, bestDayAvg=0;
-  [1,2,3,4,5,6].forEach(d=>{
-    if(planCount[d]>0){
-      const avg=dayCount[d]/planCount[d];
-      if(avg>bestDayAvg){ bestDayAvg=avg; bestDay=d; }
-    }
-  });
-
-  /* ─── KPI CARDS ─── */
-  const trendIcon=weekTrend==='up'?'📈':weekTrend==='down'?'📉':'➡️';
-  const trendClass=weekTrend==='up'?'ins-trend-up':weekTrend==='down'?'ins-trend-down':'ins-trend-flat';
-  const trendText=weekTrend==='up'?`+${weekDiff}% upar`:weekTrend==='down'?`${weekDiff}% neeche`:'Almost same';
-
-  let html=`<div class="ins-grid">
-    <div class="ins-card ${weekTrend==='up'?'highlight':''}">
-      <div class="ins-card-title">📊 Is Hafte Ki Sales</div>
-      <div class="ins-val">₹${_fmtAmt(thisWeekSales)}</div>
-      <div class="ins-sub">${trendIcon} <span class="${trendClass}">${trendText}</span> pichle hafte se</div>
-      <div class="ins-sub" style="margin-top:4px">
-        ${monthDiff>=0?'📈':'📉'} Is mahine: ₹${_fmtAmt(thisMonthSales)}
-        <span class="${monthDiff>=0?'ins-trend-up':'ins-trend-down'}">(${monthDiff>=0?'+':''}${monthDiff}%)</span>
-        vs pichla mahina
-      </div>
-    </div>
-
-    <div class="ins-card">
-      <div class="ins-card-title">🏆 Best Customer</div>
-      ${bestCust
-        ?`<div class="ins-val" style="font-size:16px">${esc(bestCust.name)}</div>
-           <div class="ins-sub">₹${_fmtAmt(custSales[bestCustId])} total</div>
-           <div class="ins-sub">${INVOICES.filter(i=>i.party===bestCust.name).length} invoices bane</div>`
-        :`<div class="ins-sub">Abhi koi invoice nahi</div>`
-      }
-    </div>
-
-    <div class="ins-card">
-      <div class="ins-card-title">👷 Sabse Zyada Absent (Is Mahine)</div>
-      ${mostAbsentName
-        ?`<div class="ins-val" style="font-size:16px">${esc(mostAbsentName)}</div>
-           <div class="ins-sub">❌ ${absentCount[mostAbsentName]} din absent</div>`
-        :`<div class="ins-sub" style="color:var(--green-dark);font-weight:800">✅ Sab present!</div>`
-      }
-    </div>
-
-    <div class="ins-card">
-      <div class="ins-card-title">⚡ Sabse Productive Din</div>
-      ${bestDay>=0
-        ?`<div class="ins-val" style="font-size:16px">${dayNamesHi[bestDay]}</div>
-           <div class="ins-sub">Avg ${bestDayAvg.toFixed(1)} workers</div>`
-        :`<div class="ins-sub">Data nahi mila</div>`
-      }
-    </div>
-  </div>`;
-
-  /* ─── SUGGESTIONS ─── */
-  const suggestions=[];
-
-  // Sales slow this month
-  if(lastMonthSales>0&&thisMonthSales<lastMonthSales*0.5){
-    const daysLeft=new Date(today.getFullYear(),today.getMonth()+1,0).getDate()-today.getDate();
-    suggestions.push({
-      ico:'📉',color:'purple',
-      title:'Is mahine sales slow hai!',
-      desc:`Pichle mahine ₹${_fmtAmt(lastMonthSales)} biche — is mahine abhi sirf ₹${_fmtAmt(thisMonthSales)}. ${daysLeft} din baaki hain.`,
-      action:null
-    });
-  }
-
-  // Regular customer 30+ din se order nahi
-  CUSTOMERS.filter(c=>c.type!=='supplier').forEach(c=>{
-    const invs=INVOICES.filter(i=>i.party===c.name);
-    if(invs.length<2) return;
-    const lastInv=invs.sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
-    const daysSince=Math.floor((today-new Date(lastInv.date))/(1000*60*60*24));
-    if(daysSince>=30){
-      suggestions.push({
-        ico:'🤝',color:'teal',
-        title:`${c.name} — ${daysSince} din se koi order nahi!`,
-        desc:`Last invoice ${new Date(lastInv.date).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} ko tha. Follow up karo?`,
-        action:()=>{ sw('ledger',document.querySelector('.bnav[data-tab=ledger]')); setLedTab('ledger'); setTimeout(()=>renderLedgerDetail(c.id),200); }
-      });
-    }
-  });
-
-  // Month end pattern
-  if(today.getDate()>=20){
-    CUSTOMERS.filter(c=>c.type!=='supplier').forEach(c=>{
-      const custInvs=INVOICES.filter(i=>i.party===c.name);
-      if(custInvs.length<2) return;
-      const monthEndOrders=custInvs.filter(i=>new Date(i.date).getDate()>=20).length;
-      if(monthEndOrders/custInvs.length<0.5) return;
-      const lastInv=custInvs.sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
-      const daysSinceLast=Math.floor((today-new Date(lastInv.date))/(1000*60*60*24));
-      if(daysSinceLast>=20){
-        suggestions.push({
-          ico:'🔮',color:'teal',
-          title:`${c.name} — Month end order expected!`,
-          desc:`Yeh customer usually mahine ke end mein order deta hai. Abhi tak is mahine nahi aaya — follow up karo!`,
-          action:()=>{ sw('ledger',document.querySelector('.bnav[data-tab=ledger]')); setLedTab('customers'); }
-        });
-      }
-    });
-  }
-
-  // Pending deliveries — group karo
-  const pendingDelivOrders=ORDERS.filter(o=>o.status!=='cancelled'&&(o.delivered||0)<o.qty);
-  if(pendingDelivOrders.length>=3){
-    const totalPending=pendingDelivOrders.reduce((s,o)=>s+(o.qty-(o.delivered||0)),0);
-    suggestions.push({
-      ico:'🚚',color:'',
-      title:`${pendingDelivOrders.length} orders pending — ek saath deliver karo!`,
-      desc:`${totalPending} pcs alag alag customers ko dene hain. Ek trip plan karo.`,
-      action:()=>{ sw('batch',document.querySelector('.sbnav[data-tab="batch"]'));setBTab('active'); }
-    });
-  }
-
-  // Deliveries without invoice
-  let uninvDel=0, uninvAmt=0;
-  ORDERS.forEach(o=>{
-    (o.deliveries||[]).forEach(d=>{
-      if(!d.invoiceId){ uninvDel++; uninvAmt+=d.qty*o.rate; }
-    });
-  });
-  if(uninvDel>0){
-    suggestions.push({
-      ico:'📄',color:'purple',
-      title:`${uninvDel} deliveries ka invoice nahi bana — ₹${_fmtAmt(uninvAmt)} pending!`,
-      desc:`Inke invoices banao taaki ledger update ho aur payment track ho sake.`,
-      action:()=>{ sw('batch',document.querySelector('.sbnav[data-tab="batch"]'));setBTab('active'); }
-    });
-  }
-
-  if(suggestions.length){
-    html+=`<div class="ins-sec-title">💡 Suggestions & Predictions</div>`;
-    html+=suggestions.map(s=>`
-      <div class="ins-suggestion ${s.color}" onclick="${s.action?'('+s.action.toString()+')()':''}">
-        <div class="ins-sug-ico">${s.ico}</div>
-        <div class="ins-sug-body">
-          <div class="ins-sug-title">${s.title}</div>
-          <div class="ins-sug-desc">${s.desc}</div>
-        </div>
-        ${s.action?`<span style="font-size:16px;color:var(--muted);flex-shrink:0">›</span>`:''}
-      </div>`).join('');
-  } else {
-    html+=`<div class="ins-sec-title">💡 Suggestions & Predictions</div>
-      <div style="text-align:center;padding:12px;color:var(--muted);font-size:12px;font-weight:700">✅ Sab smooth chal raha hai!</div>`;
-  }
-
-  el.innerHTML=html;
 }
 
 // Default production stages
@@ -19762,7 +19334,41 @@ function _ceoAiDigest(month, anon){
     if(k){ const j=JSON.stringify((CFO_DATA[k]||{}).results||{}); if(j.length>10&&j.length<4000) cfo=JSON.parse(j); }
   }catch(e){}
 
+  // ── live snapshot: Dashboard AI ke liye (overdue, delayed batch, aaj ka plan/EOD, absence, quiet customers) ──
+  let live={};
+  try{
+    const todayD=new Date(); todayD.setHours(0,0,0,0);
+    const todayStr=new Date().toISOString().split('T')[0];
+    const daysAgo=d=>Math.max(0,Math.floor((todayD-new Date(d))/86400000));
+    const wk=new Date(todayD); wk.setDate(todayD.getDate()-todayD.getDay());
+    const lw=new Date(wk); lw.setDate(wk.getDate()-7);
+    const thisWk=invs.filter(i=>new Date(i.date)>=wk), lastWk=invs.filter(i=>new Date(i.date)>=lw&&new Date(i.date)<wk);
+    const overdue=invs.filter(i=>i.status!=='paid'&&pendingOf(i)>0.5&&daysAgo(i.date)>=15)
+      .sort((a,b)=>daysAgo(b.date)-daysAgo(a.date)).slice(0,10)
+      .map(i=>({invoice:i.num,party:nm(i.party,'p'),days_old:daysAgo(i.date),pending:r0(pendingOf(i)),due_date:i.due||null}));
+    const byParty={}; invs.forEach(i=>{ const k=i.party; (byParty[k]=byParty[k]||{n:0,rev:0,last:''}); byParty[k].n++; byParty[k].rev+=(+i.subtotal||+i.grandTotal||0); if(i.date>byParty[k].last) byParty[k].last=i.date; });
+    const quiet=Object.entries(byParty).filter(([k,v])=>v.n>=2&&daysAgo(v.last)>=30).sort((a,b)=>b[1].rev-a[1].rev).slice(0,8)
+      .map(([k,v])=>({party:nm(k,'p'),invoices_so_far:v.n,total_revenue:r0(v.rev),days_since_last_order:daysAgo(v.last)}));
+    const best=Object.entries(byParty).sort((a,b)=>b[1].rev-a[1].rev)[0];
+    let delayed=[]; try{ delayed=(BATCHES||[]).filter(b=>!b.deleted&&!btIsDone(b)&&btStatus(b)==='delayed').slice(0,8).map(b=>({batch:b.id,party:nm(b.party,'p'),qty:r0(b.qty)})); }catch(e){}
+    const plan=(H||[]).find(h=>h.date===todayStr);
+    const absent={}; (H||[]).filter(h=>mk(h.date)===month).forEach(h=>(h.absent||[]).forEach(n=>{ absent[n]=(absent[n]||0)+1; }));
+    let uninv=0,uninvAmt=0; (ORDERS||[]).forEach(o=>(o.deliveries||[]).forEach(d=>{ if(!d.invoiceId){ uninv++; uninvAmt+=(+d.qty||0)*(+o.rate||0); } }));
+    live={
+      as_of_date:todayStr,
+      sales_this_week_vs_last_week:{this_week:r0(sum(thisWk,i=>i.grandTotal)),last_week:r0(sum(lastWk,i=>i.grandTotal)),this_week_invoices:thisWk.length,last_week_invoices:lastWk.length},
+      unpaid_invoices_older_than_15_days:overdue,
+      customers_who_went_quiet:quiet,
+      best_customer_all_time:best?{party:nm(best[0],'p'),revenue:r0(best[1].rev),invoices:best[1].n}:null,
+      delayed_batches:delayed,
+      todays_floor_plan_made:!!plan, todays_eod_closed:plan?!!(EOD&&EOD[todayStr]&&EOD[todayStr].closed):null,
+      absences_this_month:Object.entries(absent).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([name,days])=>({worker:name,days_absent:days})),
+      deliveries_without_invoice:{count:uninv,amount:r0(uninvAmt)}
+    };
+  }catch(e){ live={note:'live snapshot nahi bana'}; }
+
   return {
+    live_snapshot:live,
     company:'BeyondFurni (S.R. Enterprises) — washing machine stands & furniture components, Nashik',
     report_month:lbl(month),generated_on:new Date().toLocaleDateString('en-IN'),names_anonymized:!!anon,currency:'INR',
     notes:['Revenue = invoice subtotal (pre-GST). Net profit is an estimate = revenue - COGS (raw material, labour, powder coating, packaging, consumption) - opex - interest/EMI, from Daybook categories.',
