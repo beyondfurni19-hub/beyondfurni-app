@@ -1474,10 +1474,10 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
     <button class="sbnav" data-tab="ledger" onclick="sw('ledger',this)">
       <span class="sb-ico">📒</span><span class="sb-lbl">Ledger</span>
     </button>
-    <button class="sbnav wip-nav">
+    <button class="sbnav wip-nav" data-tab="quotations" onclick="toast('🚧 Coming soon')">
       <span class="sb-ico">📝</span><span class="sb-lbl">Quotations</span><span class="sb-wip">WIP</span>
     </button>
-    <button class="sbnav wip-nav">
+    <button class="sbnav wip-nav" data-tab="crm" onclick="toast('🚧 Coming soon')">
       <span class="sb-ico">🤝</span><span class="sb-lbl">CRM</span><span class="sb-wip">WIP</span>
     </button>
   </div>
@@ -1528,7 +1528,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,#dcf0fa 0
     <button class="sbnav" data-tab="analytics" onclick="sw('analytics',this)">
       <span class="sb-ico">📈</span><span class="sb-lbl">Analytics</span>
     </button>
-    <button class="sbnav wip-nav">
+    <button class="sbnav wip-nav" data-tab="targets" onclick="toast('🚧 Coming soon')">
       <span class="sb-ico">🎯</span><span class="sb-lbl">Targets</span><span class="sb-wip">WIP</span>
     </button>
   </div>
@@ -6067,7 +6067,7 @@ function _az(arr,key){ return [...arr].sort((a,b)=>{ const av=key?key(a):a; cons
 /* ── Modules On/Off — har module ke liye; sirf hide/disable, data safe ── */
 const FEAT_KEY='bf9_feat_off';
 const FEAT_FIXED=['home','settings','whats-new'];
-function _featOffMap(){ try{ const m=JSON.parse(localStorage.getItem(FEAT_KEY)); if(m&&typeof m==='object') return m; }catch(e){} return {plan:1,tracking:1}; }
+function _featOffMap(){ try{ const m=JSON.parse(localStorage.getItem(FEAT_KEY)); if(m&&typeof m==='object'){ if(!m._v2){ m._v2=1; m.quotations=1; m.crm=1; m.targets=1; try{ localStorage.setItem(FEAT_KEY,JSON.stringify(m)); }catch(e){} } return m; } }catch(e){} return {plan:1,tracking:1,quotations:1,crm:1,targets:1}; }
 function _featOff(tab){ return !FEAT_FIXED.includes(tab) && !!_featOffMap()[tab]; }
 function _featSet(tab,on){
   const m=_featOffMap(); if(on) delete m[tab]; else m[tab]=1;
@@ -23772,3 +23772,4 @@ document.querySelectorAll('.sbnav[data-tab]').forEach(function(b){
 </script>
 </body>
 </html>
+  
